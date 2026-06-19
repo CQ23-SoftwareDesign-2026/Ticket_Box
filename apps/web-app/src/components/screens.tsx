@@ -99,8 +99,8 @@ export function HeroCarousel() {
   const description = loading
     ? "We are loading the latest concert from the database."
     : featuredConcert?.aiBio ||
-    featuredConcert?.description ||
-    "No featured concert is available right now.";
+      featuredConcert?.description ||
+      "No featured concert is available right now.";
   const ticketTier = featuredConcert?.ticketTiers?.[0];
   const priceLabel = ticketTier
     ? `${ticketTier.name} • ${formatConcertCurrency(ticketTier.price)}`
@@ -439,7 +439,9 @@ export function InteractiveTicketSelector({
         // The backend does not return expires_at, so we derive the 10-minute
         // ceiling here, at reservation time. This anchor is written once to
         // localStorage and is NEVER regenerated on subsequent page mounts.
-        expiresAt: response.expires_at ?? new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+        expiresAt:
+          response.expires_at ??
+          new Date(Date.now() + 10 * 60 * 1000).toISOString(),
       });
 
       router.push(`/checkout/${response.order_id}`);
@@ -471,10 +473,11 @@ export function InteractiveTicketSelector({
                 <div
                   key={tier.id || tier.name}
                   onClick={() => setSelectedIdx(index)}
-                  className={`p-5 cursor-pointer rounded-[20px] border-2 transition-all duration-200 ${isSelected
-                    ? "border-primary bg-primary/5 shadow-sm scale-[1.01]"
-                    : "border-outline-variant/60 bg-surface hover:border-primary/30"
-                    }`}
+                  className={`p-5 cursor-pointer rounded-[20px] border-2 transition-all duration-200 ${
+                    isSelected
+                      ? "border-primary bg-primary/5 shadow-sm scale-[1.01]"
+                      : "border-outline-variant/60 bg-surface hover:border-primary/30"
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-2">
@@ -831,7 +834,7 @@ export function useReservationTimer(orderId?: string) {
     }, 1000);
 
     return () => clearInterval(interval);
-  // orderId is stable for the lifetime of the checkout page, so this is safe.
+    // orderId is stable for the lifetime of the checkout page, so this is safe.
   }, [orderId]);
 
   const formatTime = (ms: number | null) => {
@@ -864,9 +867,7 @@ export function PaymentMethodPicker() {
                 <span className="font-bold text-blue-600">PayOS</span>
               </div>
               <div>
-                <p className="text-sm font-semibold text-on-surface">
-                  PayOS
-                </p>
+                <p className="text-sm font-semibold text-on-surface">PayOS</p>
                 <p className="text-sm text-on-surface-variant">
                   Secure local payment gateway
                 </p>
@@ -1031,7 +1032,8 @@ export function CountdownTimer({ orderId }: { orderId?: string }) {
               Đã Hết Thời Gian
             </h2>
             <p className="text-sm text-on-surface-variant leading-relaxed mb-8">
-              Thời gian giữ chỗ của bạn đã kết thúc. Các vé đã được phân bổ lại phục hồi pool.
+              Thời gian giữ chỗ của bạn đã kết thúc. Các vé đã được phân bổ lại
+              phục hồi pool.
             </p>
             <Button
               className="w-full justify-center"
