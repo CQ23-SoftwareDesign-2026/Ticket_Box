@@ -28,7 +28,7 @@ export default async function CheckoutPage({
             Reservation {orderId}
           </p>
         </div>
-        <CountdownTimer />
+        <CountdownTimer orderId={orderId} />
       </div>
       <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-6">

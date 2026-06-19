@@ -99,8 +99,8 @@ export function HeroCarousel() {
   const description = loading
     ? "We are loading the latest concert from the database."
     : featuredConcert?.aiBio ||
-      featuredConcert?.description ||
-      "No featured concert is available right now.";
+    featuredConcert?.description ||
+    "No featured concert is available right now.";
   const ticketTier = featuredConcert?.ticketTiers?.[0];
   const priceLabel = ticketTier
     ? `${ticketTier.name} • ${formatConcertCurrency(ticketTier.price)}`
@@ -436,7 +436,10 @@ export function InteractiveTicketSelector({
         quantity,
         remaining: response.items[0]?.remaining ?? 0,
         reservedAt: new Date().toISOString(),
-        expiresAt: response.expires_at,
+        // The backend does not return expires_at, so we derive the 10-minute
+        // ceiling here, at reservation time. This anchor is written once to
+        // localStorage and is NEVER regenerated on subsequent page mounts.
+        expiresAt: response.expires_at ?? new Date(Date.now() + 10 * 60 * 1000).toISOString(),
       });
 
       router.push(`/checkout/${response.order_id}`);
@@ -468,11 +471,10 @@ export function InteractiveTicketSelector({
                 <div
                   key={tier.id || tier.name}
                   onClick={() => setSelectedIdx(index)}
-                  className={`p-5 cursor-pointer rounded-[20px] border-2 transition-all duration-200 ${
-                    isSelected
-                      ? "border-primary bg-primary/5 shadow-sm scale-[1.01]"
-                      : "border-outline-variant/60 bg-surface hover:border-primary/30"
-                  }`}
+                  className={`p-5 cursor-pointer rounded-[20px] border-2 transition-all duration-200 ${isSelected
+                    ? "border-primary bg-primary/5 shadow-sm scale-[1.01]"
+                    : "border-outline-variant/60 bg-surface hover:border-primary/30"
+                    }`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-2">
@@ -786,6 +788,63 @@ export function CustomerInfoForm() {
   );
 }
 
+/**
+ * High-precision reservation countdown hook.
+ *
+ * Accepts an optional `orderId` to scope the timer to a specific order.
+ * The expiry anchor (expiresAt) is read ONCE from localStorage and never
+ * regenerated — so navigating away and returning always resumes the same
+ * countdown without any reset.
+ */
+export function useReservationTimer(orderId?: string) {
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [isExpired, setIsExpired] = useState(false);
+
+  useEffect(() => {
+    const state = getCheckoutReservationState();
+
+    // If an orderId is supplied, it must match what is stored; otherwise we
+    // would be running the wrong timer for the wrong order.
+    if (!state?.expiresAt) return;
+    if (orderId && state.orderId !== orderId) return;
+
+    const expiresAtTime = new Date(state.expiresAt).getTime();
+    // Guard against a corrupted / unparseable date string.
+    if (isNaN(expiresAtTime)) return;
+
+    const updateTimer = () => {
+      const remaining = expiresAtTime - Date.now();
+      if (remaining <= 0) {
+        setTimeLeft(0);
+        setIsExpired(true);
+        return true; // signals the caller to stop the interval
+      }
+      setTimeLeft(remaining);
+      return false;
+    };
+
+    // Fire immediately so there is no 1-second blank flash on mount.
+    if (updateTimer()) return;
+
+    const interval = setInterval(() => {
+      if (updateTimer()) clearInterval(interval);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  // orderId is stable for the lifetime of the checkout page, so this is safe.
+  }, [orderId]);
+
+  const formatTime = (ms: number | null) => {
+    if (ms === null) return "--:--";
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  return { formattedTime: formatTime(timeLeft), isExpired };
+}
+
 export function PaymentMethodPicker() {
   return (
     <Card className="space-y-5 p-6">
@@ -798,49 +857,26 @@ export function PaymentMethodPicker() {
         </h2>
       </div>
       <div className="space-y-4">
-        {checkoutPayments.map((payment) => (
-          <div
-            key={payment.label}
-            className={`rounded-2xl border p-4 ${payment.selected ? "border-primary bg-primary/5" : "border-outline-variant bg-surface"}`}
-          >
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <payment.icon size={20} className="text-gray-600" />
-                <div>
-                  <p className="text-sm font-semibold text-on-surface">
-                    {payment.label}
-                  </p>
-                  <p className="text-sm text-on-surface-variant">
-                    {payment.note}
-                  </p>
-                </div>
+        <div className="rounded-2xl border border-primary bg-primary/5 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-10 w-16 items-center justify-center rounded-lg bg-white shadow-sm">
+                <span className="font-bold text-blue-600">PayOS</span>
               </div>
-              <span
-                className={`h-5 w-5 rounded-full border-2 ${payment.selected ? "border-primary bg-primary" : "border-outline-variant"}`}
-              >
-                {payment.selected ? (
-                  <span className="mx-auto mt-[3px] block h-2.5 w-2.5 rounded-full bg-white" />
-                ) : null}
-              </span>
+              <div>
+                <p className="text-sm font-semibold text-on-surface">
+                  PayOS
+                </p>
+                <p className="text-sm text-on-surface-variant">
+                  Secure local payment gateway
+                </p>
+              </div>
             </div>
-            {payment.selected ? (
-              <div className="mt-4 grid gap-3 border-t border-outline-variant pt-4 sm:grid-cols-2">
-                <input
-                  defaultValue="4242 4242 4242 4242"
-                  className="rounded-xl border border-outline-variant bg-surface px-4 py-3 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15 sm:col-span-2"
-                />
-                <input
-                  defaultValue="12/28"
-                  className="rounded-xl border border-outline-variant bg-surface px-4 py-3 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
-                />
-                <input
-                  defaultValue="112"
-                  className="rounded-xl border border-outline-variant bg-surface px-4 py-3 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
-                />
-              </div>
-            ) : null}
+            <span className="h-5 w-5 rounded-full border-2 border-primary bg-primary">
+              <span className="mx-auto mt-[3px] block h-2.5 w-2.5 rounded-full bg-white" />
+            </span>
           </div>
-        ))}
+        </div>
       </div>
     </Card>
   );
@@ -961,26 +997,63 @@ export function OrderSummaryCard() {
       <Button href={payHref} className="w-full justify-center">
         Pay {total}
       </Button>
-      <div className="rounded-2xl bg-primary/5 p-4 text-sm text-on-surface-variant">
-        Reservation expires in{" "}
-        <span className="font-semibold text-primary">{orderSummary.timer}</span>
-        .
-      </div>
+      <TimerFootnote orderId={checkoutState?.orderId} />
     </Card>
   );
 }
 
-export function CountdownTimer() {
+/** Small inline timer badge used inside OrderSummaryCard. */
+function TimerFootnote({ orderId }: { orderId?: string }) {
+  const { formattedTime } = useReservationTimer(orderId);
   return (
-    <Card className="hero-shimmer p-5 text-white">
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">
-        Hold timer
-      </p>
-      <div className="mt-3 text-4xl font-black">09:12</div>
-      <p className="mt-2 text-sm text-white/80">
-        Your reserved seats will release automatically when the timer ends.
-      </p>
-    </Card>
+    <div className="rounded-2xl bg-primary/5 p-4 text-sm text-on-surface-variant">
+      Reservation expires in{" "}
+      <span className="font-semibold text-primary">{formattedTime}</span>.
+    </div>
+  );
+}
+
+export function CountdownTimer({ orderId }: { orderId?: string }) {
+  const { formattedTime, isExpired } = useReservationTimer(orderId);
+  const router = useRouter();
+
+  return (
+    <>
+      {isExpired && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md">
+          <Card className="w-full max-w-md p-8 text-center shadow-2xl mx-4">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-error/10 text-error">
+              <span className="material-symbols-outlined text-[32px]">
+                timer_off
+              </span>
+            </div>
+            <h2 className="font-display text-2xl font-bold text-on-surface mb-2">
+              Đã Hết Thời Gian
+            </h2>
+            <p className="text-sm text-on-surface-variant leading-relaxed mb-8">
+              Thời gian giữ chỗ của bạn đã kết thúc. Các vé đã được phân bổ lại phục hồi pool.
+            </p>
+            <Button
+              className="w-full justify-center"
+              onClick={() => {
+                router.push("/catalog");
+              }}
+            >
+              Xác nhận
+            </Button>
+          </Card>
+        </div>
+      )}
+      <Card className="hero-shimmer p-5 text-white">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">
+          Hold timer
+        </p>
+        <div className="mt-3 text-4xl font-black">{formattedTime}</div>
+        <p className="mt-2 text-sm text-white/80">
+          Your reserved seats will release automatically when the timer ends.
+        </p>
+      </Card>
+    </>
   );
 }
 
