@@ -11,7 +11,8 @@ type ButtonProps = {
   href?: string;
   variant?: "primary" | "secondary" | "ghost" | "soft";
   className?: string;
-};
+} & React.ButtonHTMLAttributes<HTMLButtonElement> &
+  React.AnchorHTMLAttributes<HTMLAnchorElement>;
 
 const buttonStyles = {
   primary: "bg-primary text-on-primary hover:bg-primary-container",
@@ -25,6 +26,7 @@ export function Button({
   href,
   variant = "primary",
   className = "",
+  ...props
 }: ButtonProps) {
   const classes = [
     "inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98]",
@@ -36,13 +38,17 @@ export function Button({
 
   if (href) {
     return (
-      <Link href={href} className={classes}>
+      <Link href={href} className={classes} {...props}>
         {children}
       </Link>
     );
   }
 
-  return <button className={classes}>{children}</button>;
+  return (
+    <button className={classes} {...props}>
+      {children}
+    </button>
+  );
 }
 
 export function Badge({
