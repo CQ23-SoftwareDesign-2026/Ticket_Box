@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   activityTimeline,
@@ -17,7 +17,7 @@ import {
   tickets,
 } from "@/lib/mock-data";
 import { Badge, Button, Card, SectionHeading, Tabs } from "@/components/common";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, X, ZoomIn, ZoomOut } from "lucide-react";
 import {
   formatConcertCurrency,
   formatConcertDateTime,
@@ -91,10 +91,6 @@ export function HeroCarousel() {
   const dateTime = featuredConcert
     ? formatConcertDateTime(featuredConcert.startTime)
     : { date: "TBA", time: "" };
-  const date = dateTime.date;
-  const time = dateTime.time;
-  const venue = featuredConcert?.venue ?? "Awaiting venue";
-  const city = featuredConcert?.city ?? "Awaiting city";
   const description = loading
     ? "We are loading the latest concert from the database."
     : featuredConcert?.aiBio ||
@@ -615,74 +611,204 @@ export function ConcertDetailHero({ concert }: { concert: ConcertDetailItem }) {
   const date = dateTime.date;
   const time = dateTime.time;
 
-  return (
-    <Card className="overflow-hidden border-0 bg-white p-0 relative shadow-sm rounded-[28px]">
-      <div className="relative w-full min-h-[280px] sm:min-h-[320px] lg:min-h-[400px]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={
-            concert.posterUrl &&
-            concert.posterUrl !==
-              "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih"
-              ? concert.posterUrl
-              : "/Mockimg.webp"
-          }
-          alt={concert.title}
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/40 to-transparent" />
+  const spotlightRef = useRef<HTMLDivElement>(null);
 
-        <div className="absolute bottom-0 left-0 w-full p-6 sm:p-8 md:p-10 z-10 text-white">
-          <Badge className="bg-primary text-white mb-4 shadow-lg border-0">
-            {concert.status}
-          </Badge>
-          <h1 className="font-display text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl mb-4 drop-shadow-md">
-            {concert.title}
-          </h1>
-          <p className="max-w-3xl text-sm sm:text-base leading-relaxed text-white/90 drop-shadow-sm mb-6 line-clamp-3">
-            {concert.aiBio || concert.description}
-          </p>
-          <div className="flex flex-wrap gap-4 text-xs sm:text-sm font-medium">
-            <span className="flex items-center gap-2">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
-                <line x1="16" x2="16" y1="2" y2="6" />
-                <line x1="8" x2="8" y1="2" y2="6" />
-                <line x1="3" x2="21" y1="10" y2="10" />
-              </svg>
-              {date} {time ? ` · ${time}` : ""}
-            </span>
-            <span className="flex items-center gap-2">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                <circle cx="12" cy="10" r="3" />
-              </svg>
-              {concert.venue} {concert.city ? `, ${concert.city}` : ""}
-            </span>
+  function handlePosterMove(e: React.MouseEvent<HTMLDivElement>) {
+    const el = spotlightRef.current;
+    if (!el) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    el.style.background = `radial-gradient(320px circle at ${x}% ${y}%, rgba(216,181,110,0.22), transparent 70%)`;
+  }
+
+  function handlePosterLeave() {
+    const el = spotlightRef.current;
+    if (el) el.style.background = "transparent";
+  }
+
+  return (
+    <section
+      className="relative overflow-hidden rounded-[28px] shadow-2xl"
+      style={{ backgroundColor: "#15111c" }}
+    >
+      <style>{`
+        @media (prefers-reduced-motion: no-preference) {
+          .ticket-rise {
+            opacity: 0;
+            transform: translateY(10px);
+            animation: ticketRise 0.7s cubic-bezier(0.16, 0.84, 0.44, 1) forwards;
+          }
+          @keyframes ticketRise {
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .ticket-poster {
+            opacity: 0;
+            transform: scale(1.04);
+            animation: ticketPoster 0.9s cubic-bezier(0.16, 0.84, 0.44, 1) forwards;
+          }
+          @keyframes ticketPoster {
+            to { opacity: 1; transform: scale(1); }
+          }
+        }
+      `}</style>
+
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.05] mix-blend-overlay"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(45deg, #fff 0px, #fff 1px, transparent 1px, transparent 3px)",
+        }}
+      />
+      <div className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-[#d8b56e]/10 blur-3xl" />
+
+      <div className="relative grid grid-cols-1 lg:grid-cols-[minmax(0,440px)_28px_1fr]">
+        <div
+          className="relative z-10 flex flex-col gap-7 p-6 sm:p-8 lg:p-10"
+          style={{
+            backgroundImage:
+              "linear-gradient(to bottom, rgba(255,255,255,0.045), transparent)",
+          }}
+        >
+          <div className="ticket-rise" style={{ animationDelay: "60ms" }}>
+            <SectionHeading
+              tone="dark"
+              eyebrow={
+                <span className="inline-flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-[#d8b56e] opacity-70 motion-safe:animate-ping" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#d8b56e]" />
+                  </span>
+                  {concert.status}
+                </span>
+              }
+              title={concert.title}
+            />
+          </div>
+
+          <div
+            className="ticket-rise flex flex-col gap-4 border-t border-[#f6f2ec]/10 pt-6 text-sm"
+            style={{ animationDelay: "180ms" }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full ring-1 ring-[#d8b56e]/25 bg-[#d8b56e]/10">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#d8b56e"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+                  <line x1="16" x2="16" y1="2" y2="6" />
+                  <line x1="8" x2="8" y1="2" y2="6" />
+                  <line x1="3" x2="21" y1="10" y2="10" />
+                </svg>
+              </span>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#f6f2ec]/45">
+                  Thời gian
+                </span>
+                <span className="font-mono text-sm text-[#f6f2ec]">
+                  {time ? `${time} · ` : ""}
+                  {date}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full ring-1 ring-[#d8b56e]/25 bg-[#d8b56e]/10">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#d8b56e"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+              </span>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#f6f2ec]/45">
+                  Địa điểm
+                </span>
+                <span className="text-sm font-semibold text-[#f6f2ec]">
+                  {concert.venue}
+                  {concert.city ? (
+                    <span className="font-normal text-[#f6f2ec]/55">
+                      , {concert.city}
+                    </span>
+                  ) : null}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* SEAM — mobile: horizontal tear line */}
+        <div className="flex lg:hidden items-center gap-2 px-6">
+          <span className="h-3 w-3 rounded-full bg-[#15111c] ring-1 ring-[#d8b56e]/30 -ml-[22px]" />
+          <span className="flex-1 border-t border-dashed border-[#f6f2ec]/15" />
+          <span className="h-3 w-3 rounded-full bg-[#15111c] ring-1 ring-[#d8b56e]/30 -mr-[22px]" />
+        </div>
+
+        {/* SEAM — desktop: vertical tear line with rotated stub label */}
+        <div className="relative hidden lg:flex flex-col items-center py-6">
+          <span className="h-3 w-3 rounded-full bg-[#15111c] ring-1 ring-[#d8b56e]/30 -mt-[22px]" />
+          <span className="mt-2 flex-1 w-px border-l border-dashed border-[#f6f2ec]/15" />
+          <span className="my-3 rotate-180 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.3em] text-[#f6f2ec]/30 [writing-mode:vertical-rl]">
+            Vé điện tử
+          </span>
+          <span className="flex-1 w-px border-l border-dashed border-[#f6f2ec]/15" />
+          <span className="h-3 w-3 rounded-full bg-[#15111c] ring-1 ring-[#d8b56e]/30 -mb-[22px]" />
+        </div>
+
+        {/* RIGHT: poster */}
+        <div
+          className="ticket-poster relative min-h-[280px] sm:min-h-[380px] lg:min-h-[520px] overflow-hidden"
+          onMouseMove={handlePosterMove}
+          onMouseLeave={handlePosterLeave}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={concert.posterUrl || "/Mockimg.webp"}
+            alt={concert.title}
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out hover:scale-[1.03]"
+          />
+
+          {/* cursor-driven stage spotlight */}
+          <div
+            ref={spotlightRef}
+            className="pointer-events-none absolute inset-0 transition-[background] duration-200"
+          />
+
+          {/* legibility fades, anchored to the ink tone so the seam reads continuous */}
+          <div
+            className="pointer-events-none absolute inset-0 hidden lg:block"
+            style={{
+              backgroundImage:
+                "linear-gradient(to right, #15111c 0%, rgba(21,17,28,0.05) 30%, transparent 55%)",
+            }}
+          />
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              backgroundImage:
+                "linear-gradient(to top, rgba(21,17,28,0.65) 0%, transparent 38%)",
+            }}
+          />
+        </div>
       </div>
-    </Card>
+    </section>
   );
 }
 
@@ -1478,5 +1604,128 @@ export function MyTicketsHero() {
         <Tabs items={ticketTabs} active="Upcoming" />
       </div>
     </Card>
+  );
+}
+
+export function SeatMapViewer({ mapUrl }: { mapUrl?: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  const effectiveUrl =
+    mapUrl && mapUrl !== "https://cdn.ticketbox.local/maps/default.svg"
+      ? mapUrl
+      : "/mock/seat_map.svg";
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
+  const handleZoomIn = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setScale((s) => Math.min(s + 0.5, 4));
+  };
+
+  const handleZoomOut = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setScale((s) => Math.max(s - 0.5, 0.5));
+  };
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+  };
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (isDragging) {
+      setPosition({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+    }
+  };
+
+  const onMouseUp = () => setIsDragging(false);
+
+  return (
+    <>
+      <div
+        onClick={() => {
+          setScale(1);
+          setPosition({ x: 0, y: 0 });
+          setIsOpen(true);
+        }}
+        className="group bg-gray-50 rounded-2xl border border-gray-100 p-8 flex flex-col items-center justify-center min-h-[300px] hover:bg-gray-100 transition-colors cursor-pointer relative overflow-hidden"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={effectiveUrl}
+          alt="Seat Map"
+          className="w-full h-auto max-h-[350px] object-contain transition-transform duration-500 group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-white/0 group-hover:bg-white/40 transition-colors duration-300 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100">
+          <div className="inline-flex items-center justify-center p-4 bg-primary rounded-full shadow-xl mb-3 text-white transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+            <ZoomIn size={28} />
+          </div>
+          <p className="text-sm font-bold text-gray-900 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 delay-75 bg-white/90 px-4 py-1.5 rounded-full shadow-sm">
+            Click to View Map Details
+          </p>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/95 backdrop-blur-md">
+          <button
+            onClick={() => setIsOpen(false)}
+            className="absolute top-6 right-6 text-white/70 hover:text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors z-50"
+          >
+            <X size={24} />
+          </button>
+
+          <div className="absolute bottom-10 flex items-center gap-2 bg-white/10 backdrop-blur-xl p-2 rounded-2xl z-50 border border-white/20 shadow-2xl">
+            <button
+              onClick={handleZoomOut}
+              className="p-3 text-white hover:bg-white/20 rounded-xl transition-colors active:scale-95"
+            >
+              <ZoomOut size={24} />
+            </button>
+            <div className="w-px h-8 bg-white/20 mx-2" />
+            <button
+              onClick={handleZoomIn}
+              className="p-3 text-white hover:bg-white/20 rounded-xl transition-colors active:scale-95"
+            >
+              <ZoomIn size={24} />
+            </button>
+          </div>
+
+          <div
+            className={`w-full h-full overflow-hidden flex items-center justify-center ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+            onMouseDown={onMouseDown}
+            onMouseMove={onMouseMove}
+            onMouseUp={onMouseUp}
+            onMouseLeave={onMouseUp}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={effectiveUrl}
+              alt="Seat Map Fullscreen"
+              style={{
+                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                transition: isDragging
+                  ? "none"
+                  : "transform 0.2s cubic-bezier(0.2, 0, 0, 1)",
+              }}
+              className="max-w-[90vw] max-h-[90vh] object-contain pointer-events-none drop-shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 }

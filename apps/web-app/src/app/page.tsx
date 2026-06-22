@@ -110,7 +110,10 @@ function ConcertsSection() {
   });
 
   return (
-    <section className="mx-auto w-full max-w-7xl px-4 pt-10 pb-16 sm:px-6 lg:px-8">
+    <section
+      id="upcoming-concerts"
+      className="mx-auto w-full max-w-7xl px-4 pt-10 pb-16 sm:px-6 lg:px-8"
+    >
       <div className="ticketbox-panel p-6 sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <SectionHeading eyebrow="Discover" title="Upcoming concerts" />

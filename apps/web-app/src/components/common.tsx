@@ -137,25 +137,45 @@ export function SectionHeading({
   title,
   description,
   action,
+  tone = "light",
 }: {
-  eyebrow?: string;
+  eyebrow?: ReactNode;
   title: string;
   description?: string;
   action?: ReactNode;
+  /** "light" = original surface styling, "dark" = for use on dark/hero backgrounds */
+  tone?: "light" | "dark";
 }) {
+  const isDark = tone === "dark";
+
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="max-w-2xl space-y-2">
         {eyebrow ? (
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
+          <div
+            className={
+              "text-xs font-semibold uppercase tracking-[0.24em] " +
+              (isDark ? "text-[#d8b56e]" : "text-primary")
+            }
+          >
             {eyebrow}
-          </p>
+          </div>
         ) : null}
-        <h2 className="font-display text-2xl font-bold tracking-tight text-on-surface sm:text-3xl">
+        <h2
+          className={
+            "font-display text-2xl font-bold tracking-tight sm:text-3xl " +
+            (isDark ? "text-[#f6f2ec]" : "text-on-surface")
+          }
+        >
           {title}
         </h2>
         {description ? (
-          <p className="max-w-2xl text-sm leading-6 text-on-surface-variant sm:text-base">
+          <p
+            className={
+              "max-w-2xl text-sm leading-6 sm:text-base " +
+              (isDark ? "text-[#f6f2ec]/65" : "text-on-surface-variant")
+            }
+          >
             {description}
           </p>
         ) : null}
