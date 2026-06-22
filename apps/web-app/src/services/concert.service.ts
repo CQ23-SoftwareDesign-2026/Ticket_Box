@@ -70,6 +70,7 @@ export interface ConcertQuery {
   page?: number;
   limit?: number;
   search?: string;
+  status?: string;
 }
 
 export const DEFAULT_POSTER_URL = "/Mockimg.webp";
@@ -165,6 +166,10 @@ export async function getConcerts(query: ConcertQuery = {}) {
 
   if (query.search && query.search.trim()) {
     params.set("search", query.search.trim());
+  }
+
+  if (query.status && query.status.trim()) {
+    params.set("status", query.status.trim());
   }
 
   const isServer = typeof window === "undefined";

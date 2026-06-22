@@ -26,6 +26,7 @@ function LoadingState() {
 function ConcertsSection() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("PUBLISHED");
   const [items, setItems] = useState<ConcertCardItem[]>([]);
   const [meta, setMeta] = useState<ConcertListMeta>({
     totalItems: 0,
@@ -49,6 +50,7 @@ function ConcertsSection() {
             page,
             limit: meta.itemsPerPage,
             search: search.trim() || undefined,
+            status: statusFilter,
           });
 
           if (!isActive) {
@@ -82,7 +84,7 @@ function ConcertsSection() {
       isActive = false;
       window.clearTimeout(timeoutId);
     };
-  }, [meta.itemsPerPage, page, search]);
+  }, [meta.itemsPerPage, page, search, statusFilter]);
 
   const totalPages = Math.max(meta.totalPages, 1);
   const startItem =
@@ -108,27 +110,46 @@ function ConcertsSection() {
   });
 
   return (
-    <section className="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+    <section className="mx-auto w-full max-w-7xl px-4 pt-10 pb-16 sm:px-6 lg:px-8">
       <div className="ticketbox-panel p-6 sm:p-8">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <SectionHeading eyebrow="Discover" title="Upcoming concerts" />
-          <div className="w-full max-w-md">
-            <label
-              className="mb-2 block text-sm font-semibold text-slate-700"
-              htmlFor="concert-search"
-            >
-              Search concerts
-            </label>
-            <input
-              id="concert-search"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(1);
-              }}
-              placeholder="Search by name or location"
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#0f62fe] focus:ring-4 focus:ring-[#0f62fe]/10"
-            />
+          <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto items-start sm:items-end">
+            <div className="w-full sm:w-auto">
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Status</label>
+              <div className="flex items-center bg-slate-100 p-1 rounded-2xl w-full sm:w-auto">
+                <button
+                  onClick={() => { setStatusFilter("PUBLISHED"); setPage(1); }}
+                  className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${statusFilter === "PUBLISHED" ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                >
+                  Published
+                </button>
+                <button
+                  onClick={() => { setStatusFilter("COMPLETED"); setPage(1); }}
+                  className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${statusFilter === "COMPLETED" ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                >
+                  Completed
+                </button>
+              </div>
+            </div>
+            <div className="w-full sm:w-72">
+              <label
+                className="mb-2 block text-sm font-semibold text-slate-700"
+                htmlFor="concert-search"
+              >
+                Search concerts
+              </label>
+              <input
+                id="concert-search"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="Search by name or location"
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
+              />
+            </div>
           </div>
         </div>
 
@@ -156,25 +177,25 @@ function ConcertsSection() {
         <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {loading
             ? Array.from({ length: 6 }, (_, index) => (
-                <div
-                  key={index}
-                  className="animate-pulse rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.05)]"
-                >
-                  <div className="h-4 w-24 rounded-full bg-slate-100" />
-                  <div className="mt-4 h-6 w-3/4 rounded-full bg-slate-100" />
-                  <div className="mt-3 h-4 w-full rounded-full bg-slate-100" />
-                  <div className="mt-2 h-4 w-5/6 rounded-full bg-slate-100" />
-                  <div className="mt-6 h-10 w-full rounded-2xl bg-slate-100" />
-                </div>
-              ))
+              <div
+                key={index}
+                className="animate-pulse rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.05)]"
+              >
+                <div className="h-4 w-24 rounded-full bg-slate-100" />
+                <div className="mt-4 h-6 w-3/4 rounded-full bg-slate-100" />
+                <div className="mt-3 h-4 w-full rounded-full bg-slate-100" />
+                <div className="mt-2 h-4 w-5/6 rounded-full bg-slate-100" />
+                <div className="mt-6 h-10 w-full rounded-2xl bg-slate-100" />
+              </div>
+            ))
             : items.map((concert, index) => (
-                <div
-                  key={concert.id}
-                  className={index === 0 ? "md:col-span-2" : ""}
-                >
-                  <ConcertCard concert={concert} featured={index === 0} />
-                </div>
-              ))}
+              <div
+                key={concert.id}
+                className={index === 0 ? "md:col-span-2" : ""}
+              >
+                <ConcertCard concert={concert} featured={index === 0} />
+              </div>
+            ))}
         </div>
 
         {totalPages > 1 ? (
@@ -211,11 +232,10 @@ function ConcertsSection() {
                     type="button"
                     onClick={() => setPage(pageNumber)}
                     disabled={loading}
-                    className={`min-w-[2.5rem] rounded-full px-4 py-2 text-sm font-semibold transition ${
-                      pageNumber === page
-                        ? "bg-primary text-white"
-                        : "border border-slate-200 text-slate-700 hover:border-primary hover:text-primary"
-                    } disabled:cursor-not-allowed disabled:opacity-50`}
+                    className={`min-w-[2.5rem] rounded-full px-4 py-2 text-sm font-semibold transition ${pageNumber === page
+                      ? "bg-primary text-white"
+                      : "border border-slate-200 text-slate-700 hover:border-primary hover:text-primary"
+                      } disabled:cursor-not-allowed disabled:opacity-50`}
                   >
                     {pageNumber}
                   </button>

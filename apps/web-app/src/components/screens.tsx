@@ -108,7 +108,7 @@ export function HeroCarousel() {
       : "Loading...";
 
   return (
-    <section className="relative overflow-hidden bg-gray-900 text-white min-h-[600px] flex items-center">
+    <section className="group relative overflow-hidden bg-gray-900 text-white min-h-[600px] flex items-end pb-20">
       {featuredConcert && (
         <img
           src={
@@ -118,41 +118,56 @@ export function HeroCarousel() {
               ? featuredConcert.posterUrl
               : "/Mockimg.webp"
           }
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-105"
           alt="Hero background"
         />
       )}
-      <div className="absolute inset-0 bg-gradient-to-r from-gray-900 via-gray-900/80 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-80" />
-      <div className="hero-shimmer absolute inset-0 opacity-30 mix-blend-overlay" />
-      <div className="relative mx-auto grid w-full max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:px-8 lg:py-20 z-10">
-        <div className="max-w-3xl space-y-6">
-          <Badge className="border border-white/20 bg-primary text-white shadow-lg">
-            {badge}
-          </Badge>
-          <h1 className="font-display text-4xl font-black tracking-tight sm:text-5xl lg:text-7xl drop-shadow-md">
-            {title}
-          </h1>
-          <p className="max-w-2xl text-base leading-relaxed text-white/90 sm:text-lg drop-shadow">
-            {description}
-          </p>
-          <div className="flex flex-wrap gap-4 pt-4">
-            <Button
-              href={
-                featuredConcert ? `/concerts/${featuredConcert.id}` : "/catalog"
-              }
-              variant="secondary"
-              className="bg-primary hover:bg-primary-container text-white border-0 shadow-xl px-8 py-4 text-base"
-            >
-              {loading ? "Loading..." : "Buy Tickets"} <ArrowRight size={18} />
-            </Button>
-            <Button
-              href="/support"
-              variant="ghost"
-              className="border-2 border-white/30 text-white hover:bg-white/10 px-8 py-4 text-base backdrop-blur-md"
-            >
-              Need help
-            </Button>
+      <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/20 to-transparent transition-opacity duration-700 opacity-80 group-hover:opacity-100" />
+      <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 via-gray-900/50 to-transparent transition-opacity duration-700 opacity-0 group-hover:opacity-100" />
+      <div className="hero-shimmer absolute inset-0 opacity-20 mix-blend-overlay transition-opacity duration-700 group-hover:opacity-40" />
+      
+      <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 z-10">
+        <div className="max-w-3xl">
+          <div className="space-y-4 transform transition-transform duration-700 ease-out group-hover:-translate-y-2">
+            <Badge className="border border-white/20 bg-white/20 backdrop-blur-md text-white shadow-xl px-4 py-1.5 rounded-full uppercase tracking-wider text-xs font-bold inline-flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+              </span>
+              {badge}
+            </Badge>
+            <h1 className="font-display text-4xl font-black tracking-tight sm:text-5xl lg:text-7xl drop-shadow-xl text-white">
+              {title}
+            </h1>
+          </div>
+          
+          <div className="grid grid-rows-[0fr] opacity-0 transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] group-hover:grid-rows-[1fr] group-hover:opacity-100">
+            <div className="overflow-hidden">
+              <div className="pt-6">
+                <p className="max-w-2xl text-base leading-relaxed text-white/90 sm:text-lg drop-shadow-lg mb-8 line-clamp-3">
+                  {description}
+                </p>
+                <div className="flex flex-wrap gap-4">
+                  <Button
+                    href={
+                      featuredConcert ? `/concerts/${featuredConcert.id}` : "/catalog"
+                    }
+                    variant="secondary"
+                    className="group/btn bg-primary hover:bg-primary-container text-white border-0 shadow-[0_0_40px_rgba(var(--color-primary),0.3)] hover:shadow-[0_0_60px_rgba(var(--color-primary),0.5)] px-8 py-4 text-base transition-all duration-300"
+                  >
+                    {loading ? "Loading..." : "Buy Tickets"} 
+                    <ArrowRight size={18} className="ml-2 transform transition-transform duration-300 group-hover/btn:translate-x-1" />
+                  </Button>
+                  <Button
+                    href="/support"
+                    variant="ghost"
+                    className="border border-white/30 text-white hover:bg-white/20 hover:border-white/50 px-8 py-4 text-base backdrop-blur-md transition-all duration-300"
+                  >
+                    Event Details
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -169,10 +184,10 @@ export function ConcertCard({
 }) {
   return (
     <Card
-      className={`card-lift h-full overflow-hidden flex flex-col p-0 bg-white border-0 shadow-md ${featured ? "sm:flex-row" : ""}`}
+      className={`group h-full overflow-hidden flex flex-col p-0 bg-white border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.15)] transition-all duration-500 hover:-translate-y-1 ${featured ? "sm:flex-row rounded-[2rem]" : "rounded-3xl"}`}
     >
       <div
-        className={`relative ${featured ? "w-full sm:w-5/12 min-h-[240px] sm:min-h-full" : "w-full h-56"}`}
+        className={`relative overflow-hidden ${featured ? "w-full sm:w-5/12 min-h-[280px] sm:min-h-full" : "w-full h-64"}`}
       >
         <img
           src={
@@ -185,36 +200,41 @@ export function ConcertCard({
               : "/Mockimg.webp"
           }
           alt={concert.title}
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
         />
-        <div className="absolute top-4 left-4 bg-white text-gray-900 text-xs font-bold px-3 py-2 rounded-xl flex flex-col items-center shadow-lg">
-          <span className="text-[10px] uppercase font-bold text-gray-500">
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        
+        <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-md text-gray-900 px-3 py-2 rounded-2xl flex flex-col items-center shadow-lg border border-white/50 transform transition-transform duration-500 group-hover:-translate-y-1">
+          <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
             {concert.date.split(" ")[0] || "OCT"}
           </span>
-          <span className="text-lg font-black">
+          <span className="text-xl font-black text-primary leading-none mt-1">
             {concert.date.split(" ")[1]?.replace(",", "") || "15"}
           </span>
         </div>
       </div>
       <div
-        className={`flex flex-1 flex-col justify-between p-6 bg-white ${featured ? "sm:w-7/12" : "w-full"}`}
+        className={`flex flex-1 flex-col justify-between bg-white transition-colors duration-500 group-hover:bg-gray-50/50 ${featured ? "p-8 sm:p-10 sm:w-7/12" : "p-6 w-full"}`}
       >
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-secondary animate-pulse" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-secondary">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-secondary">
               {concert.status}
             </span>
           </div>
-          <h3 className="font-display text-2xl font-bold text-gray-900">
+          <h3 className="font-display text-2xl sm:text-3xl font-black text-gray-900 transition-colors duration-300 group-hover:text-primary line-clamp-2">
             {concert.title}
           </h3>
           {featured && (
-            <p className="text-sm leading-relaxed text-gray-600 line-clamp-2">
+            <p className="text-sm sm:text-base leading-relaxed text-gray-600 line-clamp-3">
               {concert.description}
             </p>
           )}
-          <div className="flex items-center gap-2 text-sm text-gray-500 font-medium mt-2">
+          <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
@@ -225,25 +245,37 @@ export function ConcertCard({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
+              className="text-gray-400"
             >
               <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
               <circle cx="12" cy="10" r="3" />
             </svg>
-            {concert.venue}
+            <span className="truncate">{concert.venue}</span>
           </div>
         </div>
-        <div className="mt-6 flex items-end justify-between border-t border-gray-100 pt-5">
+        <div className="mt-8 flex items-end justify-between border-t border-gray-100 pt-6">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.1em] text-gray-500 font-bold mb-1">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400 font-bold mb-1">
               Starting from
             </p>
-            <p className="text-xl font-black text-gray-900">{concert.price}</p>
+            <p className="text-2xl font-black text-gray-900">{concert.price}</p>
           </div>
           <Link
             href={`/concerts/${concert.id}`}
-            className={`inline-flex items-center justify-center gap-2 rounded-full ${featured ? "bg-gray-100 hover:bg-gray-200 text-gray-900 w-10 h-10" : "bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-900 px-5 py-2 text-sm font-bold"} transition-colors`}
+            className={`group/btn inline-flex items-center justify-center gap-2 overflow-hidden relative transition-all duration-300 ${
+              featured 
+                ? "bg-gray-900 text-white w-12 h-12 rounded-full hover:bg-primary shadow-md hover:shadow-lg hover:-translate-y-0.5" 
+                : "bg-white border-2 border-gray-100 text-gray-900 px-6 py-2.5 rounded-full text-sm font-bold hover:border-primary hover:text-primary hover:bg-primary/5"
+            }`}
           >
-            {featured ? <ArrowRight size={18} /> : "Tickets"}
+            {featured ? (
+               <ArrowRight size={20} className="transform transition-transform duration-300 group-hover/btn:translate-x-1" />
+            ) : (
+               <>
+                 <span className="relative z-10 transition-transform duration-300 group-hover/btn:-translate-x-1">Tickets</span>
+                 <ArrowRight size={16} className="absolute right-4 transform transition-all duration-300 translate-x-4 opacity-0 group-hover/btn:translate-x-0 group-hover/btn:opacity-100" />
+               </>
+            )}
           </Link>
         </div>
       </div>

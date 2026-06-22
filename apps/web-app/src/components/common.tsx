@@ -3,7 +3,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { siteNavigation, siteName } from "@/lib/constants";
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, User as UserIcon, Ticket, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
 type ButtonProps = {
@@ -218,7 +219,8 @@ export function SiteShell({
   active?: string;
   action?: ReactNode;
 }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
+  const router = useRouter();
   const isAdmin =
     user?.roles?.includes("Admin") ||
     (typeof user === "object" &&
@@ -234,26 +236,42 @@ export function SiteShell({
             <BrandMark compact />
           </Link>
           <nav className="hidden items-center gap-7 md:flex">
-            {siteNavigation.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`text-sm font-semibold transition ${active === item.href ? "text-primary" : "text-on-surface-variant hover:text-primary"}`}
-              >
-                {item.label}
-              </Link>
-            ))}
+             {/* Navigation hidden per request, could add other links here if needed */}
           </nav>
           <div className="flex items-center gap-3">
-            {isAuthenticated && isAdmin && (
-              <Link
-                href="/admin/dashboard"
-                className="ticketbox-button-secondary px-4 py-2 text-sm flex items-center gap-1.5"
-              >
-                <LayoutDashboard size={18} className="text-current" /> Admin
-              </Link>
+            {isAuthenticated ? (
+              <div className="relative group">
+                <button className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-container text-primary-foreground font-bold hover:ring-2 hover:ring-primary transition-all">
+                  {user?.fullName?.charAt(0).toUpperCase() || "U"}
+                </button>
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
+                  <div className="p-2 flex flex-col gap-1 text-left">
+                    <Link href="/profile" className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                      <UserIcon size={16} /> Profile
+                    </Link>
+                    <Link href="/my-tickets" className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                      <Ticket size={16} /> My Tickets
+                    </Link>
+                    {isAdmin && (
+                      <Link href="/admin/dashboard" className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                        <LayoutDashboard size={16} /> Admin
+                      </Link>
+                    )}
+                    <div className="h-px bg-gray-100 my-1" />
+                    <button
+                      onClick={() => {
+                        void logout().then(() => router.replace("/login"));
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                    >
+                      <LogOut size={16} /> Log out
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              action
             )}
-            {action}
           </div>
         </div>
       </header>
@@ -274,6 +292,9 @@ export function SiteShell({
             </Link>
             <Link href="#" className="hover:text-white transition-colors">
               Privacy Policy
+            </Link>
+            <Link href="/support" className="hover:text-white transition-colors">
+              Support
             </Link>
             <Link href="#" className="hover:text-white transition-colors">
               Venue Partners
