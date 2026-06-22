@@ -258,36 +258,21 @@ export function SiteShell({
         </div>
       </header>
       <main className="flex-1">{children}</main>
-      <footer className="border-t border-outline-variant/60 bg-surface">
-        <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1.5fr_1fr_1fr] lg:px-8">
-          <div className="space-y-4">
-            <BrandMark compact />
-            <p className="max-w-md text-sm leading-6 text-on-surface-variant">
-              TicketBox is a premium concert booking experience with a clean
-              checkout flow, live ticket management, and responsive support.
-            </p>
-          </div>
-          <div>
-            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-on-surface-variant">
-              Navigate
-            </p>
-            <div className="space-y-3 text-sm text-on-surface-variant">
-              {siteNavigation.map((item) => (
-                <div key={item.href}>
-                  <Link href={item.href} className="hover:text-primary">
-                    {item.label}
-                  </Link>
-                </div>
-              ))}
+      <footer className="border-t border-gray-800 bg-[#2b2d31]">
+        <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-6 px-4 py-8 sm:flex-row sm:px-6 lg:px-8">
+          <div className="space-y-2 text-center sm:text-left">
+            <div className="font-display text-3xl font-black italic tracking-tight text-white drop-shadow-sm">
+              TicketBox
             </div>
+            <p className="text-xs font-semibold text-white/70 tracking-wide mt-1">
+              © 2026 TicketBox. All rights reserved.
+            </p>
           </div>
-          <div>
-            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-on-surface-variant">
-              Need help?
-            </p>
-            <p className="text-sm leading-6 text-on-surface-variant">
-              Support is available 24/7 for order, entry, and payment issues.
-            </p>
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs font-bold text-white/80">
+            <Link href="#" className="hover:text-white transition-colors">Terms of Service</Link>
+            <Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link>
+            <Link href="#" className="hover:text-white transition-colors">Venue Partners</Link>
+            <Link href="#" className="hover:text-white transition-colors">Developer API</Link>
           </div>
         </div>
       </footer>

@@ -8,6 +8,7 @@ import {
   updateConcert,
   getConcertById,
 } from "@/services/concert.service";
+import { uploadImage, uploadSvg } from "@/services/upload.service";
 import { getErrorMessage } from "@/utils/error.utils";
 import {
   ChevronRight,
@@ -39,6 +40,43 @@ function EventForm() {
   const [isLoading, setIsLoading] = useState(isEditing);
   const [isSaving, setIsSaving] = useState(false);
   const [pressKitFile, setPressKitFile] = useState<File | null>(null);
+
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isUploadingSvg, setIsUploadingSvg] = useState(false);
+
+  const handleCoverImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingImage(true);
+      const res = await uploadImage(file);
+      setFormData((prev) => ({ ...prev, poster_url: res.url }));
+      alert("Cover image uploaded successfully!");
+    } catch (error) {
+      console.error("Image upload failed", error);
+      alert("Failed to upload cover image.");
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleSvgMapChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingSvg(true);
+      const res = await uploadSvg(file);
+      setFormData((prev) => ({ ...prev, svg_map_url: res.url }));
+      alert("Seating map SVG uploaded successfully!");
+    } catch (error) {
+      console.error("SVG upload failed", error);
+      alert("Failed to upload seating map SVG.");
+    } finally {
+      setIsUploadingSvg(false);
+    }
+  };
 
   const [formData, setFormData] = useState({
     name: "",
@@ -325,18 +363,53 @@ function EventForm() {
                     (Optional)
                   </span>
                 </label>
+                {formData.poster_url && formData.poster_url !== "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih" && (
+                  <div className="mb-3 relative w-full h-40 rounded-xl overflow-hidden border border-border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={formData.poster_url} alt="Cover preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
                 <div className="mt-2 flex justify-center rounded-xl border-2 border-dashed border-border px-6 py-10 hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer group">
                   <div className="text-center">
                     <ImagePlus className="w-10 h-10 mx-auto text-muted-foreground group-hover:text-primary transition-colors mb-2" />
                     <div className="mt-4 flex text-sm leading-6 text-muted-foreground justify-center">
                       <label className="relative cursor-pointer rounded-md font-semibold text-primary focus-within:outline-none hover:text-primary/80">
-                        <span>Upload a file</span>
-                        <input className="sr-only" type="file" />
+                        <span>{isUploadingImage ? "Uploading..." : "Upload a file"}</span>
+                        <input className="sr-only" type="file" accept="image/*" onChange={handleCoverImageChange} disabled={isUploadingImage} />
                       </label>
-                      <p className="pl-1">or drag and drop</p>
+                      {!isUploadingImage && <p className="pl-1">or drag and drop</p>}
                     </div>
                     <p className="text-xs leading-5 text-muted-foreground">
-                      PNG, JPG, GIF up to 10MB
+                      PNG, JPG, WEBP up to 5MB
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-body text-xs font-semibold text-foreground mb-1">
+                  Seating Map SVG{" "}
+                  <span className="text-muted-foreground font-normal">
+                    (Optional)
+                  </span>
+                </label>
+                {formData.svg_map_url && formData.svg_map_url !== "https://cdn.ticketbox.local/maps/default.svg" && (
+                  <div className="mb-3 p-3 bg-surface-low rounded-xl border border-border text-xs text-muted-foreground break-all">
+                    Current map: {formData.svg_map_url}
+                  </div>
+                )}
+                <div className="mt-2 flex justify-center rounded-xl border-2 border-dashed border-border px-6 py-10 hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer group">
+                  <div className="text-center">
+                    <ImagePlus className="w-10 h-10 mx-auto text-muted-foreground group-hover:text-primary transition-colors mb-2" />
+                    <div className="mt-4 flex text-sm leading-6 text-muted-foreground justify-center">
+                      <label className="relative cursor-pointer rounded-md font-semibold text-primary focus-within:outline-none hover:text-primary/80">
+                        <span>{isUploadingSvg ? "Uploading..." : "Upload SVG file"}</span>
+                        <input className="sr-only" type="file" accept=".svg,image/svg+xml" onChange={handleSvgMapChange} disabled={isUploadingSvg} />
+                      </label>
+                      {!isUploadingSvg && <p className="pl-1">or drag and drop</p>}
+                    </div>
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      SVG up to 2MB
                     </p>
                   </div>
                 </div>

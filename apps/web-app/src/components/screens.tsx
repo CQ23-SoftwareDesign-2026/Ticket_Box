@@ -24,6 +24,7 @@ import {
   getConcertById,
   getConcerts,
   type ConcertDetailItem,
+  type ConcertCardItem,
 } from "@/services/concert.service";
 import { reserveTickets } from "@/services/ticketing.service";
 import {
@@ -97,8 +98,8 @@ export function HeroCarousel() {
   const description = loading
     ? "We are loading the latest concert from the database."
     : featuredConcert?.aiBio ||
-      featuredConcert?.description ||
-      "No featured concert is available right now.";
+    featuredConcert?.description ||
+    "No featured concert is available right now.";
   const ticketTier = featuredConcert?.ticketTiers?.[0];
   const priceLabel = ticketTier
     ? `${ticketTier.name} • ${formatConcertCurrency(ticketTier.price)}`
@@ -107,89 +108,47 @@ export function HeroCarousel() {
       : "Loading...";
 
   return (
-    <section className="relative overflow-hidden bg-surface text-white">
-      <div className="hero-shimmer absolute inset-0 opacity-95" />
-      <div className="surface-grid absolute inset-0 opacity-20" />
-      <div className="relative mx-auto grid w-full max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-20">
+    <section className="relative overflow-hidden bg-gray-900 text-white min-h-[600px] flex items-center">
+      {featuredConcert && (
+        <img
+          src={featuredConcert.posterUrl && featuredConcert.posterUrl !== "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih" ? featuredConcert.posterUrl : "/Mockimg.webp"}
+          className="absolute inset-0 w-full h-full object-cover"
+          alt="Hero background"
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-r from-gray-900 via-gray-900/80 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-80" />
+      <div className="hero-shimmer absolute inset-0 opacity-30 mix-blend-overlay" />
+      <div className="relative mx-auto grid w-full max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:px-8 lg:py-20 z-10">
         <div className="max-w-3xl space-y-6">
-          <Badge className="border border-white/20 bg-white/10 text-white">
+          <Badge className="border border-white/20 bg-primary text-white shadow-lg">
             {badge}
           </Badge>
-          <h1 className="font-display text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl">
+          <h1 className="font-display text-4xl font-black tracking-tight sm:text-5xl lg:text-7xl drop-shadow-md">
             {title}
           </h1>
-          <p className="max-w-2xl text-base leading-7 text-white/80 sm:text-lg">
+          <p className="max-w-2xl text-base leading-relaxed text-white/90 sm:text-lg drop-shadow">
             {description}
           </p>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-4 pt-4">
             <Button
               href={
                 featuredConcert ? `/concerts/${featuredConcert.id}` : "/catalog"
               }
               variant="secondary"
+              className="bg-primary hover:bg-primary-container text-white border-0 shadow-xl px-8 py-4 text-base"
             >
               {loading ? "Loading..." : "Buy Tickets"} <ArrowRight size={18} />
             </Button>
             <Button
               href="/support"
               variant="ghost"
-              className="border border-white/20 text-white hover:bg-white/10"
+              className="border-2 border-white/30 text-white hover:bg-white/10 px-8 py-4 text-base backdrop-blur-md"
             >
               Need help
             </Button>
           </div>
-          <div className="flex flex-wrap gap-3 text-sm text-white/75">
-            <span className="rounded-full bg-white/10 px-4 py-2">{date}</span>
-            {time ? (
-              <span className="rounded-full bg-white/10 px-4 py-2">{time}</span>
-            ) : null}
-            <span className="rounded-full bg-white/10 px-4 py-2">{venue}</span>
-            <span className="rounded-full bg-white/10 px-4 py-2">{city}</span>
-          </div>
         </div>
-        <Card className="border-white/15 bg-white/10 p-5 text-white backdrop-blur-xl">
-          <div className="space-y-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/70">
-                  Featured tour
-                </p>
-                <h2 className="mt-2 font-display text-2xl font-bold">
-                  {title}
-                </h2>
-              </div>
-              <Badge className="bg-white/15 text-white">{badge}</Badge>
-            </div>
-            <div className="grid gap-3 rounded-2xl bg-white/10 p-4 sm:grid-cols-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-white/65">
-                  Start time
-                </p>
-                <p className="mt-1 text-lg font-semibold">
-                  {date}
-                  {time ? ` • ${time}` : ""}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-white/65">
-                  Price
-                </p>
-                <p className="mt-1 text-lg font-semibold">{priceLabel}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-white/65">
-                  Max / user
-                </p>
-                <p className="mt-1 text-lg font-semibold">
-                  {ticketTier?.max_per_user ?? "N/A"}
-                </p>
-              </div>
-            </div>
-            <div className="rounded-2xl bg-white/10 p-4">
-              <p className="text-sm leading-6 text-white/80">{description}</p>
-            </div>
-          </div>
-        </Card>
       </div>
     </section>
   );
@@ -199,54 +158,58 @@ export function ConcertCard({
   concert,
   featured = false,
 }: {
-  concert: (typeof concerts)[number];
+  concert: ConcertCardItem | typeof concerts[number];
   featured?: boolean;
 }) {
   return (
     <Card
-      className={`card-lift h-full overflow-hidden ${featured ? "border-primary/30 bg-gradient-to-br from-white to-primary/5" : ""}`}
+      className={`card-lift h-full overflow-hidden flex flex-col p-0 bg-white border-0 shadow-md ${featured ? "sm:flex-row" : ""}`}
     >
-      <div className="flex h-full flex-col">
-        <div
-          className={`ticket-grid flex items-start justify-between gap-4 p-5 ${featured ? "min-h-44" : "min-h-36"}`}
-        >
-          <div className="max-w-[70%] space-y-2">
-            <Badge className="bg-white/90 text-primary">{concert.genre}</Badge>
-            <h3 className="font-display text-2xl font-bold text-on-surface">
-              {concert.title}
-            </h3>
-            <p className="text-sm leading-6 text-on-surface-variant">
+      <div className={`relative ${featured ? "w-full sm:w-5/12 min-h-[240px] sm:min-h-full" : "w-full h-56"}`}>
+        <img
+          src={
+            (concert as Record<string, unknown>).posterUrl && typeof (concert as Record<string, unknown>).posterUrl === "string" && (concert as Record<string, unknown>).posterUrl !== "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih"
+              ? (concert as Record<string, unknown>).posterUrl as string
+              : "/Mockimg.webp"
+          }
+          alt={concert.title}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute top-4 left-4 bg-white text-gray-900 text-xs font-bold px-3 py-2 rounded-xl flex flex-col items-center shadow-lg">
+          <span className="text-[10px] uppercase font-bold text-gray-500">{concert.date.split(" ")[0] || "OCT"}</span>
+          <span className="text-lg font-black">{concert.date.split(" ")[1]?.replace(',', '') || "15"}</span>
+        </div>
+      </div>
+      <div className={`flex flex-1 flex-col justify-between p-6 bg-white ${featured ? "sm:w-7/12" : "w-full"}`}>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-secondary animate-pulse" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-secondary">{concert.status}</span>
+          </div>
+          <h3 className="font-display text-2xl font-bold text-gray-900">
+            {concert.title}
+          </h3>
+          {featured && (
+            <p className="text-sm leading-relaxed text-gray-600 line-clamp-2">
               {concert.description}
             </p>
-          </div>
-          <div className="rounded-2xl bg-white px-3 py-2 text-right shadow-sm">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-error">
-              {concert.date}
-            </div>
-            <div className="text-xl font-black text-on-surface">
-              {concert.price}
-            </div>
+          )}
+          <div className="flex items-center gap-2 text-sm text-gray-500 font-medium mt-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
+            {concert.venue}
           </div>
         </div>
-        <div className="flex flex-1 flex-col justify-between p-5">
-          <div className="space-y-2 text-sm text-on-surface-variant">
-            <p>
-              {concert.venue} · {concert.city}
-            </p>
-            <p>{concert.time}</p>
+        <div className="mt-6 flex items-end justify-between border-t border-gray-100 pt-5">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.1em] text-gray-500 font-bold mb-1">Starting from</p>
+            <p className="text-xl font-black text-gray-900">{concert.price}</p>
           </div>
-          <div className="mt-4 flex items-center justify-between gap-3">
-            <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
-              <span className="h-2 w-2 rounded-full bg-secondary animate-pulse" />
-              {concert.status}
-            </span>
-            <Link
-              href={`/concerts/${concert.id}`}
-              className="inline-flex items-center gap-1 text-sm font-semibold text-primary"
-            >
-              View details <ArrowRight size={18} />
-            </Link>
-          </div>
+          <Link
+            href={`/concerts/${concert.id}`}
+            className={`inline-flex items-center justify-center gap-2 rounded-full ${featured ? 'bg-gray-100 hover:bg-gray-200 text-gray-900 w-10 h-10' : 'bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-900 px-5 py-2 text-sm font-bold'} transition-colors`}
+          >
+            {featured ? <ArrowRight size={18} /> : "Tickets"}
+          </Link>
         </div>
       </div>
     </Card>
@@ -443,11 +406,13 @@ export function InteractiveTicketSelector({
   return (
     <Card className="overflow-hidden border-0 shadow-lg bg-white">
       <div className="p-8">
-        <SectionHeading
-          eyebrow="TICKET TIERS"
-          title="Choose your experience"
-          description="Select from standing, priority, or lounge access."
-        />
+        <div className="flex items-center justify-between">
+          <SectionHeading
+            eyebrow="TICKETS"
+            title="Real-Time Availability"
+            description="Select from standing, priority, or lounge access."
+          />
+        </div>
 
         <div className="mt-8 space-y-3">
           {tiers.length > 0 ? (
@@ -461,11 +426,10 @@ export function InteractiveTicketSelector({
                     setQuantity(1);
                     setError(null);
                   }}
-                  className={`p-5 cursor-pointer rounded-[20px] border-2 transition-all duration-200 ${
-                    isSelected
-                      ? "border-primary bg-primary/5 shadow-sm scale-[1.01]"
-                      : "border-outline-variant/60 bg-surface hover:border-primary/30"
-                  }`}
+                  className={`p-5 cursor-pointer rounded-[20px] border-2 transition-all duration-200 ${isSelected
+                    ? "border-primary bg-primary/5 shadow-sm scale-[1.01]"
+                    : "border-outline-variant/60 bg-surface hover:border-primary/30"
+                    }`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-2">
@@ -571,37 +535,37 @@ export function ConcertDetailHero({ concert }: { concert: ConcertDetailItem }) {
   const time = dateTime.time;
 
   return (
-    <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-white via-white to-primary/5 p-0">
-      <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-6 p-6 sm:p-8">
-          <Badge className="bg-primary/10 text-primary">{concert.status}</Badge>
-          <h1 className="font-display text-4xl font-black tracking-tight text-on-surface sm:text-5xl">
+    <Card className="overflow-hidden border-0 bg-white p-0 relative shadow-sm rounded-[28px]">
+      <div className="relative w-full min-h-[280px] sm:min-h-[320px] lg:min-h-[400px]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={
+            concert.posterUrl && concert.posterUrl !== "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih"
+              ? concert.posterUrl
+              : "/Mockimg.webp"
+          }
+          alt={concert.title}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/40 to-transparent" />
+
+        <div className="absolute bottom-0 left-0 w-full p-6 sm:p-8 md:p-10 z-10 text-white">
+          <Badge className="bg-primary text-white mb-4 shadow-lg border-0">{concert.status}</Badge>
+          <h1 className="font-display text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl mb-4 drop-shadow-md">
             {concert.title}
           </h1>
-          <p className="max-w-2xl text-base leading-7 text-on-surface-variant">
+          <p className="max-w-3xl text-sm sm:text-base leading-relaxed text-white/90 drop-shadow-sm mb-6 line-clamp-3">
             {concert.aiBio || concert.description}
           </p>
-          <div className="flex flex-wrap gap-3 text-sm text-on-surface-variant">
-            <span className="rounded-full bg-surface-low px-4 py-2">
-              {date}
-              {time ? ` · ${time}` : ""}
+          <div className="flex flex-wrap gap-4 text-xs sm:text-sm font-medium">
+            <span className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></svg>
+              {date} {time ? ` · ${time}` : ""}
             </span>
-            <span className="rounded-full bg-surface-low px-4 py-2">
-              {concert.venue}
+            <span className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
+              {concert.venue} {concert.city ? `, ${concert.city}` : ""}
             </span>
-            {concert.city && (
-              <span className="rounded-full bg-surface-low px-4 py-2">
-                {concert.city}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="bg-[radial-gradient(circle_at_top,_rgba(79,70,229,0.35),_transparent_55%),linear-gradient(160deg,_#1f1b4d,_#3525cd_50%,_#712ae2)] p-6 text-white sm:p-8 flex items-center justify-center">
-          <div className="w-full max-w-md rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur-xl flex flex-col items-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/70 mb-4 self-start">
-              Seat Map Preview
-            </p>
-            <SeatMapSvg className="w-full h-auto" />
           </div>
         </div>
       </div>

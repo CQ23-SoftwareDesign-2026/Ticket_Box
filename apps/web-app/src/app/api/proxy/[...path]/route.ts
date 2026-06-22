@@ -30,7 +30,8 @@ async function forward(request: NextRequest, pathSegments: string[]) {
   };
 
   if (request.method !== "GET" && request.method !== "HEAD") {
-    init.body = await request.text();
+    init.body = request.body;
+    (init as RequestInit & { duplex?: string }).duplex = "half";
   }
 
   const response = await fetch(targetUrl, init);
