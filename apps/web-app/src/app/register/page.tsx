@@ -5,6 +5,7 @@ import { TicketBoxAuthShell } from "@/components/ticketbox-auth-shell";
 import { ConcertHeroIllustration } from "@/components/ticketbox-illustrations";
 import { authService } from "@/services/auth.service";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { getErrorMessage } from "@/utils/error.utils";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -21,8 +22,8 @@ export default function RegisterPage() {
     try {
       await authService.register(email, password, fullName);
       setSuccess(true);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Registration failed');
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -42,7 +43,10 @@ export default function RegisterPage() {
           <p className="text-muted-foreground">
             Once verified, you can sign in to your account.
           </p>
-          <a href="/login" className="ticketbox-button-primary mt-4 w-full sm:w-auto">
+          <a
+            href="/login"
+            className="ticketbox-button-primary mt-4 w-full sm:w-auto"
+          >
             Return to sign in
           </a>
         </div>
@@ -66,59 +70,70 @@ export default function RegisterPage() {
             <p>{error}</p>
           </div>
         )}
-        
+
         <div className="space-y-1">
-          <label className="ticketbox-label" htmlFor="fullName">Full name</label>
-          <input 
-            id="fullName" 
-            value={fullName} 
-            onChange={(e) => setFullName(e.target.value)} 
-            type="text" 
-            className="ticketbox-input" 
-            placeholder="John Doe" 
+          <label className="ticketbox-label" htmlFor="fullName">
+            Full name
+          </label>
+          <input
+            id="fullName"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            type="text"
+            className="ticketbox-input"
+            placeholder="John Doe"
             required
             disabled={loading}
           />
         </div>
 
         <div className="space-y-1">
-          <label className="ticketbox-label" htmlFor="email">Email address</label>
-          <input 
-            id="email" 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
-            type="email" 
-            className="ticketbox-input" 
-            placeholder="name@example.com" 
+          <label className="ticketbox-label" htmlFor="email">
+            Email address
+          </label>
+          <input
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+            className="ticketbox-input"
+            placeholder="name@example.com"
             required
             disabled={loading}
           />
         </div>
-        
+
         <div className="space-y-1">
-          <label className="ticketbox-label" htmlFor="password">Password</label>
-          <input 
-            id="password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            type="password" 
-            className="ticketbox-input" 
-            placeholder="••••••••" 
+          <label className="ticketbox-label" htmlFor="password">
+            Password
+          </label>
+          <input
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            type="password"
+            className="ticketbox-input"
+            placeholder="••••••••"
             required
             minLength={8}
             disabled={loading}
           />
-          <p className="text-xs text-muted-foreground mt-1">Must be at least 8 characters.</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Must be at least 8 characters.
+          </p>
         </div>
-        
-        <button className="ticketbox-button-primary w-full mt-4" disabled={loading}>
+
+        <button
+          className="ticketbox-button-primary w-full mt-4"
+          disabled={loading}
+        >
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Creating account...
             </>
           ) : (
-            'Create account'
+            "Create account"
           )}
         </button>
       </form>

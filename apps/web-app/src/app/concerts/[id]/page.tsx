@@ -1,6 +1,9 @@
 import { Button, Card, SectionHeading, SiteShell } from "@/components/common";
-import { ConcertDetailHero, InteractiveTicketSelector } from "@/components/screens";
-import { getConcertById, formatConcertCurrency } from "@/services/concert.service";
+import {
+  ConcertDetailHero,
+  InteractiveTicketSelector,
+} from "@/components/screens";
+import { getConcertById } from "@/services/concert.service";
 
 export default async function ConcertDetailPage({
   params,
@@ -17,9 +20,13 @@ export default async function ConcertDetailPage({
       <SiteShell active="/">
         <section className="mx-auto w-full max-w-7xl px-4 py-12 text-center">
           <Card className="p-8 space-y-4">
-            <h1 className="text-2xl font-bold text-rose-600">Error Loading Concert</h1>
+            <h1 className="text-2xl font-bold text-rose-600">
+              Error Loading Concert
+            </h1>
             <p className="text-slate-600">
-              {error instanceof Error ? error.message : "Failed to load concert details."}
+              {error instanceof Error
+                ? error.message
+                : "Failed to load concert details."}
             </p>
             <Button href="/" variant="primary">
               Back to Home
@@ -41,12 +48,16 @@ export default async function ConcertDetailPage({
                 <SectionHeading
                   eyebrow="About the show"
                   title={concert.title}
-                  description={concert.description || "No description provided."}
+                  description={
+                    concert.description || "No description provided."
+                  }
                 />
 
                 {concert.aiBio && (
                   <div className="mt-6 p-4 rounded-xl bg-purple-50 border border-purple-100 text-sm text-purple-900">
-                    <p className="font-semibold text-xs uppercase tracking-wider text-purple-700 mb-1">AI Generated Bio</p>
+                    <p className="font-semibold text-xs uppercase tracking-wider text-purple-700 mb-1">
+                      AI Generated Bio
+                    </p>
                     <p>{concert.aiBio}</p>
                   </div>
                 )}
@@ -66,7 +77,10 @@ export default async function ConcertDetailPage({
                       <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">
                         {label}
                       </p>
-                      <p className="mt-2 text-sm font-bold text-gray-900 truncate" title={value}>
+                      <p
+                        className="mt-2 text-sm font-bold text-gray-900 truncate"
+                        title={value}
+                      >
                         {value}
                       </p>
                     </div>

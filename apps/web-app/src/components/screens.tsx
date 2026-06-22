@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   activityTimeline,
-  checkoutPayments,
   concerts,
   orderConfirmed,
   orderSummary,
@@ -15,7 +14,6 @@ import {
   supportCategories,
   supportContacts,
   ticketTabs,
-  ticketTiers,
   tickets,
 } from "@/lib/mock-data";
 import { Badge, Button, Card, SectionHeading, Tabs } from "@/components/common";
@@ -27,6 +25,12 @@ import {
   getConcerts,
   type ConcertDetailItem,
 } from "@/services/concert.service";
+import { reserveTickets } from "@/services/ticketing.service";
+import {
+  getCheckoutReservationState,
+  saveCheckoutReservationState,
+  type CheckoutReservationState,
+} from "@/utils/checkout-state.utils";
 import { Search } from "lucide-react";
 
 export function HeroCarousel() {
@@ -93,8 +97,8 @@ export function HeroCarousel() {
   const description = loading
     ? "We are loading the latest concert from the database."
     : featuredConcert?.aiBio ||
-    featuredConcert?.description ||
-    "No featured concert is available right now.";
+      featuredConcert?.description ||
+      "No featured concert is available right now.";
   const ticketTier = featuredConcert?.ticketTiers?.[0];
   const priceLabel = ticketTier
     ? `${ticketTier.name} • ${formatConcertCurrency(ticketTier.price)}`
@@ -120,9 +124,7 @@ export function HeroCarousel() {
           <div className="flex flex-wrap gap-3">
             <Button
               href={
-                featuredConcert
-                  ? `/concerts/${featuredConcert.id}`
-                  : "/catalog"
+                featuredConcert ? `/concerts/${featuredConcert.id}` : "/catalog"
               }
               variant="secondary"
             >
@@ -253,7 +255,13 @@ export function ConcertCard({
 
 export function SeatMapSvg({ className = "" }: { className?: string }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="100%" className={className}>
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 800 400"
+      width="100%"
+      height="100%"
+      className={className}
+    >
       <style>{`
         .zone {
           cursor: pointer;
@@ -269,48 +277,167 @@ export function SeatMapSvg({ className = "" }: { className?: string }) {
       `}</style>
 
       <rect x="250" y="20" width="300" height="40" fill="#333333" rx="5" />
-      <text x="400" y="45" fill="#ffffff" fontFamily="Arial" fontSize="16" fontWeight="bold" textAnchor="middle">STAGE</text>
+      <text
+        x="400"
+        y="45"
+        fill="#ffffff"
+        fontFamily="Arial"
+        fontSize="16"
+        fontWeight="bold"
+        textAnchor="middle"
+      >
+        STAGE
+      </text>
 
-      <rect id="zone-svip-01" className="zone" x="250" y="90" width="300" height="80" fill="#ff007f" rx="8" />
-      <text x="400" y="135" fill="#ffffff" fontFamily="Arial" fontSize="18" fontWeight="bold" textAnchor="middle" pointerEvents="none">SUPER VIP (SVIP)</text>
+      <rect
+        id="zone-svip-01"
+        className="zone"
+        x="250"
+        y="90"
+        width="300"
+        height="80"
+        fill="#ff007f"
+        rx="8"
+      />
+      <text
+        x="400"
+        y="135"
+        fill="#ffffff"
+        fontFamily="Arial"
+        fontSize="18"
+        fontWeight="bold"
+        textAnchor="middle"
+        pointerEvents="none"
+      >
+        SUPER VIP (SVIP)
+      </text>
 
-      <polygon id="zone-vip-left" className="zone" points="80,190 230,190 230,290 120,290" fill="#ffaa00" />
-      <text x="160" y="245" fill="#ffffff" fontFamily="Arial" fontSize="16" fontWeight="bold" textAnchor="middle" pointerEvents="none">VIP LEFT</text>
+      <polygon
+        id="zone-vip-left"
+        className="zone"
+        points="80,190 230,190 230,290 120,290"
+        fill="#ffaa00"
+      />
+      <text
+        x="160"
+        y="245"
+        fill="#ffffff"
+        fontFamily="Arial"
+        fontSize="16"
+        fontWeight="bold"
+        textAnchor="middle"
+        pointerEvents="none"
+      >
+        VIP LEFT
+      </text>
 
-      <polygon id="zone-vip-right" className="zone" points="570,190 720,190 680,290 570,290" fill="#ffaa00" />
-      <text x="640" y="245" fill="#ffffff" fontFamily="Arial" fontSize="16" fontWeight="bold" textAnchor="middle" pointerEvents="none">VIP RIGHT</text>
+      <polygon
+        id="zone-vip-right"
+        className="zone"
+        points="570,190 720,190 680,290 570,290"
+        fill="#ffaa00"
+      />
+      <text
+        x="640"
+        y="245"
+        fill="#ffffff"
+        fontFamily="Arial"
+        fontSize="16"
+        fontWeight="bold"
+        textAnchor="middle"
+        pointerEvents="none"
+      >
+        VIP RIGHT
+      </text>
 
-      <rect id="zone-ga-01" className="zone" x="250" y="190" width="300" height="100" fill="#007bff" rx="8" />
-      <text x="400" y="245" fill="#ffffff" fontFamily="Arial" fontSize="18" fontWeight="bold" textAnchor="middle" pointerEvents="none">STANDARD (GA)</text>
+      <rect
+        id="zone-ga-01"
+        className="zone"
+        x="250"
+        y="190"
+        width="300"
+        height="100"
+        fill="#007bff"
+        rx="8"
+      />
+      <text
+        x="400"
+        y="245"
+        fill="#ffffff"
+        fontFamily="Arial"
+        fontSize="18"
+        fontWeight="bold"
+        textAnchor="middle"
+        pointerEvents="none"
+      >
+        STANDARD (GA)
+      </text>
     </svg>
   );
 }
 
-export function InteractiveTicketSelector({ concert }: { concert: ConcertDetailItem }) {
+export function InteractiveTicketSelector({
+  concert,
+}: {
+  concert: ConcertDetailItem;
+}) {
   const router = useRouter();
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [error, setError] = useState<string | null>(null);
+  const [isReserving, setIsReserving] = useState(false);
 
   const tiers = concert.ticketTiers ?? [];
   const selectedTier = tiers[selectedIdx];
-  const maxQty = selectedTier ? selectedTier.max_per_user : 1;
+  const maxQty = selectedTier ? selectedTier.max_per_user : 0;
 
-  useEffect(() => {
-    setQuantity(1);
-  }, [selectedIdx]);
+  const handleConfirm = async () => {
+    if (!selectedTier || isReserving || maxQty < 1) return;
 
-  const handleConfirm = () => {
-    if (!selectedTier) return;
-    const priceStr = String(selectedTier.price);
-    const params = new URLSearchParams({
-      title: concert.title || "",
-      tierName: selectedTier.name || "",
-      price: priceStr,
-      qty: String(quantity),
-      date: concert.date || "",
-      venue: concert.venue || "",
-    });
-    router.push(`/checkout/order-2048?${params.toString()}`);
+    setIsReserving(true);
+    setError(null);
+
+    try {
+      const response = await reserveTickets({
+        concert_id: concert.id,
+        items: [
+          {
+            category_id: selectedTier.id,
+            quantity,
+          },
+        ],
+      });
+
+      saveCheckoutReservationState({
+        orderId: response.order_id,
+        concertId: concert.id,
+        concertTitle: concert.title,
+        venue: concert.venue,
+        date: concert.date,
+        tierId: selectedTier.id,
+        tierName: selectedTier.name,
+        price: selectedTier.price,
+        quantity,
+        remaining: response.items[0]?.remaining ?? 0,
+        reservedAt: new Date().toISOString(),
+        // The backend does not return expires_at, so we derive the 10-minute
+        // ceiling here, at reservation time. This anchor is written once to
+        // localStorage and is NEVER regenerated on subsequent page mounts.
+        expiresAt:
+          response.expires_at ??
+          new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      });
+
+      router.push(`/checkout/${response.order_id}`);
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to reserve tickets right now.",
+      );
+    } finally {
+      setIsReserving(false);
+    }
   };
 
   return (
@@ -329,7 +456,11 @@ export function InteractiveTicketSelector({ concert }: { concert: ConcertDetailI
               return (
                 <div
                   key={tier.id || tier.name}
-                  onClick={() => setSelectedIdx(index)}
+                  onClick={() => {
+                    setSelectedIdx(index);
+                    setQuantity(1);
+                    setError(null);
+                  }}
                   className={`p-5 cursor-pointer rounded-[20px] border-2 transition-all duration-200 ${
                     isSelected
                       ? "border-primary bg-primary/5 shadow-sm scale-[1.01]"
@@ -342,7 +473,8 @@ export function InteractiveTicketSelector({ concert }: { concert: ConcertDetailI
                         {tier.name}
                       </p>
                       <p className="text-xs leading-6 text-on-surface-variant">
-                        Max: {tier.max_per_user} tickets per user • Total capacity: {tier.total_quantity} seats
+                        Max: {tier.max_per_user} tickets per user • Total
+                        capacity: {tier.total_quantity} seats
                       </p>
                     </div>
                     <div className="text-right">
@@ -368,14 +500,20 @@ export function InteractiveTicketSelector({ concert }: { concert: ConcertDetailI
           <div className="mt-8 border-t border-gray-100 pt-6 space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-gray-900">Select Quantity</p>
-                <p className="text-xs text-gray-500 mt-1">Limit: {maxQty} tickets per user</p>
+                <p className="text-sm font-semibold text-gray-900">
+                  Select Quantity
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {maxQty > 0
+                    ? `Limit: ${maxQty} tickets per user`
+                    : "Sold out right now"}
+                </p>
               </div>
               <div className="flex items-center gap-4 bg-gray-50 border border-gray-200 rounded-xl p-1">
                 <button
                   type="button"
                   disabled={quantity <= 1}
-                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                   className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white text-lg font-bold text-gray-700 disabled:opacity-30 disabled:pointer-events-none transition-colors"
                 >
                   −
@@ -385,8 +523,8 @@ export function InteractiveTicketSelector({ concert }: { concert: ConcertDetailI
                 </span>
                 <button
                   type="button"
-                  disabled={quantity >= maxQty}
-                  onClick={() => setQuantity(q => Math.min(maxQty, q + 1))}
+                  disabled={maxQty < 1 || quantity >= maxQty}
+                  onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))}
                   className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white text-lg font-bold text-gray-700 disabled:opacity-30 disabled:pointer-events-none transition-colors"
                 >
                   +
@@ -396,21 +534,30 @@ export function InteractiveTicketSelector({ concert }: { concert: ConcertDetailI
 
             <div className="rounded-2xl bg-gray-50 p-4 border border-gray-100">
               <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                <span>Subtotal ({quantity} x {formatConcertCurrency(selectedTier.price)})</span>
-                <span className="font-semibold">{formatConcertCurrency(selectedTier.price * quantity)}</span>
+                <span>
+                  Subtotal ({quantity} x{" "}
+                  {formatConcertCurrency(selectedTier.price)})
+                </span>
+                <span className="font-semibold">
+                  {formatConcertCurrency(selectedTier.price * quantity)}
+                </span>
               </div>
               <div className="flex items-center justify-between border-t border-gray-200 pt-2 text-base font-bold text-gray-900">
                 <span>Estimated Total</span>
-                <span>{formatConcertCurrency(selectedTier.price * quantity)}</span>
+                <span>
+                  {formatConcertCurrency(selectedTier.price * quantity)}
+                </span>
               </div>
             </div>
 
             <button
-              onClick={handleConfirm}
-              className="ticketbox-button-primary w-full justify-center py-4 cursor-pointer"
+              onClick={() => void handleConfirm()}
+              disabled={isReserving || maxQty < 1}
+              className="ticketbox-button-primary w-full justify-center py-4 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Confirm and Checkout
+              {isReserving ? "Reserving seats..." : "Confirm and Checkout"}
             </button>
+            {error ? <p className="text-xs text-rose-600">{error}</p> : null}
           </div>
         )}
       </div>
@@ -436,7 +583,8 @@ export function ConcertDetailHero({ concert }: { concert: ConcertDetailItem }) {
           </p>
           <div className="flex flex-wrap gap-3 text-sm text-on-surface-variant">
             <span className="rounded-full bg-surface-low px-4 py-2">
-              {date}{time ? ` · ${time}` : ""}
+              {date}
+              {time ? ` · ${time}` : ""}
             </span>
             <span className="rounded-full bg-surface-low px-4 py-2">
               {concert.venue}
@@ -475,7 +623,9 @@ export function TicketTierCard({
   href?: string;
 }) {
   const cardContent = (
-    <Card className={`p-5 card-lift transition-all duration-200 ${href ? "cursor-pointer hover:border-primary/50" : ""} ${highlight ? "border-primary bg-primary/5" : ""}`}>
+    <Card
+      className={`p-5 card-lift transition-all duration-200 ${href ? "cursor-pointer hover:border-primary/50" : ""} ${highlight ? "border-primary bg-primary/5" : ""}`}
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-on-surface-variant">
@@ -590,24 +740,6 @@ export function SeatLegendCard() {
   );
 }
 
-export function FloatingCheckoutBar() {
-  return (
-    <Card className="fixed inset-x-4 bottom-4 z-30 border-primary/20 bg-surface/95 p-4 shadow-2xl backdrop-blur md:hidden">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
-            2 seats selected
-          </p>
-          <p className="mt-1 text-sm font-semibold text-on-surface">
-            VIP Lounge · $316 total
-          </p>
-        </div>
-        <Button href="/checkout/order-2048">Checkout</Button>
-      </div>
-    </Card>
-  );
-}
-
 export function CustomerInfoForm() {
   return (
     <Card className="space-y-6 p-6">
@@ -647,6 +779,63 @@ export function CustomerInfoForm() {
   );
 }
 
+/**
+ * High-precision reservation countdown hook.
+ *
+ * Accepts an optional `orderId` to scope the timer to a specific order.
+ * The expiry anchor (expiresAt) is read ONCE from localStorage and never
+ * regenerated — so navigating away and returning always resumes the same
+ * countdown without any reset.
+ */
+export function useReservationTimer(orderId?: string) {
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [isExpired, setIsExpired] = useState(false);
+
+  useEffect(() => {
+    const state = getCheckoutReservationState();
+
+    // If an orderId is supplied, it must match what is stored; otherwise we
+    // would be running the wrong timer for the wrong order.
+    if (!state?.expiresAt) return;
+    if (orderId && state.orderId !== orderId) return;
+
+    const expiresAtTime = new Date(state.expiresAt).getTime();
+    // Guard against a corrupted / unparseable date string.
+    if (isNaN(expiresAtTime)) return;
+
+    const updateTimer = () => {
+      const remaining = expiresAtTime - Date.now();
+      if (remaining <= 0) {
+        setTimeLeft(0);
+        setIsExpired(true);
+        return true; // signals the caller to stop the interval
+      }
+      setTimeLeft(remaining);
+      return false;
+    };
+
+    // Fire immediately so there is no 1-second blank flash on mount.
+    if (updateTimer()) return;
+
+    const interval = setInterval(() => {
+      if (updateTimer()) clearInterval(interval);
+    }, 1000);
+
+    return () => clearInterval(interval);
+    // orderId is stable for the lifetime of the checkout page, so this is safe.
+  }, [orderId]);
+
+  const formatTime = (ms: number | null) => {
+    if (ms === null) return "--:--";
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  return { formattedTime: formatTime(timeLeft), isExpired };
+}
+
 export function PaymentMethodPicker() {
   return (
     <Card className="space-y-5 p-6">
@@ -659,53 +848,24 @@ export function PaymentMethodPicker() {
         </h2>
       </div>
       <div className="space-y-4">
-        {checkoutPayments.map((payment) => (
-          <div
-            key={payment.label}
-            className={`rounded-2xl border p-4 ${payment.selected ? "border-primary bg-primary/5" : "border-outline-variant bg-surface"}`}
-          >
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <span
-                  className={`material-symbols-outlined text-[24px] ${payment.selected ? "text-primary" : "text-on-surface-variant"}`}
-                >
-                  {payment.icon}
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-on-surface">
-                    {payment.label}
-                  </p>
-                  <p className="text-sm text-on-surface-variant">
-                    {payment.note}
-                  </p>
-                </div>
+        <div className="rounded-2xl border border-primary bg-primary/5 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-10 w-16 items-center justify-center rounded-lg bg-white shadow-sm">
+                <span className="font-bold text-blue-600">PayOS</span>
               </div>
-              <span
-                className={`h-5 w-5 rounded-full border-2 ${payment.selected ? "border-primary bg-primary" : "border-outline-variant"}`}
-              >
-                {payment.selected ? (
-                  <span className="mx-auto mt-[3px] block h-2.5 w-2.5 rounded-full bg-white" />
-                ) : null}
-              </span>
+              <div>
+                <p className="text-sm font-semibold text-on-surface">PayOS</p>
+                <p className="text-sm text-on-surface-variant">
+                  Secure local payment gateway
+                </p>
+              </div>
             </div>
-            {payment.selected ? (
-              <div className="mt-4 grid gap-3 border-t border-outline-variant pt-4 sm:grid-cols-2">
-                <input
-                  defaultValue="4242 4242 4242 4242"
-                  className="rounded-xl border border-outline-variant bg-surface px-4 py-3 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15 sm:col-span-2"
-                />
-                <input
-                  defaultValue="12/28"
-                  className="rounded-xl border border-outline-variant bg-surface px-4 py-3 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
-                />
-                <input
-                  defaultValue="112"
-                  className="rounded-xl border border-outline-variant bg-surface px-4 py-3 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
-                />
-              </div>
-            ) : null}
+            <span className="h-5 w-5 rounded-full border-2 border-primary bg-primary">
+              <span className="mx-auto mt-[3px] block h-2.5 w-2.5 rounded-full bg-white" />
+            </span>
           </div>
-        ))}
+        </div>
       </div>
     </Card>
   );
@@ -713,17 +873,59 @@ export function PaymentMethodPicker() {
 
 export function OrderSummaryCard() {
   const searchParams = useSearchParams();
-  const title = searchParams.get("title") || orderSummary.event;
-  const tierName = searchParams.get("tierName");
-  const price = searchParams.get("price");
-  const qty = searchParams.get("qty");
-  const date = searchParams.get("date") || orderSummary.date;
-  const venue = searchParams.get("venue") || orderSummary.venue;
+  const [checkoutState] = useState<CheckoutReservationState | null>(() => {
+    const storedState = getCheckoutReservationState();
+    if (storedState) {
+      return storedState;
+    }
+
+    const tierName = searchParams.get("tierName");
+    const price = searchParams.get("price");
+    const qty = searchParams.get("qty");
+
+    if (tierName && price && qty) {
+      return {
+        orderId: searchParams.get("orderId") || orderSummary.orderId,
+        concertId: "",
+        concertTitle: searchParams.get("title") || orderSummary.event,
+        venue: searchParams.get("venue") || orderSummary.venue,
+        date: searchParams.get("date") || orderSummary.date,
+        tierId: "",
+        tierName,
+        price: parseFloat(price) || 0,
+        quantity: parseInt(qty, 10) || 1,
+        remaining: 0,
+        reservedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      };
+    }
+
+    return null;
+  });
+
+  const title =
+    checkoutState?.concertTitle ||
+    searchParams.get("title") ||
+    orderSummary.event;
+  const tierName = checkoutState?.tierName || searchParams.get("tierName");
+  const price = checkoutState
+    ? String(checkoutState.price)
+    : searchParams.get("price");
+  const qty = checkoutState
+    ? String(checkoutState.quantity)
+    : searchParams.get("qty");
+  const date =
+    checkoutState?.date || searchParams.get("date") || orderSummary.date;
+  const venue =
+    checkoutState?.venue || searchParams.get("venue") || orderSummary.venue;
 
   let subtotal: string = orderSummary.subtotal;
   let total: string = orderSummary.total;
   let fees: string = orderSummary.fees;
   let seatsText: string = orderSummary.seats;
+  const payHref = checkoutState
+    ? `/checkout/${checkoutState.orderId}/processing`
+    : "/checkout/order-2048/processing";
 
   if (tierName && price && qty) {
     const qtyVal = parseInt(qty, 10) || 1;
@@ -752,6 +954,15 @@ export function OrderSummaryCard() {
         <p>{date}</p>
         <p>{venue}</p>
         <p>{seatsText}</p>
+        {checkoutState ? (
+          <p className="text-xs text-on-surface-variant">
+            Reservation expires at{" "}
+            {new Date(checkoutState.expiresAt).toLocaleTimeString([], {
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+          </p>
+        ) : null}
       </div>
       <div className="space-y-3 text-sm text-on-surface-variant">
         <div className="flex items-center justify-between">
@@ -767,29 +978,82 @@ export function OrderSummaryCard() {
           <span>{total}</span>
         </div>
       </div>
-      <Button href="/checkout/order-2048/processing" className="w-full justify-center">
+      <Button href={payHref} className="w-full justify-center">
         Pay {total}
       </Button>
-      <div className="rounded-2xl bg-primary/5 p-4 text-sm text-on-surface-variant">
-        Reservation expires in{" "}
-        <span className="font-semibold text-primary">{orderSummary.timer}</span>
-        .
-      </div>
+      <TimerFootnote orderId={checkoutState?.orderId} />
     </Card>
   );
 }
 
-export function CountdownTimer() {
+export function FloatingCheckoutBar() {
   return (
-    <Card className="hero-shimmer p-5 text-white">
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">
-        Hold timer
-      </p>
-      <div className="mt-3 text-4xl font-black">09:12</div>
-      <p className="mt-2 text-sm text-white/80">
-        Your reserved seats will release automatically when the timer ends.
-      </p>
-    </Card>
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-outline-variant/60 bg-background/95 px-4 py-3 backdrop-blur md:hidden">
+      <div className="mx-auto flex w-full max-w-7xl items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-on-surface-variant">
+            Selected seats
+          </p>
+          <p className="truncate text-sm font-semibold text-on-surface">
+            2 seats · VIP Lounge · $316.00
+          </p>
+        </div>
+        <Button href="/checkout/order-2048" className="shrink-0">
+          Checkout
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** Small inline timer badge used inside OrderSummaryCard. */
+function TimerFootnote({ orderId }: { orderId?: string }) {
+  const { formattedTime } = useReservationTimer(orderId);
+  return (
+    <div className="rounded-2xl bg-primary/5 p-4 text-sm text-on-surface-variant">
+      Reservation expires in{" "}
+      <span className="font-semibold text-primary">{formattedTime}</span>.
+    </div>
+  );
+}
+
+export function CountdownTimer({ orderId }: { orderId?: string }) {
+  const { formattedTime, isExpired } = useReservationTimer(orderId);
+  const router = useRouter();
+
+  return (
+    <>
+      {isExpired && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md">
+          <Card className="w-full max-w-md p-8 text-center shadow-2xl mx-4">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-error/10 text-error">
+              <span className="material-symbols-outlined text-[32px]">
+                timer_off
+              </span>
+            </div>
+            <h2 className="font-display text-2xl font-bold text-on-surface mb-2">
+              Đã Hết Thời Gian
+            </h2>
+            <p className="text-sm text-on-surface-variant leading-relaxed mb-8">
+              Thời gian giữ chỗ của bạn đã kết thúc. Các vé đã được phân bổ lại
+              phục hồi pool.
+            </p>
+            <Button className="w-full justify-center" href="/catalog">
+              Xác nhận
+            </Button>
+          </Card>
+        </div>
+      )}
+      <Card className="hero-shimmer p-5 text-white">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">
+          Hold timer
+        </p>
+        <div className="mt-3 text-4xl font-black">{formattedTime}</div>
+        <p className="mt-2 text-sm text-white/80">
+          Your reserved seats will release automatically when the timer ends.
+        </p>
+      </Card>
+    </>
   );
 }
 

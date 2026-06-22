@@ -1,25 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { TicketBoxAuthShell } from "@/components/ticketbox-auth-shell";
 import { SecurityIllustration } from "@/components/ticketbox-illustrations";
 
 export default function VerifyClient() {
   const searchParams = useSearchParams();
-  const token = useMemo(() => searchParams?.get("token") ?? null, [searchParams]);
-  const [status, setStatus] = useState<"idle" | "redirecting">("idle");
+  const token = useMemo(
+    () => searchParams?.get("token") ?? null,
+    [searchParams],
+  );
 
   useEffect(() => {
     if (!token) return;
 
     window.history.replaceState({}, document.title, window.location.pathname);
-    setStatus("redirecting");
 
     const backendBase = process.env.NEXT_PUBLIC_API_URL;
     if (!backendBase) {
-      setStatus("idle");
       return;
     }
 
@@ -28,10 +28,10 @@ export default function VerifyClient() {
 
   return (
     <TicketBoxAuthShell
-      title={status === "redirecting" ? "Verifying your account" : "Account verified"}
+      title={token ? "Verifying your account" : "Account verified"}
       description={
-        status === "redirecting"
-          ? "Redirecting to complete verification…"
+        token
+          ? "Redirecting to complete verification..."
           : "Your email verification is complete. You can sign in now."
       }
       sidebar={<SecurityIllustration />}
@@ -42,7 +42,7 @@ export default function VerifyClient() {
     >
       <div className="space-y-5 text-center">
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#0f62fe]/10 text-[#0f62fe]">
-          <span className="text-3xl">✓</span>
+          <span className="text-3xl">âœ“</span>
         </div>
         <Link href="/login" className="ticketbox-button-primary w-full">
           Continue to sign in

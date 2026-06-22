@@ -5,10 +5,12 @@ import {
   Ticket,
   Shield,
   Landmark,
-  CreditCard,
   MessageCircle,
   Mail,
   Phone,
+  CreditCard,
+  Wallet,
+  QrCode,
 } from "lucide-react";
 
 export type Concert = {
@@ -303,19 +305,19 @@ export const checkoutPayments = [
   {
     label: "Credit or debit card",
     note: "Visa, Mastercard, Amex",
-    icon: "credit_card",
+    icon: CreditCard,
     selected: true,
   },
   {
     label: "Digital wallet",
     note: "Apple Pay, Google Pay",
-    icon: "account_balance_wallet",
+    icon: Wallet,
     selected: false,
   },
   {
     label: "QR transfer",
     note: "Scan and pay within 5 minutes",
-    icon: "qr_code_2",
+    icon: QrCode,
     selected: false,
   },
 ] as const;

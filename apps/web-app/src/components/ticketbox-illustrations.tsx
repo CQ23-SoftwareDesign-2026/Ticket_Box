@@ -4,10 +4,15 @@ export function ConcertHeroIllustration() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.2),_transparent_42%)]" />
       <div className="absolute left-8 top-8 h-16 w-16 rounded-full border border-white/30 bg-white/10" />
       <div className="absolute bottom-12 left-10 right-10 rounded-[28px] border border-white/15 bg-black/35 p-6 text-white backdrop-blur-md">
-        <p className="text-sm uppercase tracking-[0.35em] text-white/70">TicketBox Auth</p>
-        <h2 className="mt-3 text-4xl font-black leading-tight">Fast, secure, and built for concert journeys.</h2>
+        <p className="text-sm uppercase tracking-[0.35em] text-white/70">
+          TicketBox Auth
+        </p>
+        <h2 className="mt-3 text-4xl font-black leading-tight">
+          Fast, secure, and built for concert journeys.
+        </h2>
         <p className="mt-4 max-w-xl text-sm leading-6 text-white/80">
-          The same design language can later expand into tickets, orders, concepts, and admin flows without reworking the auth foundation.
+          The same design language can later expand into tickets, orders,
+          concepts, and admin flows without reworking the auth foundation.
         </p>
       </div>
       <div className="absolute right-8 top-1/3 h-40 w-40 -rotate-12 rounded-[36px] border border-white/30 bg-white/10 shadow-2xl backdrop-blur-md" />
@@ -26,9 +31,12 @@ export function SecurityIllustration() {
           <div className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-white/80">
             Security Center
           </div>
-          <h2 className="mt-6 max-w-md text-4xl font-black leading-tight">Account security built for active users and protected sessions.</h2>
+          <h2 className="mt-6 max-w-md text-4xl font-black leading-tight">
+            Account security built for active users and protected sessions.
+          </h2>
           <p className="mt-4 max-w-lg text-sm leading-6 text-white/75">
-            Prototype this now so future ticket checkout and concept flows can reuse the same auth, verification, and session rules.
+            Prototype this now so future ticket checkout and concept flows can
+            reuse the same auth, verification, and session rules.
           </p>
           <div className="mt-8 grid grid-cols-2 gap-4 text-sm">
             <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur-md">
@@ -37,22 +45,36 @@ export function SecurityIllustration() {
             </div>
             <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur-md">
               <p className="text-white/65">Token health</p>
-              <p className="mt-2 text-lg font-bold text-[#7cffb2]">Refreshing</p>
+              <p className="mt-2 text-lg font-bold text-[#7cffb2]">
+                Refreshing
+              </p>
             </div>
           </div>
         </div>
         <div className="space-y-4">
           <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
-            <p className="text-sm font-semibold text-slate-500">Active sessions</p>
+            <p className="text-sm font-semibold text-slate-500">
+              Active sessions
+            </p>
             <div className="mt-4 space-y-3">
-              <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700">MacBook Pro • Chrome • Current</div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700">iPhone 15 • iOS App • 2 hours ago</div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700">Windows Workstation • Firefox • Yesterday</div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                MacBook Pro • Chrome • Current
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                iPhone 15 • iOS App • 2 hours ago
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                Windows Workstation • Firefox • Yesterday
+              </div>
             </div>
           </div>
           <div className="rounded-[28px] border border-[#0f62fe]/15 bg-[#eff6ff] p-6 shadow-[0_20px_50px_rgba(15,98,254,0.08)]">
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#0f62fe]">Future proof</p>
-            <p className="mt-3 text-2xl font-black text-slate-900">Reuse this shell for tickets, concepts, and checkout auth.</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#0f62fe]">
+              Future proof
+            </p>
+            <p className="mt-3 text-2xl font-black text-slate-900">
+              Reuse this shell for tickets, concepts, and checkout auth.
+            </p>
           </div>
         </div>
       </div>

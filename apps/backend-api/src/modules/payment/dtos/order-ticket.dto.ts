@@ -19,6 +19,9 @@ export class OrderTicketDto {
     @ApiPropertyOptional({ format: 'date-time' })
     scanned_at?: Date | null;
 
+    @ApiPropertyOptional({ example: 1, description: 'The assigned gate number for this ticket' })
+    gate_number?: number | null;
+
     constructor(partial: Partial<OrderTicketDto> = {}) {
         Object.assign(this, partial);
     }

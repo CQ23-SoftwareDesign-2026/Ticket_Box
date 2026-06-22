@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { siteNavigation, siteName } from "@/lib/constants";
-import { Search } from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 type ButtonProps = {
@@ -219,7 +219,12 @@ export function SiteShell({
   action?: ReactNode;
 }) {
   const { user, isAuthenticated } = useAuth();
-  const isAdmin = user?.roles?.includes("Admin") || (user as any)?.role === "Admin";
+  const isAdmin =
+    user?.roles?.includes("Admin") ||
+    (typeof user === "object" &&
+      user !== null &&
+      "role" in user &&
+      (user as { role?: string }).role === "Admin");
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -245,8 +250,7 @@ export function SiteShell({
                 href="/admin/dashboard"
                 className="ticketbox-button-secondary px-4 py-2 text-sm flex items-center gap-1.5"
               >
-                <span className="material-symbols-outlined text-[18px]">dashboard</span>
-                Admin
+                <LayoutDashboard size={18} className="text-current" /> Admin
               </Link>
             )}
             {action}
@@ -320,10 +324,6 @@ export function CheckoutShell({ children }: { children: ReactNode }) {
         <Link href="/" className="shrink-0">
           <BrandMark compact />
         </Link>
-        <div className="hidden items-center gap-2 rounded-full border border-outline-variant bg-surface px-4 py-2 text-sm text-on-surface-variant sm:flex">
-          <span className="material-symbols-outlined text-[18px]">lock</span>
-          Secure checkout · 256-bit encrypted
-        </div>
       </div>
       <main>{children}</main>
     </div>

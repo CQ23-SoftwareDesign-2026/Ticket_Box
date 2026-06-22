@@ -31,7 +31,7 @@ type OrderDetailRow = OrderListRow & {
         qr_code_hash: string;
         is_scanned: boolean;
         scanned_at: Date | null;
-        category: { name: string };
+        category: { name: string; gate_number: number | null };
     }>;
     payment_transactions: Array<{
         id: string;
@@ -180,7 +180,7 @@ export class OrdersService {
             include: {
                 concert: { select: { name: true } },
                 tickets: {
-                    include: { category: { select: { name: true } } },
+                    include: { category: { select: { name: true, gate_number: true } } },
                 },
                 payment_transactions: {
                     orderBy: { created_at: 'desc' },
@@ -208,6 +208,7 @@ export class OrdersService {
                     id: t.id,
                     category_id: t.category_id,
                     category_name: t.category?.name ?? null,
+                    gate_number: t.category?.gate_number ?? null,
                     qr_code_hash: t.qr_code_hash,
                     is_scanned: t.is_scanned,
                     scanned_at: t.scanned_at,
@@ -236,7 +237,7 @@ export class OrdersService {
             include: {
                 concert: { select: { name: true } },
                 tickets: {
-                    include: { category: { select: { name: true } } },
+                    include: { category: { select: { name: true, gate_number: true } } },
                 },
                 payment_transactions: {
                     orderBy: { created_at: 'desc' },
@@ -264,6 +265,7 @@ export class OrdersService {
                     id: t.id,
                     category_id: t.category_id,
                     category_name: t.category?.name ?? null,
+                    gate_number: t.category?.gate_number ?? null,
                     qr_code_hash: t.qr_code_hash,
                     is_scanned: t.is_scanned,
                     scanned_at: t.scanned_at,

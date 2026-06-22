@@ -96,6 +96,7 @@ model TicketCategory {
   price          Decimal @db.Decimal(10, 2)
   total_quantity Int
   max_per_user   Int
+  gate_number    Int?
 
   concert Concert @relation(fields: [concert_id], references: [id])
   tickets Ticket[]

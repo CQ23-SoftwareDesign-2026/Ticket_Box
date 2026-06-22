@@ -20,22 +20,20 @@ async function runSeed(name: string, task: () => Promise<void>) {
 }
 
 async function clearDatabase() {
-    await prisma.$transaction(async (tx) => {
-        await tx.paymentTransaction.deleteMany();
-        await tx.ticket.deleteMany();
-        await tx.order.deleteMany();
-        await tx.guestList.deleteMany();
-        await tx.backgroundJob.deleteMany();
-        await tx.notificationLog.deleteMany();
-        await tx.notificationTemplate.deleteMany();
-        await tx.userRole.deleteMany();
-        await tx.rolePermission.deleteMany();
-        await tx.permission.deleteMany();
-        await tx.role.deleteMany();
-        await tx.ticketCategory.deleteMany();
-        await tx.concert.deleteMany();
-        await tx.user.deleteMany();
-    });
+    await prisma.paymentTransaction.deleteMany();
+    await prisma.ticket.deleteMany();
+    await prisma.order.deleteMany();
+    await prisma.guestList.deleteMany();
+    await prisma.backgroundJob.deleteMany();
+    await prisma.notificationLog.deleteMany();
+    await prisma.notificationTemplate.deleteMany();
+    await prisma.userRole.deleteMany();
+    await prisma.rolePermission.deleteMany();
+    await prisma.permission.deleteMany();
+    await prisma.role.deleteMany();
+    await prisma.ticketCategory.deleteMany();
+    await prisma.concert.deleteMany();
+    await prisma.user.deleteMany();
 }
 
 async function seedAll() {

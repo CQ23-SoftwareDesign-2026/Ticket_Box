@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
+import { IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateTicketCategoryDto {
   @ApiProperty({ example: 'SVIP' })
@@ -21,4 +21,11 @@ export class CreateTicketCategoryDto {
   @IsInt()
   @Min(1)
   max_per_user!: number;
+
+  @ApiProperty({ example: 1, required: false })
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  gate_number?: number;
 }
+

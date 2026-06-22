@@ -103,10 +103,10 @@ export const concerts = [
 ];
 
 export const ticketCategoryPricing = [
-    { name: "SVIP", price: 5000000, max_per_user: 2 },
-    { name: "VIP 1", price: 3000000, max_per_user: 4 },
-    { name: "VIP 2", price: 2000000, max_per_user: 4 },
-    { name: "GA", price: 500000, max_per_user: 6 },
+    { name: "SVIP", price: 5000000, max_per_user: 2, gate_number: 1 },
+    { name: "VIP 1", price: 3000000, max_per_user: 4, gate_number: 1 },
+    { name: "VIP 2", price: 2000000, max_per_user: 4, gate_number: 1 },
+    { name: "GA", price: 500000, max_per_user: 6, gate_number: 2 },
 ];
 
 export const ticketCategoryAllocations: { concert_id: string; quantities: Record<string, number> }[] = [

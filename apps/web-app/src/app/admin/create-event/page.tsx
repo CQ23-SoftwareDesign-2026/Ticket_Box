@@ -8,6 +8,7 @@ import {
   updateConcert,
   getConcertById,
 } from "@/services/concert.service";
+import { getErrorMessage } from "@/utils/error.utils";
 import {
   ChevronRight,
   Info,
@@ -84,7 +85,9 @@ function EventForm() {
                 formattedDate = dateObj.toISOString().slice(0, 16);
               }
             }
-          } catch (e) {}
+          } catch {
+            // Ignore date formatting issues and keep the empty input state.
+          }
 
           setFormData({
             name: data.title || "",
@@ -152,11 +155,9 @@ function EventForm() {
         alert("Event created successfully!");
       }
       router.push("/admin/events");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to save event", error);
-      alert(
-        `Failed to save event: ${error.response?.data?.message || "Please check the inputs."}`,
-      );
+      alert(`Failed to save event: ${getErrorMessage(error)}`);
     } finally {
       setIsSaving(false);
     }
@@ -330,7 +331,7 @@ function EventForm() {
                     <div className="mt-4 flex text-sm leading-6 text-muted-foreground justify-center">
                       <label className="relative cursor-pointer rounded-md font-semibold text-primary focus-within:outline-none hover:text-primary/80">
                         <span>Upload a file</span>
-                        <input className="sr-only" type="file"  />
+                        <input className="sr-only" type="file" />
                       </label>
                       <p className="pl-1">or drag and drop</p>
                     </div>

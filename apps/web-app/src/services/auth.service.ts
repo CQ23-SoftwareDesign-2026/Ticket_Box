@@ -24,10 +24,7 @@ export const authService = {
       });
 
       if (response) {
-        tokenStorage.setTokens(
-          response.accessToken,
-          response.refreshToken
-        );
+        tokenStorage.setTokens(response.accessToken, response.refreshToken);
       }
 
       return response;
@@ -43,14 +40,17 @@ export const authService = {
   register: async (
     email: string,
     password: string,
-    fullName: string
+    fullName: string,
   ): Promise<RegisterResponse> => {
     try {
-      const response = await apiClient.post<RegisterResponse>("/auth/register", {
-        email,
-        password,
-        fullName,
-      });
+      const response = await apiClient.post<RegisterResponse>(
+        "/auth/register",
+        {
+          email,
+          password,
+          fullName,
+        },
+      );
 
       return response;
     } catch (error) {
@@ -78,7 +78,7 @@ export const authService = {
   resendVerification: async (email: string): Promise<MessageResponse> => {
     const response = await apiClient.post<MessageResponse>(
       "/auth/resend-verification",
-      { email }
+      { email },
     );
     return response;
   },
@@ -96,11 +96,11 @@ export const authService = {
    */
   changePassword: async (
     oldPassword: string,
-    newPassword: string
+    newPassword: string,
   ): Promise<MessageResponse> => {
     const response = await apiClient.post<MessageResponse>(
       "/auth/change-password",
-      { oldPassword, newPassword }
+      { oldPassword, newPassword },
     );
     return response;
   },
@@ -111,7 +111,7 @@ export const authService = {
   forgotPassword: async (email: string): Promise<MessageResponse> => {
     const response = await apiClient.post<MessageResponse>(
       "/auth/forgot-password",
-      { email }
+      { email },
     );
     return response;
   },
@@ -121,11 +121,11 @@ export const authService = {
    */
   resetPassword: async (
     token: string,
-    newPassword: string
+    newPassword: string,
   ): Promise<MessageResponse> => {
     const response = await apiClient.post<MessageResponse>(
       "/auth/reset-password",
-      { token, newPassword }
+      { token, newPassword },
     );
     return response;
   },
@@ -141,12 +141,9 @@ export const authService = {
         throw new Error("No refresh token available");
       }
 
-      const response = await apiClient.post<AuthResponse>(
-        "/auth/refresh",
-        {
-          refreshToken,
-        }
-      );
+      const response = await apiClient.post<AuthResponse>("/auth/refresh", {
+        refreshToken,
+      });
 
       if (response) {
         tokenStorage.setTokens(response.accessToken, response.refreshToken);

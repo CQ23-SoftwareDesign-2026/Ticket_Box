@@ -1,12 +1,16 @@
 import { tokenStorage } from "@/utils/token.utils";
-import type { ApiErrorResponse } from "@/types/auth.types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "/api/proxy";
 
-class FetchError extends Error {
-  public response: { data: any; status: number; statusText: string };
+type ApiErrorBody = {
+  message?: string;
+  [key: string]: unknown;
+};
 
-  constructor(message: string, response: Response, data: any) {
+class FetchError extends Error {
+  public response: { data: ApiErrorBody; status: number; statusText: string };
+
+  constructor(message: string, response: Response, data: ApiErrorBody) {
     super(message);
     this.name = "FetchError";
     this.response = {
@@ -37,7 +41,7 @@ const processQueue = (error: unknown, token: string | null = null): void => {
 export async function fetchClient<T>(
   endpoint: string,
   options: RequestInit = {},
-  _retry = false
+  _retry = false,
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   const token = tokenStorage.getAccessToken();
@@ -58,10 +62,10 @@ export async function fetchClient<T>(
     const response = await fetch(url, config);
 
     if (!response.ok) {
-      let errorData;
+      let errorData: ApiErrorBody;
       try {
-        errorData = await response.json();
-      } catch (e) {
+        errorData = (await response.json()) as ApiErrorBody;
+      } catch {
         errorData = { message: response.statusText };
       }
 
@@ -95,7 +99,10 @@ export async function fetchClient<T>(
 
             if (refreshResp.ok) {
               const refreshData = await refreshResp.json();
-              tokenStorage.setTokens(refreshData.accessToken, refreshData.refreshToken);
+              tokenStorage.setTokens(
+                refreshData.accessToken,
+                refreshData.refreshToken,
+              );
               processQueue(null, refreshData.accessToken);
             } else {
               throw new Error("Invalid refresh response");
@@ -114,14 +121,21 @@ export async function fetchClient<T>(
 
         // Wait for the token refresh to complete
         return new Promise<T>((resolve, reject) => {
-          failedQueue.push({ resolve: resolve as (value?: unknown) => void, reject });
+          failedQueue.push({
+            resolve: resolve as (value?: unknown) => void,
+            reject,
+          });
         })
           .then((newToken) => {
             const t = newToken as string | null;
             if (t) {
               const newHeaders = new Headers(config.headers);
               newHeaders.set("Authorization", `Bearer ${t}`);
-              return fetchClient<T>(endpoint, { ...config, headers: newHeaders }, true);
+              return fetchClient<T>(
+                endpoint,
+                { ...config, headers: newHeaders },
+                true,
+              );
             }
             throw new FetchError("Unauthorized", response, errorData);
           })
@@ -139,19 +153,23 @@ export async function fetchClient<T>(
         throw new FetchError("Forbidden", response, errorData);
       }
 
-      throw new FetchError(errorData.message || "Fetch failed", response, errorData);
+      throw new FetchError(
+        errorData.message || "Fetch failed",
+        response,
+        errorData,
+      );
     }
 
     // Return parsed JSON if successful
     if (response.status === 204) {
       return {} as T;
     }
-    
+
     const text = await response.text();
     if (!text) {
       return {} as T;
     }
-    
+
     try {
       return JSON.parse(text) as T;
     } catch {
@@ -168,19 +186,19 @@ export async function fetchClient<T>(
 export const apiClient = {
   get: <T>(endpoint: string, options?: RequestInit) =>
     fetchClient<T>(endpoint, { ...options, method: "GET" }),
-  post: <T>(endpoint: string, body?: any, options?: RequestInit) =>
+  post: <T>(endpoint: string, body?: unknown, options?: RequestInit) =>
     fetchClient<T>(endpoint, {
       ...options,
       method: "POST",
       body: body ? JSON.stringify(body) : undefined,
     }),
-  put: <T>(endpoint: string, body?: any, options?: RequestInit) =>
+  put: <T>(endpoint: string, body?: unknown, options?: RequestInit) =>
     fetchClient<T>(endpoint, {
       ...options,
       method: "PUT",
       body: body ? JSON.stringify(body) : undefined,
     }),
-  patch: <T>(endpoint: string, body?: any, options?: RequestInit) =>
+  patch: <T>(endpoint: string, body?: unknown, options?: RequestInit) =>
     fetchClient<T>(endpoint, {
       ...options,
       method: "PATCH",

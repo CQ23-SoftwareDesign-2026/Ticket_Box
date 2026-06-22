@@ -2,6 +2,8 @@
 @import "tailwindcss";
 
 :root {
+  --font-inter: "Inter", "Segoe UI", Arial, Helvetica, sans-serif;
+  --font-montserrat: "Montserrat", "Segoe UI", Arial, Helvetica, sans-serif;
   --background: #f7f9fb;
   --foreground: #191c1e;
   --surface: #ffffff;

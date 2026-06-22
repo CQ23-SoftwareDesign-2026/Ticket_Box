@@ -36,6 +36,7 @@ export async function seedTicketCategories(prisma: PrismaClient) {
                 price: category.price.toString(),
                 total_quantity: totalQuantity,
                 max_per_user: category.max_per_user,
+                gate_number: category.gate_number,
             };
         });
     });

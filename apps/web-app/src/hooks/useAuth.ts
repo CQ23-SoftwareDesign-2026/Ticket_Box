@@ -69,7 +69,7 @@ export const useAuth = (): UseAuthReturn => {
   }, []);
 
   const logout = useCallback((): void => {
-    tokenStorage.clearTokens();tokenStorage
+    tokenStorage.clearTokens();
     setIsAuthenticated(false);
     setUser(null);
   }, []);
@@ -81,7 +81,7 @@ export const useAuth = (): UseAuthReturn => {
       }
       return user.permissions.includes(permission);
     },
-    [user]
+    [user],
   );
 
   return {

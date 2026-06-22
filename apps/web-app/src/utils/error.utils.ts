@@ -14,16 +14,17 @@ interface FetchErrorLike extends Error {
 /**
  * Extract error message from API response
  */
-export const getErrorMessage = (
-  error: unknown
-): string => {
+export const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
     const fetchError = error as FetchErrorLike;
     if (fetchError.response?.data?.message) {
       return fetchError.response.data.message;
     }
-    
-    if (error.message === "Network Error" || error.message === "Failed to fetch") {
+
+    if (
+      error.message === "Network Error" ||
+      error.message === "Failed to fetch"
+    ) {
       return "Network error. Please check your connection.";
     }
     return error.message;
@@ -41,7 +42,9 @@ export const getErrorMessage = (
  */
 export const isNetworkError = (error: unknown): boolean => {
   if (error instanceof Error) {
-    return error.message === "Failed to fetch" || error.message === "Network Error";
+    return (
+      error.message === "Failed to fetch" || error.message === "Network Error"
+    );
   }
   return false;
 };
@@ -51,7 +54,9 @@ export const isNetworkError = (error: unknown): boolean => {
  */
 export const isAuthError = (error: unknown): boolean => {
   const fetchError = error as FetchErrorLike;
-  return fetchError.response?.status === 401 || fetchError.response?.status === 403;
+  return (
+    fetchError.response?.status === 401 || fetchError.response?.status === 403
+  );
 };
 
 /**

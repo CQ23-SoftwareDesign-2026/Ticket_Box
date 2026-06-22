@@ -8,6 +8,7 @@ import { RabbitMqModule } from './shared/rabbitmq';
 import { TicketingModule } from './modules/ticketing/ticketing.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { WorkerModule } from './modules/worker/worker.module';
+import { CheckInModule } from './modules/checkin/checkin.module';
 
 @Module({
 	imports: [
@@ -20,6 +21,7 @@ import { WorkerModule } from './modules/worker/worker.module';
 		TicketingModule,
 		UploadModule,
 		WorkerModule,
+		CheckInModule,
 	],
 })
 export class AppModule { }

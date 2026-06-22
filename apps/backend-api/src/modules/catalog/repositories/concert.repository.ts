@@ -24,6 +24,7 @@ type ConcertTicketCategoryRow = {
   price: { toNumber(): number } | number | string;
   total_quantity: number;
   max_per_user: number;
+  gate_number?: number | null;
 };
 
 type ConcertDetailRow = ConcertListRow & {
@@ -115,6 +116,7 @@ export class ConcertRepository {
             price: category.price,
             total_quantity: category.total_quantity,
             max_per_user: category.max_per_user,
+            gate_number: category.gate_number ?? null,
           })),
         },
       },
@@ -163,6 +165,7 @@ export class ConcertRepository {
         price: Number(typeof tc.price === 'object' && tc.price !== null ? tc.price.toNumber() : tc.price),
         total_quantity: tc.total_quantity,
         max_per_user: tc.max_per_user,
+        gate_number: tc.gate_number ?? null,
       }),
     );
 

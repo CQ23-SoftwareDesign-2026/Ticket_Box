@@ -86,15 +86,19 @@ export const decodeToken = (token: string): TokenPayload | null => {
 
     // JWT uses base64url encoding
     const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-    const json = typeof window !== "undefined"
-      ? decodeURIComponent(
-          atob(padded)
-            .split("")
-            .map((c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0"))
-            .join("")
-        )
-      : Buffer.from(padded, "base64").toString("utf-8");
+    const padded = base64.padEnd(
+      base64.length + ((4 - (base64.length % 4)) % 4),
+      "=",
+    );
+    const json =
+      typeof window !== "undefined"
+        ? decodeURIComponent(
+            atob(padded)
+              .split("")
+              .map((c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0"))
+              .join(""),
+          )
+        : Buffer.from(padded, "base64").toString("utf-8");
 
     const decoded = JSON.parse(json);
     return decoded as TokenPayload;

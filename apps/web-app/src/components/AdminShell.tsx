@@ -4,7 +4,17 @@ import { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { LayoutDashboard, Calendar, DollarSign, Users, Settings, Plus, HelpCircle, Menu, Bell } from "lucide-react";
+import {
+  LayoutDashboard,
+  Calendar,
+  DollarSign,
+  Users,
+  Settings,
+  Plus,
+  HelpCircle,
+  Menu,
+  Bell,
+} from "lucide-react";
 
 const navItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -80,11 +90,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <button className="md:hidden text-muted-foreground p-2">
             <Menu className="w-6 h-6" />
           </button>
-          
+
           <h2 className="font-display text-2xl font-semibold text-foreground hidden md:block">
-            {navItems.find((item) => pathname?.startsWith(item.href))?.label || "Admin Portal"}
+            {navItems.find((item) => pathname?.startsWith(item.href))?.label ||
+              "Admin Portal"}
           </h2>
-          
+
           <div className="flex items-center gap-4 ml-auto">
             <button className="relative text-muted-foreground hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-high">
               <Bell className="w-6 h-6" />
@@ -111,7 +122,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
               key={item.href}
               href={item.href}
               className={`flex flex-col items-center justify-center font-body text-[10px] font-semibold transition-all duration-150 w-full h-full ${
-                isActive ? "text-primary scale-90" : "text-muted-foreground hover:bg-surface-low"
+                isActive
+                  ? "text-primary scale-90"
+                  : "text-muted-foreground hover:bg-surface-low"
               }`}
             >
               <item.icon className="w-5 h-5 mb-1" />
