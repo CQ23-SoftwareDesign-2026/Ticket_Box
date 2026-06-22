@@ -215,7 +215,7 @@ export default function AdminEventsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-12 h-12 rounded-lg bg-primary/10 overflow-hidden flex-shrink-0 bg-cover bg-center"
+                          className="w-12 h-12 rounded-lg bg-primary/10 overflow-hidden shrink-0 bg-cover bg-center"
                           style={{
                             backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih')`,
                           }}

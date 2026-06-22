@@ -269,34 +269,34 @@ export function SiteShell({
                 <button className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-container text-primary-foreground font-bold hover:ring-2 hover:ring-primary transition-all">
                   {user?.fullName?.charAt(0).toUpperCase() || "U"}
                 </button>
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
+                <div className="absolute right-0 mt-2 w-48 bg-surface-low rounded-xl shadow-lg border border-outline-variant opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
                   <div className="p-2 flex flex-col gap-1 text-left">
                     <Link
                       href="/profile"
-                      className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                      className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface rounded-lg transition-colors"
                     >
                       <UserIcon size={16} /> Profile
                     </Link>
                     <Link
                       href="/my-tickets"
-                      className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                      className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface rounded-lg transition-colors"
                     >
                       <Ticket size={16} /> My Tickets
                     </Link>
                     {isAdmin && (
                       <Link
                         href="/admin/dashboard"
-                        className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface rounded-lg transition-colors"
                       >
                         <LayoutDashboard size={16} /> Admin
                       </Link>
                     )}
-                    <div className="h-px bg-gray-100 my-1" />
+                    <div className="h-px bg-outline-variant my-1" />
                     <button
                       onClick={() => {
                         void logout().then(() => router.replace("/login"));
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
                     >
                       <LogOut size={16} /> Log out
                     </button>
@@ -311,33 +311,137 @@ export function SiteShell({
       </header>
       <main className="flex-1">{children}</main>
       <footer className="border-t border-gray-800 bg-[#2b2d31]">
-        <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-6 px-4 py-8 sm:flex-row sm:px-6 lg:px-8">
-          <div className="space-y-2 text-center sm:text-left">
-            <div className="font-display text-3xl font-black italic tracking-tight text-white drop-shadow-sm">
-              TicketBox
+        <div className="mx-auto flex w-full max-w-7xl flex-col items-start justify-between gap-8 px-4 py-12 sm:flex-row sm:px-6 lg:px-8">
+          <div className="flex flex-col space-y-4">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-3 transition-transform hover:scale-105"
+            >
+              <svg
+                className="h-10 w-10"
+                viewBox="0 0 200 200"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <defs>
+                  <linearGradient
+                    id="ticketbox-brand-gradient-footer"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                  >
+                    <stop offset="0%" stopColor="#4f46e5" />
+                    <stop offset="100%" stopColor="#7c3aed" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M40 60Q40 50 50 50H150Q160 50 160 60V85Q150 100 160 115V140Q160 150 150 150H50Q40 150 40 140V115Q50 100 40 85Z"
+                  fill="url(#ticketbox-brand-gradient-footer)"
+                />
+                <rect
+                  x="85"
+                  y="85"
+                  width="30"
+                  height="30"
+                  rx="15"
+                  fill="white"
+                  className="animate-pulse"
+                />
+                <path
+                  d="M100 70V130M70 100H130"
+                  stroke="white"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span className="font-display text-3xl font-black italic tracking-tight text-white drop-shadow-sm">
+                TicketBox
+              </span>
+            </Link>
+            <div className="flex items-center gap-4 text-white/70">
+              <Link
+                href="#"
+                className="hover:text-white transition-colors"
+                aria-label="Facebook"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+                </svg>
+              </Link>
+              <Link
+                href="#"
+                className="hover:text-white transition-colors"
+                aria-label="Instagram"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                </svg>
+              </Link>
+              <Link
+                href="#"
+                className="hover:text-white transition-colors"
+                aria-label="YouTube"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33 2.78 2.78 0 0 0 1.94 2c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.33 29 29 0 0 0-.46-5.33z" />
+                  <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
+                </svg>
+              </Link>
             </div>
-            <p className="text-xs font-semibold text-white/70 tracking-wide mt-1">
+            <p className="text-xs font-semibold text-white/50 tracking-wide mt-2">
               © 2026 TicketBox. All rights reserved.
             </p>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs font-bold text-white/80">
-            <Link href="#" className="hover:text-white transition-colors">
-              Terms of Service
+          <div className="flex flex-wrap items-center justify-start sm:justify-end gap-x-8 gap-y-4 text-sm font-bold text-white/80">
+            <Link
+              href="/#upcoming-concerts"
+              className="hover:text-white transition-colors"
+            >
+              Concerts
             </Link>
-            <Link href="#" className="hover:text-white transition-colors">
-              Privacy Policy
+            <Link
+              href="/private-policy"
+              className="hover:text-white transition-colors"
+            >
+              Private Policy
             </Link>
             <Link
               href="/support"
               className="hover:text-white transition-colors"
             >
               Support
-            </Link>
-            <Link href="#" className="hover:text-white transition-colors">
-              Venue Partners
-            </Link>
-            <Link href="#" className="hover:text-white transition-colors">
-              Developer API
             </Link>
           </div>
         </div>

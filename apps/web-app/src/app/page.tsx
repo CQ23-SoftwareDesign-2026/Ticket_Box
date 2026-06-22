@@ -119,16 +119,16 @@ function ConcertsSection() {
           <SectionHeading eyebrow="Discover" title="Upcoming concerts" />
           <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto items-start sm:items-end">
             <div className="w-full sm:w-auto">
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
+              <label className="mb-2 block text-sm font-semibold text-on-surface-variant">
                 Status
               </label>
-              <div className="flex items-center bg-slate-100 p-1 rounded-2xl w-full sm:w-auto">
+              <div className="flex items-center bg-outline-variant/30 p-1 rounded-2xl w-full sm:w-auto">
                 <button
                   onClick={() => {
                     setStatusFilter("PUBLISHED");
                     setPage(1);
                   }}
-                  className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${statusFilter === "PUBLISHED" ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                  className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${statusFilter === "PUBLISHED" ? "bg-surface text-primary shadow-sm" : "text-on-surface-variant/70 hover:text-on-surface-variant"}`}
                 >
                   Published
                 </button>
@@ -137,7 +137,7 @@ function ConcertsSection() {
                     setStatusFilter("COMPLETED");
                     setPage(1);
                   }}
-                  className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${statusFilter === "COMPLETED" ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                  className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${statusFilter === "COMPLETED" ? "bg-surface text-primary shadow-sm" : "text-on-surface-variant/70 hover:text-on-surface-variant"}`}
                 >
                   Completed
                 </button>
@@ -145,7 +145,7 @@ function ConcertsSection() {
             </div>
             <div className="w-full sm:w-72">
               <label
-                className="mb-2 block text-sm font-semibold text-slate-700"
+                className="mb-2 block text-sm font-semibold text-on-surface-variant"
                 htmlFor="concert-search"
               >
                 Search concerts
@@ -158,13 +158,13 @@ function ConcertsSection() {
                   setPage(1);
                 }}
                 placeholder="Search by name or location"
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
+                className="w-full rounded-2xl border border-slate-200 bg-surface px-4 py-3 text-sm text-white outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
               />
             </div>
           </div>
         </div>
 
-        <div className="mt-8 flex items-center justify-between gap-3 text-sm text-slate-500">
+        <div className="mt-8 flex items-center justify-between gap-3 text-sm text-on-surface-variant/70">
           <p>
             {loading
               ? "Loading concerts..."
@@ -190,13 +190,13 @@ function ConcertsSection() {
             ? Array.from({ length: 6 }, (_, index) => (
                 <div
                   key={index}
-                  className="animate-pulse rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.05)]"
+                  className="animate-pulse rounded-[28px] border border-slate-200 bg-surface p-5 shadow-[0_14px_40px_rgba(15,23,42,0.05)]"
                 >
-                  <div className="h-4 w-24 rounded-full bg-slate-100" />
-                  <div className="mt-4 h-6 w-3/4 rounded-full bg-slate-100" />
-                  <div className="mt-3 h-4 w-full rounded-full bg-slate-100" />
-                  <div className="mt-2 h-4 w-5/6 rounded-full bg-slate-100" />
-                  <div className="mt-6 h-10 w-full rounded-2xl bg-slate-100" />
+                  <div className="h-4 w-24 rounded-full bg-outline-variant/30" />
+                  <div className="mt-4 h-6 w-3/4 rounded-full bg-outline-variant/30" />
+                  <div className="mt-3 h-4 w-full rounded-full bg-outline-variant/30" />
+                  <div className="mt-2 h-4 w-5/6 rounded-full bg-outline-variant/30" />
+                  <div className="mt-6 h-10 w-full rounded-2xl bg-outline-variant/30" />
                 </div>
               ))
             : items.map((concert, index) => (
@@ -216,7 +216,7 @@ function ConcertsSection() {
                 type="button"
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
                 disabled={page === 1 || loading}
-                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-on-surface-variant transition disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Previous
               </button>
@@ -243,10 +243,10 @@ function ConcertsSection() {
                     type="button"
                     onClick={() => setPage(pageNumber)}
                     disabled={loading}
-                    className={`min-w-[2.5rem] rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    className={`min-w-10 rounded-full px-4 py-2 text-sm font-semibold transition ${
                       pageNumber === page
                         ? "bg-primary text-white"
-                        : "border border-slate-200 text-slate-700 hover:border-primary hover:text-primary"
+                        : "border border-slate-200 text-on-surface-variant hover:border-primary hover:text-primary"
                     } disabled:cursor-not-allowed disabled:opacity-50`}
                   >
                     {pageNumber}
@@ -259,12 +259,12 @@ function ConcertsSection() {
                   setPage((current) => Math.min(totalPages, current + 1))
                 }
                 disabled={page === totalPages || loading}
-                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-on-surface-variant transition disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Next
               </button>
             </div>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-on-surface-variant/70">
               Page {meta.currentPage} of {totalPages}
             </p>
           </div>

@@ -52,7 +52,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <Plus className="w-4 h-4" />
           Create Event
         </Link>
-        <ul className="flex flex-col gap-1 mt-6 flex-grow">
+        <ul className="flex flex-col gap-1 mt-6 grow">
           {navItems.map((item) => {
             const isActive = pathname?.startsWith(item.href);
             return (
@@ -132,7 +132,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <div className="p-4 md:p-10 flex-grow max-w-[1600px] w-full mx-auto">
+        <div className="p-4 md:p-10 grow max-w-[1600px] w-full mx-auto">
           {children}
         </div>
       </main>

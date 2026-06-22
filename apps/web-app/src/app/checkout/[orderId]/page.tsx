@@ -47,7 +47,7 @@ export default async function CheckoutPage({
         </div>
         <Suspense
           fallback={
-            <div className="p-6 border rounded-3xl bg-white shadow">
+            <div className="p-6 border rounded-3xl bg-surface shadow">
               Loading summary...
             </div>
           }

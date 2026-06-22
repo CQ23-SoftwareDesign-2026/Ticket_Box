@@ -104,7 +104,7 @@ export function HeroCarousel() {
       : "Loading...";
 
   return (
-    <section className="group relative overflow-hidden bg-gray-900 text-white min-h-[600px] flex items-end pb-20">
+    <section className="group relative overflow-hidden bg-[#111318] text-white min-h-[600px] flex items-end pb-20">
       {featuredConcert && (
         <img
           src={
@@ -114,18 +114,18 @@ export function HeroCarousel() {
               ? featuredConcert.posterUrl
               : "/Mockimg.webp"
           }
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-105"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-2000 ease-out group-hover:scale-105"
           alt="Hero background"
         />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/20 to-transparent transition-opacity duration-700 opacity-80 group-hover:opacity-100" />
-      <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 via-gray-900/50 to-transparent transition-opacity duration-700 opacity-0 group-hover:opacity-100" />
+      <div className="absolute inset-0 bg-linear-to-t from-bg-[#111318]/90 via-bg-[#111318]/20 to-transparent transition-opacity duration-700 opacity-80 group-hover:opacity-100" />
+      <div className="absolute inset-0 bg-linear-to-r from-bg-[#111318]/90 via-bg-[#111318]/50 to-transparent transition-opacity duration-700 opacity-0 group-hover:opacity-100" />
       <div className="hero-shimmer absolute inset-0 opacity-20 mix-blend-overlay transition-opacity duration-700 group-hover:opacity-40" />
 
       <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 z-10">
         <div className="max-w-3xl">
           <div className="space-y-4 transform transition-transform duration-700 ease-out group-hover:-translate-y-2">
-            <Badge className="border border-white/20 bg-white/20 backdrop-blur-md text-white shadow-xl px-4 py-1.5 rounded-full uppercase tracking-wider text-xs font-bold inline-flex items-center gap-2">
+            <Badge className="border border-white/20 bg-surface/20 backdrop-blur-md text-white shadow-xl px-4 py-1.5 rounded-full uppercase tracking-wider text-xs font-bold inline-flex items-center gap-2">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
@@ -137,7 +137,7 @@ export function HeroCarousel() {
             </h1>
           </div>
 
-          <div className="grid grid-rows-[0fr] opacity-0 transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] group-hover:grid-rows-[1fr] group-hover:opacity-100">
+          <div className="grid grid-rows-[0fr] opacity-0 transition-all duration-700 ease-in-out group-hover:grid-rows-[1fr] group-hover:opacity-100">
             <div className="overflow-hidden">
               <div className="pt-6">
                 <p className="max-w-2xl text-base leading-relaxed text-white/90 sm:text-lg drop-shadow-lg mb-8 line-clamp-3">
@@ -159,13 +159,6 @@ export function HeroCarousel() {
                       className="ml-2 transform transition-transform duration-300 group-hover/btn:translate-x-1"
                     />
                   </Button>
-                  <Button
-                    href="/support"
-                    variant="ghost"
-                    className="border border-white/30 text-white hover:bg-white/20 hover:border-white/50 px-8 py-4 text-base backdrop-blur-md transition-all duration-300"
-                  >
-                    Event Details
-                  </Button>
                 </div>
               </div>
             </div>
@@ -185,7 +178,7 @@ export function ConcertCard({
 }) {
   return (
     <Card
-      className={`group h-full overflow-hidden flex flex-col p-0 bg-white border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.15)] transition-all duration-500 hover:-translate-y-1 ${featured ? "sm:flex-row rounded-[2rem]" : "rounded-3xl"}`}
+      className={`group h-full overflow-hidden flex flex-col p-0 bg-surface border border-outline-variant shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.15)] transition-all duration-500 hover:-translate-y-1 ${featured ? "sm:flex-row rounded-4xl" : "rounded-3xl"}`}
     >
       <div
         className={`relative overflow-hidden ${featured ? "w-full sm:w-5/12 min-h-[280px] sm:min-h-full" : "w-full h-64"}`}
@@ -203,10 +196,10 @@ export function ConcertCard({
           alt={concert.title}
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-linear-to-t from-bg-[#111318]/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-        <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-md text-gray-900 px-3 py-2 rounded-2xl flex flex-col items-center shadow-lg border border-white/50 transform transition-transform duration-500 group-hover:-translate-y-1">
-          <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
+        <div className="absolute top-4 left-4 bg-surface/95 backdrop-blur-md text-on-surface px-3 py-2 rounded-2xl flex flex-col items-center shadow-lg border border-white/50 transform transition-transform duration-500 group-hover:-translate-y-1">
+          <span className="text-[10px] uppercase font-bold text-on-surface-variant/70 tracking-wider">
             {concert.date.split(" ")[0] || "OCT"}
           </span>
           <span className="text-xl font-black text-primary leading-none mt-1">
@@ -215,7 +208,7 @@ export function ConcertCard({
         </div>
       </div>
       <div
-        className={`flex flex-1 flex-col justify-between bg-white transition-colors duration-500 group-hover:bg-gray-50/50 ${featured ? "p-8 sm:p-10 sm:w-7/12" : "p-6 w-full"}`}
+        className={`flex flex-1 flex-col justify-between bg-surface transition-colors duration-500 group-hover:bg-surface-low/50 ${featured ? "p-8 sm:p-10 sm:w-7/12" : "p-6 w-full"}`}
       >
         <div className="space-y-4">
           <div className="flex items-center gap-2">
@@ -227,15 +220,15 @@ export function ConcertCard({
               {concert.status}
             </span>
           </div>
-          <h3 className="font-display text-2xl sm:text-3xl font-black text-gray-900 transition-colors duration-300 group-hover:text-primary line-clamp-2">
+          <h3 className="font-display text-2xl sm:text-3xl font-black text-on-surface transition-colors duration-300 group-hover:text-primary line-clamp-2">
             {concert.title}
           </h3>
           {featured && (
-            <p className="text-sm sm:text-base leading-relaxed text-gray-600 line-clamp-3">
+            <p className="text-sm sm:text-base leading-relaxed text-on-surface-variant line-clamp-3">
               {concert.description}
             </p>
           )}
-          <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
+          <div className="flex items-center gap-2 text-sm text-on-surface-variant/70 font-medium">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
@@ -246,7 +239,7 @@ export function ConcertCard({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-gray-400"
+              className="text-on-surface-variant/50"
             >
               <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
               <circle cx="12" cy="10" r="3" />
@@ -254,19 +247,21 @@ export function ConcertCard({
             <span className="truncate">{concert.venue}</span>
           </div>
         </div>
-        <div className="mt-8 flex items-end justify-between border-t border-gray-100 pt-6">
+        <div className="mt-8 flex items-end justify-between border-t border-outline-variant pt-6">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400 font-bold mb-1">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-on-surface-variant/50 font-bold mb-1">
               Starting from
             </p>
-            <p className="text-2xl font-black text-gray-900">{concert.price}</p>
+            <p className="text-2xl font-black text-on-surface">
+              {concert.price}
+            </p>
           </div>
           <Link
             href={`/concerts/${concert.id}`}
             className={`group/btn inline-flex items-center justify-center gap-2 overflow-hidden relative transition-all duration-300 ${
               featured
-                ? "bg-gray-900 text-white w-12 h-12 rounded-full hover:bg-primary shadow-md hover:shadow-lg hover:-translate-y-0.5"
-                : "bg-white border-2 border-gray-100 text-gray-900 px-6 py-2.5 rounded-full text-sm font-bold hover:border-primary hover:text-primary hover:bg-primary/5"
+                ? "bg-[#111318] text-white w-12 h-12 rounded-full hover:bg-primary shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                : "bg-surface border-2 border-outline-variant text-on-surface px-6 py-2.5 rounded-full text-sm font-bold hover:border-primary hover:text-primary hover:bg-primary/5"
             }`}
           >
             {featured ? (
@@ -480,7 +475,7 @@ export function InteractiveTicketSelector({
   };
 
   return (
-    <Card className="overflow-hidden border-0 shadow-lg bg-white">
+    <Card className="overflow-hidden border-0 shadow-lg bg-surface">
       <div className="p-8">
         <div className="flex items-center justify-between">
           <SectionHeading
@@ -533,48 +528,50 @@ export function InteractiveTicketSelector({
               );
             })
           ) : (
-            <p className="text-sm text-gray-500">No ticket tiers available.</p>
+            <p className="text-sm text-on-surface-variant/70">
+              No ticket tiers available.
+            </p>
           )}
         </div>
 
         {selectedTier && (
-          <div className="mt-8 border-t border-gray-100 pt-6 space-y-6">
+          <div className="mt-8 border-t border-outline-variant pt-6 space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-gray-900">
+                <p className="text-sm font-semibold text-on-surface">
                   Select Quantity
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-on-surface-variant/70 mt-1">
                   {maxQty > 0
                     ? `Limit: ${maxQty} tickets per user`
                     : "Sold out right now"}
                 </p>
               </div>
-              <div className="flex items-center gap-4 bg-gray-50 border border-gray-200 rounded-xl p-1">
+              <div className="flex items-center gap-4 bg-surface-low border border-outline rounded-xl p-1">
                 <button
                   type="button"
                   disabled={quantity <= 1}
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white text-lg font-bold text-gray-700 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface text-lg font-bold text-on-surface-variant disabled:opacity-30 disabled:pointer-events-none transition-colors"
                 >
                   −
                 </button>
-                <span className="w-8 text-center font-bold text-gray-900 text-lg">
+                <span className="w-8 text-center font-bold text-on-surface text-lg">
                   {quantity}
                 </span>
                 <button
                   type="button"
                   disabled={maxQty < 1 || quantity >= maxQty}
                   onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))}
-                  className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white text-lg font-bold text-gray-700 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface text-lg font-bold text-on-surface-variant disabled:opacity-30 disabled:pointer-events-none transition-colors"
                 >
                   +
                 </button>
               </div>
             </div>
 
-            <div className="rounded-2xl bg-gray-50 p-4 border border-gray-100">
-              <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+            <div className="rounded-2xl bg-surface-low p-4 border border-outline-variant">
+              <div className="flex items-center justify-between text-sm text-on-surface-variant mb-2">
                 <span>
                   Subtotal ({quantity} x{" "}
                   {formatConcertCurrency(selectedTier.price)})
@@ -583,7 +580,7 @@ export function InteractiveTicketSelector({
                   {formatConcertCurrency(selectedTier.price * quantity)}
                 </span>
               </div>
-              <div className="flex items-center justify-between border-t border-gray-200 pt-2 text-base font-bold text-gray-900">
+              <div className="flex items-center justify-between border-t border-outline pt-2 text-base font-bold text-on-surface">
                 <span>Estimated Total</span>
                 <span>
                   {formatConcertCurrency(selectedTier.price * quantity)}
@@ -756,20 +753,20 @@ export function ConcertDetailHero({ concert }: { concert: ConcertDetailItem }) {
 
         {/* SEAM — mobile: horizontal tear line */}
         <div className="flex lg:hidden items-center gap-2 px-6">
-          <span className="h-3 w-3 rounded-full bg-[#15111c] ring-1 ring-[#d8b56e]/30 -ml-[22px]" />
+          <span className="h-3 w-3 rounded-full bg-[#15111c] ring-1 ring-[#d8b56e]/30 ml-[-22px]" />
           <span className="flex-1 border-t border-dashed border-[#f6f2ec]/15" />
-          <span className="h-3 w-3 rounded-full bg-[#15111c] ring-1 ring-[#d8b56e]/30 -mr-[22px]" />
+          <span className="h-3 w-3 rounded-full bg-[#15111c] ring-1 ring-[#d8b56e]/30 mr-[-22px]" />
         </div>
 
         {/* SEAM — desktop: vertical tear line with rotated stub label */}
         <div className="relative hidden lg:flex flex-col items-center py-6">
-          <span className="h-3 w-3 rounded-full bg-[#15111c] ring-1 ring-[#d8b56e]/30 -mt-[22px]" />
+          <span className="h-3 w-3 rounded-full bg-[#15111c] ring-1 ring-[#d8b56e]/30 mt-[-22px]" />
           <span className="mt-2 flex-1 w-px border-l border-dashed border-[#f6f2ec]/15" />
           <span className="my-3 rotate-180 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.3em] text-[#f6f2ec]/30 [writing-mode:vertical-rl]">
             Vé điện tử
           </span>
           <span className="flex-1 w-px border-l border-dashed border-[#f6f2ec]/15" />
-          <span className="h-3 w-3 rounded-full bg-[#15111c] ring-1 ring-[#d8b56e]/30 -mb-[22px]" />
+          <span className="h-3 w-3 rounded-full bg-[#15111c] ring-1 ring-[#d8b56e]/30 mb-[-22px]" />
         </div>
 
         {/* RIGHT: poster */}
@@ -865,7 +862,7 @@ export function VenueMap() {
       <div className="hero-sheen p-6 text-white">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <Badge className="bg-white/15 text-white">Seat selection</Badge>
+            <Badge className="bg-surface/15 text-white">Seat selection</Badge>
             <h2 className="mt-4 font-display text-3xl font-black">
               Central Stadium
             </h2>
@@ -873,7 +870,7 @@ export function VenueMap() {
               Stage view, zone labels, and ticket availability
             </p>
           </div>
-          <div className="rounded-2xl bg-white/10 px-4 py-3 text-right backdrop-blur">
+          <div className="rounded-2xl bg-surface/10 px-4 py-3 text-right backdrop-blur">
             <div className="text-xs uppercase tracking-[0.2em] text-white/70">
               Stage
             </div>
@@ -882,14 +879,14 @@ export function VenueMap() {
         </div>
       </div>
       <div className="space-y-6 p-6">
-        <div className="grid grid-cols-10 gap-2 rounded-[2rem] border border-outline-variant bg-surface-low p-3 text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-on-surface-variant">
+        <div className="grid grid-cols-10 gap-2 rounded-4xl border border-outline-variant bg-surface-low p-3 text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-on-surface-variant">
           {Array.from({ length: 10 }, (_, index) => (
             <div key={index} className="rounded-xl bg-surface py-2">
               {index + 1}
             </div>
           ))}
         </div>
-        <div className="rounded-[2rem] bg-surface-low p-4">
+        <div className="rounded-4xl bg-surface-low p-4">
           <div className="grid grid-cols-10 gap-2">
             {seatRows.map((row, rowIndex) =>
               row.map((seat, seatIndex) => {
@@ -1054,7 +1051,7 @@ export function PaymentMethodPicker() {
         <div className="rounded-2xl border border-primary bg-primary/5 p-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="flex h-10 w-16 items-center justify-center rounded-lg bg-white shadow-sm">
+              <div className="flex h-10 w-16 items-center justify-center rounded-lg bg-surface shadow-sm">
                 <span className="font-bold text-blue-600">PayOS</span>
               </div>
               <div>
@@ -1065,7 +1062,7 @@ export function PaymentMethodPicker() {
               </div>
             </div>
             <span className="h-5 w-5 rounded-full border-2 border-primary bg-primary">
-              <span className="mx-auto mt-[3px] block h-2.5 w-2.5 rounded-full bg-white" />
+              <span className="mx-auto mt-[3px] block h-2.5 w-2.5 rounded-full bg-surface" />
             </span>
           </div>
         </div>
@@ -1227,7 +1224,7 @@ export function CountdownTimer({ orderId }: { orderId?: string }) {
   return (
     <>
       {isExpired && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md">
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-md">
           <Card className="w-full max-w-md p-8 text-center shadow-2xl mx-4">
             <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-error/10 text-error">
               <span className="material-symbols-outlined text-[32px]">
@@ -1264,8 +1261,8 @@ export function ProcessingAnimation() {
   return (
     <Card className="mx-auto max-w-2xl overflow-hidden p-0">
       <div className="hero-sheen px-6 py-12 text-center text-white sm:px-10">
-        <div className="mx-auto flex h-36 w-36 items-center justify-center rounded-full border border-white/20 bg-white/10 pulse-ring">
-          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-white/15 backdrop-blur">
+        <div className="mx-auto flex h-36 w-36 items-center justify-center rounded-full border border-white/20 bg-surface/10 pulse-ring">
+          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-surface/15 backdrop-blur">
             <span className="material-symbols-outlined text-[44px]">
               hourglass_top
             </span>
@@ -1356,7 +1353,7 @@ export function ETicketCard() {
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">
               QR access
             </p>
-            <div className="mt-4 rounded-3xl bg-white p-4 shadow-xl">
+            <div className="mt-4 rounded-3xl bg-surface p-4 shadow-xl">
               <div className="qr-grid">
                 {Array.from({ length: 49 }, (_, index) => (
                   <span
@@ -1364,7 +1361,7 @@ export function ETicketCard() {
                     className={
                       index % 3 === 0 || index % 7 === 0 || index % 11 === 0
                         ? "bg-slate-900"
-                        : "bg-white"
+                        : "bg-surface"
                     }
                   />
                 ))}
@@ -1377,7 +1374,7 @@ export function ETicketCard() {
             </Button>
             <Button
               variant="ghost"
-              className="w-full border border-white/20 text-white hover:bg-white/10"
+              className="w-full border border-white/20 text-white hover:bg-surface/10"
             >
               Download ticket
             </Button>
@@ -1425,7 +1422,7 @@ export function ProfileHeader() {
     <Card className="overflow-hidden p-0">
       <div className="hero-sheen grid gap-6 px-6 py-8 text-white sm:px-8 lg:grid-cols-[auto_1fr_auto] lg:items-center">
         <div className="flex items-center gap-4">
-          <div className="flex h-18 w-18 items-center justify-center rounded-full bg-white/15 text-2xl font-black">
+          <div className="flex h-18 w-18 items-center justify-center rounded-full bg-surface/15 text-2xl font-black">
             AC
           </div>
           <div>
@@ -1502,7 +1499,7 @@ export function SupportHero() {
       <div className="surface-grid absolute inset-0 opacity-20" />
       <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="max-w-3xl space-y-6">
-          <Badge className="border border-white/20 bg-white/10 text-white">
+          <Badge className="border border-white/20 bg-surface/10 text-white">
             Support center
           </Badge>
           <h1 className="font-display text-4xl font-black tracking-tight sm:text-5xl">
@@ -1512,8 +1509,8 @@ export function SupportHero() {
             Search for FAQs, guides, and order help, or choose a category below
             to jump straight into the right support flow.
           </p>
-          <div className="flex flex-wrap gap-3 rounded-3xl bg-white/10 p-3 backdrop-blur">
-            <div className="flex min-w-[240px] flex-1 items-center gap-3 rounded-2xl bg-white px-4 py-3 text-on-surface shadow-lg">
+          <div className="flex flex-wrap gap-3 rounded-3xl bg-surface/10 p-3 backdrop-blur">
+            <div className="flex min-w-[240px] flex-1 items-center gap-3 rounded-2xl bg-surface px-4 py-3 text-on-surface shadow-lg">
               <Search className="h-4 w-4 text-primary" />
               <input
                 type="text"
@@ -1592,7 +1589,7 @@ export function MyTicketsHero() {
     <Card className="hero-shimmer p-6 text-white">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <Badge className="bg-white/10 text-white">Your tickets</Badge>
+          <Badge className="bg-surface/10 text-white">Your tickets</Badge>
           <h1 className="mt-4 font-display text-4xl font-black">
             My ticket library
           </h1>
@@ -1661,7 +1658,7 @@ export function SeatMapViewer({ mapUrl }: { mapUrl?: string }) {
           setPosition({ x: 0, y: 0 });
           setIsOpen(true);
         }}
-        className="group bg-gray-50 rounded-2xl border border-gray-100 p-8 flex flex-col items-center justify-center min-h-[300px] hover:bg-gray-100 transition-colors cursor-pointer relative overflow-hidden"
+        className="group bg-surface-low rounded-2xl border border-outline-variant p-8 flex flex-col items-center justify-center min-h-[300px] hover:bg-outline-variant/30 transition-colors cursor-pointer relative overflow-hidden"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -1669,36 +1666,36 @@ export function SeatMapViewer({ mapUrl }: { mapUrl?: string }) {
           alt="Seat Map"
           className="w-full h-auto max-h-[350px] object-contain transition-transform duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-white/0 group-hover:bg-white/40 transition-colors duration-300 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100">
+        <div className="absolute inset-0 bg-surface/0 group-hover:bg-surface/40 transition-colors duration-300 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100">
           <div className="inline-flex items-center justify-center p-4 bg-primary rounded-full shadow-xl mb-3 text-white transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
             <ZoomIn size={28} />
           </div>
-          <p className="text-sm font-bold text-gray-900 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 delay-75 bg-white/90 px-4 py-1.5 rounded-full shadow-sm">
+          <p className="text-sm font-bold text-on-surface transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 delay-75 bg-surface/90 px-4 py-1.5 rounded-full shadow-sm">
             Click to View Map Details
           </p>
         </div>
       </div>
 
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/95 backdrop-blur-md">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-[#111318]/95 backdrop-blur-md">
           <button
             onClick={() => setIsOpen(false)}
-            className="absolute top-6 right-6 text-white/70 hover:text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors z-50"
+            className="absolute top-6 right-6 text-white/70 hover:text-white p-3 bg-surface/10 hover:bg-surface/20 rounded-full transition-colors z-50"
           >
             <X size={24} />
           </button>
 
-          <div className="absolute bottom-10 flex items-center gap-2 bg-white/10 backdrop-blur-xl p-2 rounded-2xl z-50 border border-white/20 shadow-2xl">
+          <div className="absolute bottom-10 flex items-center gap-2 bg-surface/10 backdrop-blur-xl p-2 rounded-2xl z-50 border border-white/20 shadow-2xl">
             <button
               onClick={handleZoomOut}
-              className="p-3 text-white hover:bg-white/20 rounded-xl transition-colors active:scale-95"
+              className="p-3 text-white hover:bg-surface/20 rounded-xl transition-colors active:scale-95"
             >
               <ZoomOut size={24} />
             </button>
-            <div className="w-px h-8 bg-white/20 mx-2" />
+            <div className="w-px h-8 bg-surface/20 mx-2" />
             <button
               onClick={handleZoomIn}
-              className="p-3 text-white hover:bg-white/20 rounded-xl transition-colors active:scale-95"
+              className="p-3 text-white hover:bg-surface/20 rounded-xl transition-colors active:scale-95"
             >
               <ZoomIn size={24} />
             </button>

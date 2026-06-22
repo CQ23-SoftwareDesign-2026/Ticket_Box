@@ -24,7 +24,7 @@ export default async function ConcertDetailPage({
             <h1 className="text-2xl font-bold text-rose-600">
               Error Loading Concert
             </h1>
-            <p className="text-slate-600">
+            <p className="text-on-surface-variant">
               {error instanceof Error
                 ? error.message
                 : "Failed to load concert details."}
@@ -44,9 +44,9 @@ export default async function ConcertDetailPage({
         <ConcertDetailHero concert={concert} />
         <div className="mt-8 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-start">
           <div className="space-y-8">
-            <Card className="overflow-hidden border-0 shadow-md bg-white p-6 sm:p-8">
+            <Card className="overflow-hidden border-0 shadow-md bg-surface p-6 sm:p-8">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="font-display text-2xl font-bold text-gray-900">
+                <h2 className="font-display text-2xl font-bold text-on-surface">
                   Select Section
                 </h2>
               </div>
@@ -54,7 +54,7 @@ export default async function ConcertDetailPage({
               <SeatMapViewer mapUrl={concert.mapUrl} />
             </Card>
 
-            <Card className="overflow-hidden border-0 shadow-md bg-white p-6 sm:p-8">
+            <Card className="overflow-hidden border-0 shadow-md bg-surface p-6 sm:p-8">
               <SectionHeading
                 eyebrow="About the show"
                 title="Event Details"
@@ -80,13 +80,13 @@ export default async function ConcertDetailPage({
                 ].map(([label, value]) => (
                   <div
                     key={label}
-                    className="rounded-xl border border-gray-100 bg-gray-50 p-4"
+                    className="rounded-xl border border-outline-variant bg-surface-low p-4"
                   >
-                    <p className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                    <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant/70">
                       {label}
                     </p>
                     <p
-                      className="mt-2 text-sm font-bold text-gray-900 truncate"
+                      className="mt-2 text-sm font-bold text-on-surface truncate"
                       title={value}
                     >
                       {value}
