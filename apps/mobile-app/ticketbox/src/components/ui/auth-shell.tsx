@@ -1,5 +1,6 @@
 import { type PropsWithChildren, type ReactNode } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { AppScreen } from '@/components/ui/app-screen';
 import { AppText } from '@/components/ui/app-text';
@@ -19,15 +20,22 @@ export function AuthShell({ eyebrow, title, description, footer, children }: Aut
       <View style={styles.container}>
         <View style={styles.hero}>
           <View style={styles.badge}>
-            <AppText variant="caption" tone="primary">
+            <AppText variant="eyebrow" tone="primary">
               {eyebrow}
             </AppText>
           </View>
-          <AppText variant="title">{title}</AppText>
-          <AppText tone="muted">{description}</AppText>
+          <View style={styles.brandLockup}>
+            <View style={styles.brandMark}>
+              <MaterialCommunityIcons color={colors.background} name="ticket-confirmation" size={28} />
+            </View>
+            <View style={styles.brandText}>
+              <AppText variant="hero">{title}</AppText>
+              <AppText tone="muted">{description}</AppText>
+            </View>
+          </View>
         </View>
 
-        <SurfaceCard>{children}</SurfaceCard>
+        <SurfaceCard variant="hero">{children}</SurfaceCard>
 
         {footer ? <View style={styles.footer}>{footer}</View> : null}
       </View>
@@ -42,16 +50,33 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   hero: {
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   badge: {
     alignSelf: 'flex-start',
     borderRadius: radii.pill,
-    backgroundColor: colors.backgroundMuted,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceOverlay,
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
+  },
+  brandLockup: {
+    gap: spacing.md,
+  },
+  brandMark: {
+    width: 72,
+    height: 72,
+    borderRadius: 24,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.28,
+    shadowRadius: 28,
+    elevation: 10,
+  },
+  brandText: {
+    gap: spacing.sm,
   },
   footer: {
     gap: spacing.sm,

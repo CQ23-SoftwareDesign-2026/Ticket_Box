@@ -1,4 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { colors, radii, spacing } from '@/constants/theme';
 import { AppText } from '@/components/ui/app-text';
@@ -7,6 +8,7 @@ type ButtonProps = {
   label: string;
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  icon?: keyof typeof MaterialCommunityIcons.glyphMap;
   disabled?: boolean;
   loading?: boolean;
 };
@@ -15,6 +17,7 @@ export function Button({
   label,
   onPress,
   variant = 'primary',
+  icon,
   disabled = false,
   loading = false,
 }: ButtonProps) {
@@ -32,10 +35,11 @@ export function Button({
       ]}
     >
       <View style={styles.content}>
-        {loading ? <ActivityIndicator color={variant === 'secondary' ? colors.text : colors.background} /> : null}
+        {loading ? <ActivityIndicator color={spinnerColor[variant]} /> : null}
+        {!loading && icon ? <MaterialCommunityIcons color={iconColor[variant]} name={icon} size={18} /> : null}
         <AppText
           variant="label"
-          style={[styles.label, variant === 'secondary' || variant === 'ghost' ? styles.secondaryLabel : null]}
+          style={[styles.label, labelStyles[variant]]}
         >
           {label}
         </AppText>
@@ -46,7 +50,7 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 54,
+    minHeight: 56,
     borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -60,12 +64,9 @@ const styles = StyleSheet.create({
   label: {
     color: colors.background,
   },
-  secondaryLabel: {
-    color: colors.text,
-  },
   pressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.99 }],
+    opacity: 0.94,
+    transform: [{ scale: 0.985 }],
   },
   disabled: {
     opacity: 0.55,
@@ -75,16 +76,53 @@ const styles = StyleSheet.create({
 const variantStyles = StyleSheet.create({
   primary: {
     backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.26,
+    shadowRadius: 22,
+    elevation: 8,
   },
   secondary: {
     backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.border,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    elevation: 6,
   },
   ghost: {
-    backgroundColor: 'transparent',
+    backgroundColor: colors.surfaceOverlay,
   },
   danger: {
     backgroundColor: colors.danger,
+    shadowColor: colors.danger,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.22,
+    shadowRadius: 22,
+    elevation: 8,
   },
 });
+
+const labelStyles = StyleSheet.create({
+  primary: {
+    color: colors.background,
+  },
+  secondary: {
+    color: colors.text,
+  },
+  ghost: {
+    color: colors.textMuted,
+  },
+  danger: {
+    color: colors.background,
+  },
+});
+
+const iconColor = {
+  primary: colors.background,
+  secondary: colors.text,
+  ghost: colors.textMuted,
+  danger: colors.background,
+} as const;
+
+const spinnerColor = iconColor;

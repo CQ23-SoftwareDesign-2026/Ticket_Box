@@ -3,8 +3,8 @@ import { Text, StyleSheet, type TextProps } from 'react-native';
 import { colors } from '@/constants/theme';
 
 type AppTextProps = TextProps & {
-  variant?: 'title' | 'subtitle' | 'body' | 'caption' | 'label';
-  tone?: 'default' | 'muted' | 'primary' | 'danger' | 'success';
+  variant?: 'hero' | 'title' | 'subtitle' | 'body' | 'caption' | 'label' | 'eyebrow';
+  tone?: 'default' | 'muted' | 'primary' | 'danger' | 'success' | 'warning';
 };
 
 export function AppText({ style, variant = 'body', tone = 'default', ...props }: AppTextProps) {
@@ -18,19 +18,26 @@ const styles = StyleSheet.create({
 });
 
 const variants = StyleSheet.create({
+  hero: {
+    fontSize: 34,
+    fontWeight: '800',
+    lineHeight: 40,
+    letterSpacing: -0.8,
+  },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    lineHeight: 36,
+    lineHeight: 34,
+    letterSpacing: -0.4,
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '600',
     lineHeight: 26,
   },
   body: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 15.5,
+    lineHeight: 23,
   },
   caption: {
     fontSize: 13,
@@ -41,6 +48,13 @@ const variants = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 20,
   },
+  eyebrow: {
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 16,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
 });
 
 const tones = StyleSheet.create({
@@ -49,4 +63,5 @@ const tones = StyleSheet.create({
   primary: { color: colors.primary },
   danger: { color: colors.danger },
   success: { color: colors.success },
+  warning: { color: colors.warning },
 });

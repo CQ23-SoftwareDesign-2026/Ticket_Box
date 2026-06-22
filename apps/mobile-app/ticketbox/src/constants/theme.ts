@@ -1,18 +1,27 @@
 export const colors = {
-  background: '#07111f',
-  backgroundMuted: '#0d1a2b',
-  surface: '#10233d',
-  surfaceElevated: '#173251',
-  surfaceSoft: '#1c3d61',
-  border: '#25486d',
-  text: '#f3f7fb',
-  textMuted: '#9db2c9',
-  textSoft: '#7f97b1',
-  primary: '#4db3ff',
-  primaryPressed: '#2d93df',
-  success: '#3dd9a6',
-  warning: '#f5b74a',
-  danger: '#ff6e7d',
+  background: '#06101d',
+  backgroundMuted: '#0b1726',
+  backgroundPanel: '#101f32',
+  surface: '#12253c',
+  surfaceElevated: '#18324e',
+  surfaceSoft: '#223f60',
+  surfaceOverlay: 'rgba(255,255,255,0.04)',
+  border: 'rgba(125, 166, 210, 0.16)',
+  borderStrong: 'rgba(125, 166, 210, 0.28)',
+  text: '#f4f7fb',
+  textMuted: '#a3b7cc',
+  textSoft: '#7f95ad',
+  primary: '#61bbff',
+  primaryPressed: '#3f9fe4',
+  primaryGlow: 'rgba(97, 187, 255, 0.28)',
+  success: '#3fd8a4',
+  successSoft: 'rgba(63, 216, 164, 0.16)',
+  warning: '#f5bc56',
+  warningSoft: 'rgba(245, 188, 86, 0.16)',
+  danger: '#ff7083',
+  dangerSoft: 'rgba(255, 112, 131, 0.16)',
+  infoSoft: 'rgba(97, 187, 255, 0.16)',
+  shadow: '#02060b',
 } as const;
 
 export const spacing = {
@@ -25,9 +34,10 @@ export const spacing = {
 } as const;
 
 export const radii = {
-  sm: 10,
-  md: 16,
-  lg: 22,
+  sm: 8,
+  md: 14,
+  lg: 18,
+  xl: 24,
   pill: 999,
 } as const;
 

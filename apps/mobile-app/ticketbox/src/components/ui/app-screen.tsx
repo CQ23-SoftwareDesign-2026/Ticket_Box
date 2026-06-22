@@ -19,6 +19,11 @@ export function AppScreen({ children, scroll = true }: AppScreenProps) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <View pointerEvents="none" style={styles.atmosphere}>
+        <View style={styles.glowPrimary} />
+        <View style={styles.glowSecondary} />
+        <View style={styles.panelGlow} />
+      </View>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardContainer}
@@ -34,15 +39,50 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  atmosphere: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  glowPrimary: {
+    position: 'absolute',
+    top: -120,
+    right: -90,
+    width: 300,
+    height: 300,
+    borderRadius: 999,
+    backgroundColor: colors.primaryGlow,
+    opacity: 0.65,
+  },
+  glowSecondary: {
+    position: 'absolute',
+    bottom: 140,
+    left: -120,
+    width: 260,
+    height: 260,
+    borderRadius: 999,
+    backgroundColor: colors.infoSoft,
+    opacity: 0.28,
+  },
+  panelGlow: {
+    position: 'absolute',
+    top: 180,
+    left: 24,
+    right: 24,
+    height: 200,
+    borderRadius: 40,
+    backgroundColor: colors.surfaceOverlay,
+    opacity: 0.28,
+  },
   keyboardContainer: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
     padding: spacing.xl,
+    paddingBottom: spacing.xxl + 92,
   },
   staticContent: {
     flex: 1,
     padding: spacing.xl,
+    paddingBottom: spacing.xxl + 92,
   },
 });

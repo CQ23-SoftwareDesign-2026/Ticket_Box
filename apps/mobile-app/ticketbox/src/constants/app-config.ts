@@ -6,4 +6,5 @@ export const APP_CONFIG = {
 export const STORAGE_KEYS = {
   accessToken: 'ticketbox.staff.accessToken',
   refreshToken: 'ticketbox.staff.refreshToken',
+  currentScanSession: 'ticketbox.staff.currentScanSession',
 } as const;

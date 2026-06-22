@@ -1,10 +1,12 @@
 import { StyleSheet, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { AppScreen } from '@/components/ui/app-screen';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { SurfaceCard } from '@/components/ui/surface-card';
-import { colors, spacing } from '@/constants/theme';
+import { StatusPill } from '@/components/ui/status-pill';
+import { colors, radii, spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 
 export function PendingApprovalScreen() {
@@ -14,24 +16,29 @@ export function PendingApprovalScreen() {
     <AppScreen scroll={false}>
       <View style={styles.container}>
         <View style={styles.hero}>
-          <View style={styles.dot} />
-          <AppText variant="title">Pending staff permission</AppText>
+          <View style={styles.lockWrap}>
+            <View style={styles.lockIcon}>
+              <MaterialCommunityIcons color={colors.danger} name="shield-lock-outline" size={38} />
+            </View>
+          </View>
+          <StatusPill label="Access blocked" tone="danger" />
+          <AppText variant="hero">Unauthorized access</AppText>
           <AppText tone="muted">
-            {user?.fullName ?? 'Your account'} is signed in, but staff-only tools are still locked for audience access.
+            {user?.fullName ?? 'Your account'} is signed in, but this app is reserved for active Checker and Admin accounts working at the venue.
           </AppText>
         </View>
 
-        <SurfaceCard>
+        <SurfaceCard variant="danger">
           <AppText variant="subtitle">What happens next</AppText>
           <AppText tone="muted">
-            This mobile app only allows Checker and Admin accounts. Ask TicketBox to assign the correct role to your account before signing in again.
+            Your current account can authenticate successfully, but it is not allowed to operate gate scanning tools. Ask TicketBox to assign the correct staff role before signing in again.
           </AppText>
           <AppText tone="muted">Current roles: {(user?.roles ?? []).join(', ') || 'Audience'}</AppText>
         </SurfaceCard>
 
         <View style={styles.actions}>
-          <Button label="Checker role required" onPress={() => {}} variant="secondary" disabled />
-          <Button label="Sign out" onPress={logout} loading={isSubmitting} />
+          <Button label="Checker role required" onPress={() => {}} variant="ghost" disabled />
+          <Button icon="logout" label="Sign out" onPress={logout} loading={isSubmitting} />
         </View>
       </View>
     </AppScreen>
@@ -45,13 +52,23 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   hero: {
-    gap: spacing.sm,
+    gap: spacing.md,
   },
-  dot: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.warning,
+  lockWrap: {
+    alignItems: 'center',
+  },
+  lockIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    shadowColor: colors.danger,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 8,
   },
   actions: {
     gap: spacing.md,

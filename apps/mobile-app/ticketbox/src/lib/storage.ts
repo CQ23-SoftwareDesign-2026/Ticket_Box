@@ -7,6 +7,14 @@ export type StoredTokens = {
   refreshToken: string | null;
 };
 
+export type CurrentScanSession = {
+  concertId: string;
+  concertTitle: string;
+  concertVenue: string;
+  gateLabel: string;
+  prefetchedAt: string;
+};
+
 export const tokenStorage = {
   async getTokens(): Promise<StoredTokens> {
     const [accessToken, refreshToken] = await Promise.all([
@@ -29,5 +37,30 @@ export const tokenStorage = {
       AsyncStorage.removeItem(STORAGE_KEYS.accessToken),
       AsyncStorage.removeItem(STORAGE_KEYS.refreshToken),
     ]);
+  },
+};
+
+export const scanSessionStorage = {
+  async getCurrentSession(): Promise<CurrentScanSession | null> {
+    const raw = await AsyncStorage.getItem(STORAGE_KEYS.currentScanSession);
+
+    if (!raw) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(raw) as CurrentScanSession;
+    } catch {
+      await AsyncStorage.removeItem(STORAGE_KEYS.currentScanSession);
+      return null;
+    }
+  },
+
+  async setCurrentSession(session: CurrentScanSession) {
+    await AsyncStorage.setItem(STORAGE_KEYS.currentScanSession, JSON.stringify(session));
+  },
+
+  async clearCurrentSession() {
+    await AsyncStorage.removeItem(STORAGE_KEYS.currentScanSession);
   },
 };
