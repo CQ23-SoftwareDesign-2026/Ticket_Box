@@ -170,8 +170,8 @@ export async function getConcerts(query: ConcertQuery = {}) {
   const isServer = typeof window === "undefined";
   const baseUrl = isServer
     ? (
-      process.env.REMOTE_API_URL || "https://api.ticketbox.retrobit.io.vn"
-    ).replace(/\/+$/, "")
+        process.env.REMOTE_API_URL || "https://api.ticketbox.retrobit.io.vn"
+      ).replace(/\/+$/, "")
     : "/api/proxy";
   const url = `${baseUrl}/concerts?${params.toString()}`;
 
@@ -202,8 +202,8 @@ export async function getConcertById(id: string) {
   const isServer = typeof window === "undefined";
   const baseUrl = isServer
     ? (
-      process.env.REMOTE_API_URL || "https://api.ticketbox.retrobit.io.vn"
-    ).replace(/\/+$/, "")
+        process.env.REMOTE_API_URL || "https://api.ticketbox.retrobit.io.vn"
+      ).replace(/\/+$/, "")
     : "/api/proxy";
   const url = `${baseUrl}/concerts/${id}`;
 

@@ -21,7 +21,9 @@ export async function uploadImage(file: File): Promise<{ url: string }> {
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`Failed to upload image: ${response.statusText} - ${errorBody}`);
+    throw new Error(
+      `Failed to upload image: ${response.statusText} - ${errorBody}`,
+    );
   }
 
   return response.json();
@@ -45,7 +47,9 @@ export async function uploadSvg(file: File): Promise<{ url: string }> {
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`Failed to upload SVG map: ${response.statusText} - ${errorBody}`);
+    throw new Error(
+      `Failed to upload SVG map: ${response.statusText} - ${errorBody}`,
+    );
   }
 
   return response.json();

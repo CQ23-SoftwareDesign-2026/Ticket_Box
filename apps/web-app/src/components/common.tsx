@@ -269,10 +269,18 @@ export function SiteShell({
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs font-bold text-white/80">
-            <Link href="#" className="hover:text-white transition-colors">Terms of Service</Link>
-            <Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link>
-            <Link href="#" className="hover:text-white transition-colors">Venue Partners</Link>
-            <Link href="#" className="hover:text-white transition-colors">Developer API</Link>
+            <Link href="#" className="hover:text-white transition-colors">
+              Terms of Service
+            </Link>
+            <Link href="#" className="hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+            <Link href="#" className="hover:text-white transition-colors">
+              Venue Partners
+            </Link>
+            <Link href="#" className="hover:text-white transition-colors">
+              Developer API
+            </Link>
           </div>
         </div>
       </footer>

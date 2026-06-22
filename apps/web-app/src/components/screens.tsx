@@ -98,8 +98,8 @@ export function HeroCarousel() {
   const description = loading
     ? "We are loading the latest concert from the database."
     : featuredConcert?.aiBio ||
-    featuredConcert?.description ||
-    "No featured concert is available right now.";
+      featuredConcert?.description ||
+      "No featured concert is available right now.";
   const ticketTier = featuredConcert?.ticketTiers?.[0];
   const priceLabel = ticketTier
     ? `${ticketTier.name} • ${formatConcertCurrency(ticketTier.price)}`
@@ -111,7 +111,13 @@ export function HeroCarousel() {
     <section className="relative overflow-hidden bg-gray-900 text-white min-h-[600px] flex items-center">
       {featuredConcert && (
         <img
-          src={featuredConcert.posterUrl && featuredConcert.posterUrl !== "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih" ? featuredConcert.posterUrl : "/Mockimg.webp"}
+          src={
+            featuredConcert.posterUrl &&
+            featuredConcert.posterUrl !==
+              "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih"
+              ? featuredConcert.posterUrl
+              : "/Mockimg.webp"
+          }
           className="absolute inset-0 w-full h-full object-cover"
           alt="Hero background"
         />
@@ -158,33 +164,47 @@ export function ConcertCard({
   concert,
   featured = false,
 }: {
-  concert: ConcertCardItem | typeof concerts[number];
+  concert: ConcertCardItem | (typeof concerts)[number];
   featured?: boolean;
 }) {
   return (
     <Card
       className={`card-lift h-full overflow-hidden flex flex-col p-0 bg-white border-0 shadow-md ${featured ? "sm:flex-row" : ""}`}
     >
-      <div className={`relative ${featured ? "w-full sm:w-5/12 min-h-[240px] sm:min-h-full" : "w-full h-56"}`}>
+      <div
+        className={`relative ${featured ? "w-full sm:w-5/12 min-h-[240px] sm:min-h-full" : "w-full h-56"}`}
+      >
         <img
           src={
-            (concert as Record<string, unknown>).posterUrl && typeof (concert as Record<string, unknown>).posterUrl === "string" && (concert as Record<string, unknown>).posterUrl !== "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih"
-              ? (concert as Record<string, unknown>).posterUrl as string
+            (concert as Record<string, unknown>).posterUrl &&
+            typeof (concert as Record<string, unknown>).posterUrl ===
+              "string" &&
+            (concert as Record<string, unknown>).posterUrl !==
+              "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih"
+              ? ((concert as Record<string, unknown>).posterUrl as string)
               : "/Mockimg.webp"
           }
           alt={concert.title}
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute top-4 left-4 bg-white text-gray-900 text-xs font-bold px-3 py-2 rounded-xl flex flex-col items-center shadow-lg">
-          <span className="text-[10px] uppercase font-bold text-gray-500">{concert.date.split(" ")[0] || "OCT"}</span>
-          <span className="text-lg font-black">{concert.date.split(" ")[1]?.replace(',', '') || "15"}</span>
+          <span className="text-[10px] uppercase font-bold text-gray-500">
+            {concert.date.split(" ")[0] || "OCT"}
+          </span>
+          <span className="text-lg font-black">
+            {concert.date.split(" ")[1]?.replace(",", "") || "15"}
+          </span>
         </div>
       </div>
-      <div className={`flex flex-1 flex-col justify-between p-6 bg-white ${featured ? "sm:w-7/12" : "w-full"}`}>
+      <div
+        className={`flex flex-1 flex-col justify-between p-6 bg-white ${featured ? "sm:w-7/12" : "w-full"}`}
+      >
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-secondary animate-pulse" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-secondary">{concert.status}</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-secondary">
+              {concert.status}
+            </span>
           </div>
           <h3 className="font-display text-2xl font-bold text-gray-900">
             {concert.title}
@@ -195,18 +215,33 @@ export function ConcertCard({
             </p>
           )}
           <div className="flex items-center gap-2 text-sm text-gray-500 font-medium mt-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
             {concert.venue}
           </div>
         </div>
         <div className="mt-6 flex items-end justify-between border-t border-gray-100 pt-5">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.1em] text-gray-500 font-bold mb-1">Starting from</p>
+            <p className="text-[10px] uppercase tracking-[0.1em] text-gray-500 font-bold mb-1">
+              Starting from
+            </p>
             <p className="text-xl font-black text-gray-900">{concert.price}</p>
           </div>
           <Link
             href={`/concerts/${concert.id}`}
-            className={`inline-flex items-center justify-center gap-2 rounded-full ${featured ? 'bg-gray-100 hover:bg-gray-200 text-gray-900 w-10 h-10' : 'bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-900 px-5 py-2 text-sm font-bold'} transition-colors`}
+            className={`inline-flex items-center justify-center gap-2 rounded-full ${featured ? "bg-gray-100 hover:bg-gray-200 text-gray-900 w-10 h-10" : "bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-900 px-5 py-2 text-sm font-bold"} transition-colors`}
           >
             {featured ? <ArrowRight size={18} /> : "Tickets"}
           </Link>
@@ -426,10 +461,11 @@ export function InteractiveTicketSelector({
                     setQuantity(1);
                     setError(null);
                   }}
-                  className={`p-5 cursor-pointer rounded-[20px] border-2 transition-all duration-200 ${isSelected
-                    ? "border-primary bg-primary/5 shadow-sm scale-[1.01]"
-                    : "border-outline-variant/60 bg-surface hover:border-primary/30"
-                    }`}
+                  className={`p-5 cursor-pointer rounded-[20px] border-2 transition-all duration-200 ${
+                    isSelected
+                      ? "border-primary bg-primary/5 shadow-sm scale-[1.01]"
+                      : "border-outline-variant/60 bg-surface hover:border-primary/30"
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-2">
@@ -540,7 +576,9 @@ export function ConcertDetailHero({ concert }: { concert: ConcertDetailItem }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={
-            concert.posterUrl && concert.posterUrl !== "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih"
+            concert.posterUrl &&
+            concert.posterUrl !==
+              "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih"
               ? concert.posterUrl
               : "/Mockimg.webp"
           }
@@ -550,7 +588,9 @@ export function ConcertDetailHero({ concert }: { concert: ConcertDetailItem }) {
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/40 to-transparent" />
 
         <div className="absolute bottom-0 left-0 w-full p-6 sm:p-8 md:p-10 z-10 text-white">
-          <Badge className="bg-primary text-white mb-4 shadow-lg border-0">{concert.status}</Badge>
+          <Badge className="bg-primary text-white mb-4 shadow-lg border-0">
+            {concert.status}
+          </Badge>
           <h1 className="font-display text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl mb-4 drop-shadow-md">
             {concert.title}
           </h1>
@@ -559,11 +599,39 @@ export function ConcertDetailHero({ concert }: { concert: ConcertDetailItem }) {
           </p>
           <div className="flex flex-wrap gap-4 text-xs sm:text-sm font-medium">
             <span className="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+                <line x1="16" x2="16" y1="2" y2="6" />
+                <line x1="8" x2="8" y1="2" y2="6" />
+                <line x1="3" x2="21" y1="10" y2="10" />
+              </svg>
               {date} {time ? ` · ${time}` : ""}
             </span>
             <span className="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
               {concert.venue} {concert.city ? `, ${concert.city}` : ""}
             </span>
           </div>

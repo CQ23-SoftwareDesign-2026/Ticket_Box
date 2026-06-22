@@ -111,9 +111,7 @@ function ConcertsSection() {
     <section className="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
       <div className="ticketbox-panel p-6 sm:p-8">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <SectionHeading
-            eyebrow="Discover"
-            title="Upcoming concerts" />
+          <SectionHeading eyebrow="Discover" title="Upcoming concerts" />
           <div className="w-full max-w-md">
             <label
               className="mb-2 block text-sm font-semibold text-slate-700"
@@ -158,22 +156,25 @@ function ConcertsSection() {
         <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {loading
             ? Array.from({ length: 6 }, (_, index) => (
-              <div
-                key={index}
-                className="animate-pulse rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.05)]"
-              >
-                <div className="h-4 w-24 rounded-full bg-slate-100" />
-                <div className="mt-4 h-6 w-3/4 rounded-full bg-slate-100" />
-                <div className="mt-3 h-4 w-full rounded-full bg-slate-100" />
-                <div className="mt-2 h-4 w-5/6 rounded-full bg-slate-100" />
-                <div className="mt-6 h-10 w-full rounded-2xl bg-slate-100" />
-              </div>
-            ))
+                <div
+                  key={index}
+                  className="animate-pulse rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.05)]"
+                >
+                  <div className="h-4 w-24 rounded-full bg-slate-100" />
+                  <div className="mt-4 h-6 w-3/4 rounded-full bg-slate-100" />
+                  <div className="mt-3 h-4 w-full rounded-full bg-slate-100" />
+                  <div className="mt-2 h-4 w-5/6 rounded-full bg-slate-100" />
+                  <div className="mt-6 h-10 w-full rounded-2xl bg-slate-100" />
+                </div>
+              ))
             : items.map((concert, index) => (
-              <div key={concert.id} className={index === 0 ? "md:col-span-2" : ""}>
-                <ConcertCard concert={concert} featured={index === 0} />
-              </div>
-            ))}
+                <div
+                  key={concert.id}
+                  className={index === 0 ? "md:col-span-2" : ""}
+                >
+                  <ConcertCard concert={concert} featured={index === 0} />
+                </div>
+              ))}
         </div>
 
         {totalPages > 1 ? (
@@ -210,10 +211,11 @@ function ConcertsSection() {
                     type="button"
                     onClick={() => setPage(pageNumber)}
                     disabled={loading}
-                    className={`min-w-[2.5rem] rounded-full px-4 py-2 text-sm font-semibold transition ${pageNumber === page
-                      ? "bg-primary text-white"
-                      : "border border-slate-200 text-slate-700 hover:border-primary hover:text-primary"
-                      } disabled:cursor-not-allowed disabled:opacity-50`}
+                    className={`min-w-[2.5rem] rounded-full px-4 py-2 text-sm font-semibold transition ${
+                      pageNumber === page
+                        ? "bg-primary text-white"
+                        : "border border-slate-200 text-slate-700 hover:border-primary hover:text-primary"
+                    } disabled:cursor-not-allowed disabled:opacity-50`}
                   >
                     {pageNumber}
                   </button>
