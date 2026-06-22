@@ -9,8 +9,9 @@ import {
   Ticket,
   LogOut,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { Suspense } from "react";
 
 type ButtonProps = {
   children: ReactNode;
@@ -235,6 +236,58 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
   );
 }
 
+function HeaderSearchInput() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams?.get("q") || "";
+
+  return (
+    <input
+      type="text"
+      placeholder="Search by name or location"
+      defaultValue={searchQuery}
+      onChange={(e) => {
+        const params = new URLSearchParams(searchParams?.toString() || "");
+        if (e.target.value) params.set("q", e.target.value);
+        else params.delete("q");
+        router.push(`/?${params.toString()}#upcoming-concerts`);
+      }}
+      className="hidden sm:block w-48 lg:w-64 rounded-full border border-outline-variant bg-surface px-4 py-2 text-sm text-white outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/50"
+    />
+  );
+}
+
+function HeaderStatusFilters() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const statusFilter = searchParams?.get("status") || "PUBLISHED";
+
+  return (
+    <div className="flex items-center bg-outline-variant/30 p-1 rounded-full">
+      <button
+        onClick={() => {
+          const params = new URLSearchParams(searchParams?.toString() || "");
+          params.set("status", "PUBLISHED");
+          router.push(`/?${params.toString()}#upcoming-concerts`);
+        }}
+        className={`px-4 py-1 text-xs sm:text-sm font-bold rounded-full transition-all duration-300 ${statusFilter === "PUBLISHED" ? "bg-surface text-primary shadow-sm" : "text-on-surface-variant/70 hover:text-on-surface-variant"}`}
+      >
+        Published
+      </button>
+      <button
+        onClick={() => {
+          const params = new URLSearchParams(searchParams?.toString() || "");
+          params.set("status", "COMPLETED");
+          router.push(`/?${params.toString()}#upcoming-concerts`);
+        }}
+        className={`px-4 py-1 text-xs sm:text-sm font-bold rounded-full transition-all duration-300 ${statusFilter === "COMPLETED" ? "bg-surface text-primary shadow-sm" : "text-on-surface-variant/70 hover:text-on-surface-variant"}`}
+      >
+        Completed
+      </button>
+    </div>
+  );
+}
+
 export function SiteShell({
   children,
   active = "/",
@@ -255,48 +308,78 @@ export function SiteShell({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 border-b border-outline-variant/60 bg-background/90 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <Link href="/" className="shrink-0">
+      <header className="sticky top-0 z-50 border-b border-outline-variant/50 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 shadow-[0_1px_0_0_rgba(0,0,0,0.03)]">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <Link
+            href="/"
+            className="shrink-0 transition-opacity hover:opacity-80"
+          >
             <BrandMark compact />
           </Link>
-          <nav className="hidden items-center gap-7 md:flex">
-            {/* Navigation hidden per request, could add other links here if needed */}
-          </nav>
-          <div className="flex items-center gap-3">
+
+          <div className="flex items-center gap-4">
+            <Suspense
+              fallback={
+                <div className="hidden sm:block w-48 lg:w-64 h-9 rounded-full bg-outline-variant/30 animate-pulse" />
+              }
+            >
+              <HeaderSearchInput />
+            </Suspense>
+
             {isAuthenticated ? (
               <div className="relative group">
-                <button className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-container text-primary-foreground font-bold hover:ring-2 hover:ring-primary transition-all">
+                <button className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-container text-primary-foreground font-bold shadow-sm ring-2 ring-transparent transition-all duration-200 hover:ring-primary/40 hover:shadow-md active:scale-95">
                   {user?.fullName?.charAt(0).toUpperCase() || "U"}
                 </button>
-                <div className="absolute right-0 mt-2 w-48 bg-surface-low rounded-xl shadow-lg border border-outline-variant opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
-                  <div className="p-2 flex flex-col gap-1 text-left">
+
+                {/* Dropdown */}
+                <div
+                  className="absolute right-0 mt-3 w-52 origin-top-right rounded-2xl border border-outline-variant/60 bg-surface-low/95 backdrop-blur-md shadow-xl ring-1 ring-black/5
+              opacity-0 invisible translate-y-1 scale-95
+              group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100
+              transition-all duration-200 ease-out z-50 overflow-hidden"
+                >
+                  <div className="p-1.5 flex flex-col gap-0.5 text-left">
                     <Link
                       href="/profile"
-                      className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface rounded-lg transition-colors"
+                      className="flex items-center gap-2.5 px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface hover:text-on-surface rounded-xl transition-colors"
                     >
-                      <UserIcon size={16} /> Profile
+                      <UserIcon
+                        size={16}
+                        className="text-on-surface-variant/70"
+                      />{" "}
+                      Profile
                     </Link>
                     <Link
                       href="/my-tickets"
-                      className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface rounded-lg transition-colors"
+                      className="flex items-center gap-2.5 px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface hover:text-on-surface rounded-xl transition-colors"
                     >
-                      <Ticket size={16} /> My Tickets
+                      <Ticket
+                        size={16}
+                        className="text-on-surface-variant/70"
+                      />{" "}
+                      My Tickets
                     </Link>
                     {isAdmin && (
                       <Link
                         href="/admin/dashboard"
-                        className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface rounded-lg transition-colors"
+                        className="flex items-center gap-2.5 px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface hover:text-on-surface rounded-xl transition-colors"
                       >
-                        <LayoutDashboard size={16} /> Admin
+                        <LayoutDashboard
+                          size={16}
+                          className="text-on-surface-variant/70"
+                        />{" "}
+                        Admin
                       </Link>
                     )}
-                    <div className="h-px bg-outline-variant my-1" />
+
+                    <div className="h-px bg-outline-variant/60 my-1 mx-1" />
+
                     <button
                       onClick={() => {
                         void logout().then(() => router.replace("/login"));
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-semibold text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
                     >
                       <LogOut size={16} /> Log out
                     </button>
@@ -306,6 +389,34 @@ export function SiteShell({
             ) : (
               action
             )}
+          </div>
+        </div>
+
+        {/* Second Row for filters and links */}
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 pb-3 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-4">
+            <Suspense
+              fallback={
+                <div className="w-48 h-8 rounded-full bg-outline-variant/30 animate-pulse" />
+              }
+            >
+              <HeaderStatusFilters />
+            </Suspense>
+          </div>
+
+          <div className="flex items-center gap-6 text-sm font-bold text-on-surface-variant">
+            <Link
+              href="/support"
+              className="relative transition-colors hover:text-primary after:absolute after:-bottom-1 after:left-0 after:h-[1.5px] after:w-0 after:bg-primary after:transition-all after:duration-200 hover:after:w-full mr-12"
+            >
+              Support
+            </Link>
+            <Link
+              href="/contact-us"
+              className="relative transition-colors hover:text-primary after:absolute after:-bottom-1 after:left-0 after:h-[1.5px] after:w-0 after:bg-primary after:transition-all after:duration-200 hover:after:w-full mr-12"
+            >
+              Contact Us
+            </Link>
           </div>
         </div>
       </header>

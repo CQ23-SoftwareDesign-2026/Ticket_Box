@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Card, SectionHeading, SiteShell } from "@/components/common";
 import { HeroCarousel, ConcertCard } from "@/components/screens";
@@ -23,10 +23,11 @@ function LoadingState() {
   );
 }
 
-function ConcertsSection() {
-  const [search, setSearch] = useState("");
+function ConcertsSectionInner() {
+  const searchParams = useSearchParams();
+  const search = searchParams?.get("q") || "";
+  const statusFilter = searchParams?.get("status") || "PUBLISHED";
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState("PUBLISHED");
   const [items, setItems] = useState<ConcertCardItem[]>([]);
   const [meta, setMeta] = useState<ConcertListMeta>({
     totalItems: 0,
@@ -117,70 +118,38 @@ function ConcertsSection() {
       <div className="ticketbox-panel p-6 sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <SectionHeading eyebrow="Discover" title="Upcoming concerts" />
-          <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto items-start sm:items-end">
-            <div className="w-full sm:w-auto">
-              <label className="mb-2 block text-sm font-semibold text-on-surface-variant">
-                Status
-              </label>
-              <div className="flex items-center bg-outline-variant/30 p-1 rounded-2xl w-full sm:w-auto">
-                <button
-                  onClick={() => {
-                    setStatusFilter("PUBLISHED");
-                    setPage(1);
-                  }}
-                  className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${statusFilter === "PUBLISHED" ? "bg-surface text-primary shadow-sm" : "text-on-surface-variant/70 hover:text-on-surface-variant"}`}
-                >
-                  Published
-                </button>
-                <button
-                  onClick={() => {
-                    setStatusFilter("COMPLETED");
-                    setPage(1);
-                  }}
-                  className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${statusFilter === "COMPLETED" ? "bg-surface text-primary shadow-sm" : "text-on-surface-variant/70 hover:text-on-surface-variant"}`}
-                >
-                  Completed
-                </button>
-              </div>
-            </div>
-            <div className="w-full sm:w-72">
-              <label
-                className="mb-2 block text-sm font-semibold text-on-surface-variant"
-                htmlFor="concert-search"
-              >
-                Search concerts
-              </label>
-              <input
-                id="concert-search"
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setPage(1);
-                }}
-                placeholder="Search by name or location"
-                className="w-full rounded-2xl border border-slate-200 bg-surface px-4 py-3 text-sm text-white outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
-              />
-            </div>
-          </div>
         </div>
 
-        <div className="mt-8 flex items-center justify-between gap-3 text-sm text-on-surface-variant/70">
-          <p>
-            {loading
-              ? "Loading concerts..."
-              : error
-                ? "Concert data unavailable"
-                : meta.totalItems === 0
-                  ? "No concerts found"
-                  : `Showing ${startItem}-${endItem} of ${meta.totalItems} concerts`}
+        <div className="mt-8 flex items-center justify-between gap-3 border-b border-outline-variant/40 pb-4 text-sm text-on-surface-variant/70">
+          <p className="font-medium">
+            {loading ? (
+              "Loading concerts..."
+            ) : error ? (
+              "Concert data unavailable"
+            ) : meta.totalItems === 0 ? (
+              "No concerts found"
+            ) : (
+              <>
+                Showing{" "}
+                <span className="font-semibold text-on-surface">
+                  {startItem}-{endItem}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-on-surface">
+                  {meta.totalItems}
+                </span>{" "}
+                concerts
+              </>
+            )}
           </p>
-          <p>
+          <p className="tabular-nums">
             Page {meta.currentPage} of {totalPages}
           </p>
         </div>
 
         {error ? (
-          <div className="mt-6 rounded-[24px] border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+          <div className="mt-6 flex items-center gap-3 rounded-[24px] border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+            <span className="flex h-2 w-2 shrink-0 rounded-full bg-rose-500" />
             {error}
           </div>
         ) : null}
@@ -202,21 +171,25 @@ function ConcertsSection() {
             : items.map((concert, index) => (
                 <div
                   key={concert.id}
-                  className={index === 0 ? "md:col-span-2" : ""}
+                  className={`group transition-transform duration-300 ease-out hover:-translate-y-1 ${
+                    index === 0 ? "md:col-span-2" : ""
+                  }`}
                 >
-                  <ConcertCard concert={concert} featured={index === 0} />
+                  <div className="h-full rounded-[28px] transition-shadow duration-300 group-hover:shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
+                    <ConcertCard concert={concert} featured={index === 0} />
+                  </div>
                 </div>
               ))}
         </div>
 
         {totalPages > 1 ? (
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-outline-variant/40 pt-6">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
                 disabled={page === 1 || loading}
-                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-on-surface-variant transition disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-on-surface-variant transition-all duration-200 hover:border-primary/40 hover:bg-primary/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-slate-200 disabled:hover:bg-transparent"
               >
                 Previous
               </button>
@@ -243,10 +216,10 @@ function ConcertsSection() {
                     type="button"
                     onClick={() => setPage(pageNumber)}
                     disabled={loading}
-                    className={`min-w-10 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    className={`min-w-10 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ${
                       pageNumber === page
-                        ? "bg-primary text-white"
-                        : "border border-slate-200 text-on-surface-variant hover:border-primary hover:text-primary"
+                        ? "bg-primary text-white shadow-sm shadow-primary/30"
+                        : "border border-slate-200 text-on-surface-variant hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
                     } disabled:cursor-not-allowed disabled:opacity-50`}
                   >
                     {pageNumber}
@@ -259,18 +232,32 @@ function ConcertsSection() {
                   setPage((current) => Math.min(totalPages, current + 1))
                 }
                 disabled={page === totalPages || loading}
-                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-on-surface-variant transition disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-on-surface-variant transition-all duration-200 hover:border-primary/40 hover:bg-primary/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-slate-200 disabled:hover:bg-transparent"
               >
                 Next
               </button>
             </div>
-            <p className="text-sm text-on-surface-variant/70">
+            <p className="text-sm text-on-surface-variant/70 tabular-nums">
               Page {meta.currentPage} of {totalPages}
             </p>
           </div>
         ) : null}
       </div>
     </section>
+  );
+}
+
+function ConcertsSection() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-64 flex items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      }
+    >
+      <ConcertsSectionInner />
+    </Suspense>
   );
 }
 
