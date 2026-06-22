@@ -125,7 +125,7 @@ export function HeroCarousel() {
       <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/20 to-transparent transition-opacity duration-700 opacity-80 group-hover:opacity-100" />
       <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 via-gray-900/50 to-transparent transition-opacity duration-700 opacity-0 group-hover:opacity-100" />
       <div className="hero-shimmer absolute inset-0 opacity-20 mix-blend-overlay transition-opacity duration-700 group-hover:opacity-40" />
-      
+
       <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 z-10">
         <div className="max-w-3xl">
           <div className="space-y-4 transform transition-transform duration-700 ease-out group-hover:-translate-y-2">
@@ -140,7 +140,7 @@ export function HeroCarousel() {
               {title}
             </h1>
           </div>
-          
+
           <div className="grid grid-rows-[0fr] opacity-0 transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] group-hover:grid-rows-[1fr] group-hover:opacity-100">
             <div className="overflow-hidden">
               <div className="pt-6">
@@ -150,13 +150,18 @@ export function HeroCarousel() {
                 <div className="flex flex-wrap gap-4">
                   <Button
                     href={
-                      featuredConcert ? `/concerts/${featuredConcert.id}` : "/catalog"
+                      featuredConcert
+                        ? `/concerts/${featuredConcert.id}`
+                        : "/catalog"
                     }
                     variant="secondary"
                     className="group/btn bg-primary hover:bg-primary-container text-white border-0 shadow-[0_0_40px_rgba(var(--color-primary),0.3)] hover:shadow-[0_0_60px_rgba(var(--color-primary),0.5)] px-8 py-4 text-base transition-all duration-300"
                   >
-                    {loading ? "Loading..." : "Buy Tickets"} 
-                    <ArrowRight size={18} className="ml-2 transform transition-transform duration-300 group-hover/btn:translate-x-1" />
+                    {loading ? "Loading..." : "Buy Tickets"}
+                    <ArrowRight
+                      size={18}
+                      className="ml-2 transform transition-transform duration-300 group-hover/btn:translate-x-1"
+                    />
                   </Button>
                   <Button
                     href="/support"
@@ -203,7 +208,7 @@ export function ConcertCard({
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-        
+
         <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-md text-gray-900 px-3 py-2 rounded-2xl flex flex-col items-center shadow-lg border border-white/50 transform transition-transform duration-500 group-hover:-translate-y-1">
           <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
             {concert.date.split(" ")[0] || "OCT"}
@@ -263,18 +268,26 @@ export function ConcertCard({
           <Link
             href={`/concerts/${concert.id}`}
             className={`group/btn inline-flex items-center justify-center gap-2 overflow-hidden relative transition-all duration-300 ${
-              featured 
-                ? "bg-gray-900 text-white w-12 h-12 rounded-full hover:bg-primary shadow-md hover:shadow-lg hover:-translate-y-0.5" 
+              featured
+                ? "bg-gray-900 text-white w-12 h-12 rounded-full hover:bg-primary shadow-md hover:shadow-lg hover:-translate-y-0.5"
                 : "bg-white border-2 border-gray-100 text-gray-900 px-6 py-2.5 rounded-full text-sm font-bold hover:border-primary hover:text-primary hover:bg-primary/5"
             }`}
           >
             {featured ? (
-               <ArrowRight size={20} className="transform transition-transform duration-300 group-hover/btn:translate-x-1" />
+              <ArrowRight
+                size={20}
+                className="transform transition-transform duration-300 group-hover/btn:translate-x-1"
+              />
             ) : (
-               <>
-                 <span className="relative z-10 transition-transform duration-300 group-hover/btn:-translate-x-1">Tickets</span>
-                 <ArrowRight size={16} className="absolute right-4 transform transition-all duration-300 translate-x-4 opacity-0 group-hover/btn:translate-x-0 group-hover/btn:opacity-100" />
-               </>
+              <>
+                <span className="relative z-10 transition-transform duration-300 group-hover/btn:-translate-x-1">
+                  Tickets
+                </span>
+                <ArrowRight
+                  size={16}
+                  className="absolute right-4 transform transition-all duration-300 translate-x-4 opacity-0 group-hover/btn:translate-x-0 group-hover/btn:opacity-100"
+                />
+              </>
             )}
           </Link>
         </div>

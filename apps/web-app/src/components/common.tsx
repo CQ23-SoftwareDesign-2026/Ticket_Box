@@ -3,7 +3,12 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { siteNavigation, siteName } from "@/lib/constants";
-import { LayoutDashboard, User as UserIcon, Ticket, LogOut } from "lucide-react";
+import {
+  LayoutDashboard,
+  User as UserIcon,
+  Ticket,
+  LogOut,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
@@ -236,7 +241,7 @@ export function SiteShell({
             <BrandMark compact />
           </Link>
           <nav className="hidden items-center gap-7 md:flex">
-             {/* Navigation hidden per request, could add other links here if needed */}
+            {/* Navigation hidden per request, could add other links here if needed */}
           </nav>
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
@@ -246,14 +251,23 @@ export function SiteShell({
                 </button>
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
                   <div className="p-2 flex flex-col gap-1 text-left">
-                    <Link href="/profile" className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                    <Link
+                      href="/profile"
+                      className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                    >
                       <UserIcon size={16} /> Profile
                     </Link>
-                    <Link href="/my-tickets" className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                    <Link
+                      href="/my-tickets"
+                      className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                    >
                       <Ticket size={16} /> My Tickets
                     </Link>
                     {isAdmin && (
-                      <Link href="/admin/dashboard" className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                      <Link
+                        href="/admin/dashboard"
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                      >
                         <LayoutDashboard size={16} /> Admin
                       </Link>
                     )}
@@ -293,7 +307,10 @@ export function SiteShell({
             <Link href="#" className="hover:text-white transition-colors">
               Privacy Policy
             </Link>
-            <Link href="/support" className="hover:text-white transition-colors">
+            <Link
+              href="/support"
+              className="hover:text-white transition-colors"
+            >
               Support
             </Link>
             <Link href="#" className="hover:text-white transition-colors">

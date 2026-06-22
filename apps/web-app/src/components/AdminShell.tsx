@@ -110,7 +110,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
               </div>
               <div className="absolute right-0 mt-2 w-48 bg-surface rounded-xl shadow-lg border border-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
                 <div className="p-2 flex flex-col gap-1 text-left">
-                  <Link href="/" className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-foreground hover:bg-surface-high rounded-lg transition-colors">
+                  <Link
+                    href="/"
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-foreground hover:bg-surface-high rounded-lg transition-colors"
+                  >
                     <UserIcon size={16} /> User Site
                   </Link>
                   <div className="h-px bg-border my-1" />
