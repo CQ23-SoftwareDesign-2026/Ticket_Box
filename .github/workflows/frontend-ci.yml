@@ -51,7 +51,7 @@ jobs:
             ${{ runner.os }}-npm-
 
       - name: Install dependencies
-        run: npm install --prefer-offline --no-audit --fund=false
+        run: npm install --prefer-offline --no-audit --fund=false --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
 
       - name: Code style verification (Prettier)
         working-directory: apps/web-app
