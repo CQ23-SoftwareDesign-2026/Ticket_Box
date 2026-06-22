@@ -5,16 +5,20 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 're
 import { colors, spacing } from '@/constants/theme';
 
 type AppScreenProps = PropsWithChildren<{
+  contentBottomPadding?: number;
   scroll?: boolean;
 }>;
 
-export function AppScreen({ children, scroll = true }: AppScreenProps) {
+export function AppScreen({ children, contentBottomPadding = spacing.xxl + 92, scroll = true }: AppScreenProps) {
   const content = scroll ? (
-    <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      contentContainerStyle={[styles.scrollContent, { paddingBottom: contentBottomPadding }]}
+      keyboardShouldPersistTaps="handled"
+    >
       {children}
     </ScrollView>
   ) : (
-    <View style={styles.staticContent}>{children}</View>
+    <View style={[styles.staticContent, { paddingBottom: contentBottomPadding }]}>{children}</View>
   );
 
   return (
@@ -78,11 +82,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: spacing.xl,
-    paddingBottom: spacing.xxl + 92,
   },
   staticContent: {
     flex: 1,
     padding: spacing.xl,
-    paddingBottom: spacing.xxl + 92,
   },
 });

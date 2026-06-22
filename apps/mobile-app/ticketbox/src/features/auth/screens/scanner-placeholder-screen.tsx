@@ -1,7 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { CameraView, type BarcodeScanningResult, useCameraPermissions } from 'expo-camera';
+import * as Haptics from 'expo-haptics';
+import * as Network from 'expo-network';
+import { useIsFocused } from '@react-navigation/native';
 
 import { AppScreen } from '@/components/ui/app-screen';
 import { AppText } from '@/components/ui/app-text';
@@ -9,61 +13,237 @@ import { Button } from '@/components/ui/button';
 import { SurfaceCard } from '@/components/ui/surface-card';
 import { StatusPill } from '@/components/ui/status-pill';
 import { colors, radii, spacing } from '@/constants/theme';
+import { checkinApi } from '@/features/checkin/api/checkin-api';
 import { useCurrentScanSession } from '@/features/checkin/hooks/use-current-scan-session';
+import type { ScanTicketResponse, ScanTicketStatus } from '@/features/checkin/types/checkin.types';
+import { getErrorMessage } from '@/lib/errors';
 import { routes } from '@/lib/routes';
 
-type PreviewState = 'valid' | 'duplicate' | 'wrong_gate' | 'offline_queue';
+type LiveResultState = {
+  description: string;
+  gateAction: string;
+  guestLabel: string;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  panelVariant: 'default' | 'elevated' | 'danger';
+  status: ScanTicketStatus | 'IDLE' | 'OFFLINE' | 'ERROR';
+  title: string;
+  tone: 'info' | 'success' | 'warning' | 'danger';
+};
+
+const SCAN_COOLDOWN_MS = 1800;
 
 export function ScannerPlaceholderScreen() {
   const router = useRouter();
+  const isFocused = useIsFocused();
+  const networkState = Network.useNetworkState();
   const { session, isLoading } = useCurrentScanSession();
-  const [previewState, setPreviewState] = useState<PreviewState>('valid');
-  const [isOfflinePreview, setIsOfflinePreview] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
+  const [isTorchEnabled, setIsTorchEnabled] = useState(false);
+  const [isProcessingScan, setIsProcessingScan] = useState(false);
+  const [scanCount, setScanCount] = useState(0);
+  const [syncedCount, setSyncedCount] = useState(0);
+  const [pendingCount] = useState(0);
+  const [duplicateCount, setDuplicateCount] = useState(0);
+  const [lastScanData, setLastScanData] = useState<string | null>(null);
+  const [resultState, setResultState] = useState<LiveResultState>({
+    status: 'IDLE',
+    tone: 'info',
+    title: 'Scanner armed',
+    description: 'Center a QR code inside the frame to validate the ticket for this concert and gate.',
+    gateAction: 'Await scan',
+    guestLabel: 'Ready for next guest',
+    icon: 'qrcode-scan',
+    panelVariant: 'default',
+  });
 
-  const previewConfig = useMemo(() => {
-    const states = {
-      valid: {
-        eyebrow: 'Ticket valid',
-        title: 'Accepted preview',
-        description: 'Alex Rivera - VIP. Entry approved for this gate and concert.',
-        tone: 'success' as const,
-        icon: 'check-circle',
-        panelVariant: 'elevated' as const,
-      },
-      duplicate: {
-        eyebrow: 'Duplicate detected',
-        title: 'Already checked in',
-        description: 'This QR was already accepted earlier. Staff should verify the attendee before retrying.',
-        tone: 'warning' as const,
-        icon: 'alert-circle',
-        panelVariant: 'default' as const,
-      },
-      wrong_gate: {
-        eyebrow: 'Gate mismatch',
-        title: 'Wrong lane for this ticket',
-        description: 'The ticket exists, but the attendee should be redirected to the assigned gate.',
-        tone: 'danger' as const,
-        icon: 'close-circle',
-        panelVariant: 'danger' as const,
-      },
-      offline_queue: {
-        eyebrow: 'Offline accepted',
-        title: 'Queued for sync',
-        description: 'Local validation passed. This scan should be sent automatically when the network returns.',
-        tone: 'info' as const,
-        icon: 'cloud-clock-outline',
-        panelVariant: 'default' as const,
-      },
-    } as const;
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastHandledScanRef = useRef<{ value: string; at: number } | null>(null);
 
-    return states[previewState];
-  }, [previewState]);
+  const isOnline = networkState.isConnected === true && networkState.isInternetReachable !== false;
+
+  const topStatus = useMemo(
+    () => (isOnline ? { label: 'Online', tone: 'success' as const } : { label: 'Offline', tone: 'warning' as const }),
+    [isOnline],
+  );
 
   useEffect(() => {
     if (!isLoading && !session) {
       router.replace(routes.staffSessionSetup);
     }
   }, [isLoading, router, session]);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+
+  const unlockScannerSoon = () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      setIsProcessingScan(false);
+    }, SCAN_COOLDOWN_MS);
+  };
+
+  const resetScanner = () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    setIsProcessingScan(false);
+    setLastScanData(null);
+    setResultState({
+      status: 'IDLE',
+      tone: 'info',
+      title: 'Scanner armed',
+      description: 'Center a QR code inside the frame to validate the ticket for this concert and gate.',
+      gateAction: 'Await scan',
+      guestLabel: 'Ready for next guest',
+      icon: 'qrcode-scan',
+      panelVariant: 'default',
+    });
+  };
+
+  const applyScanResult = async (qrValue: string, response: ScanTicketResponse) => {
+    setScanCount((count) => count + 1);
+    setLastScanData(qrValue);
+
+    switch (response.status) {
+      case 'ACCEPTED':
+        setSyncedCount((count) => count + 1);
+        setResultState({
+          status: 'ACCEPTED',
+          tone: 'success',
+          title: 'Entry approved',
+          description: 'This ticket is valid for the active concert and gate. The check-in has been recorded on the server.',
+          gateAction: 'Allow entry',
+          guestLabel: shortenQrValue(qrValue),
+          icon: 'check-circle',
+          panelVariant: 'elevated',
+        });
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        break;
+      case 'DUPLICATE':
+        setDuplicateCount((count) => count + 1);
+        setResultState({
+          status: 'DUPLICATE',
+          tone: 'warning',
+          title: 'Already checked in',
+          description: response.scanned_at
+            ? `This ticket was already scanned at ${formatScanTime(response.scanned_at)}.`
+            : 'This ticket was already scanned previously.',
+          gateAction: 'Verify attendee',
+          guestLabel: shortenQrValue(qrValue),
+          icon: 'alert-circle',
+          panelVariant: 'default',
+        });
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        break;
+      case 'INVALID_GATE':
+        setResultState({
+          status: 'INVALID_GATE',
+          tone: 'danger',
+          title: 'Wrong gate for this ticket',
+          description: 'The ticket exists but does not match the active gate or concert in this session.',
+          gateAction: 'Redirect guest',
+          guestLabel: shortenQrValue(qrValue),
+          icon: 'close-circle',
+          panelVariant: 'danger',
+        });
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        break;
+      case 'NOT_FOUND':
+        setResultState({
+          status: 'NOT_FOUND',
+          tone: 'danger',
+          title: 'Ticket not found',
+          description: 'The scanned QR code does not exist in the backend system.',
+          gateAction: 'Reject entry',
+          guestLabel: shortenQrValue(qrValue),
+          icon: 'help-circle',
+          panelVariant: 'danger',
+        });
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        break;
+      case 'UNPAID':
+        setResultState({
+          status: 'UNPAID',
+          tone: 'warning',
+          title: 'Order not paid',
+          description: 'The ticket record exists, but the related order has not been paid yet.',
+          gateAction: 'Send to support desk',
+          guestLabel: shortenQrValue(qrValue),
+          icon: 'cash-remove',
+          panelVariant: 'default',
+        });
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        break;
+    }
+  };
+
+  const handleBarcodeScanned = async ({ data }: BarcodeScanningResult) => {
+    if (!session || !data || isProcessingScan) {
+      return;
+    }
+
+    const now = Date.now();
+    const previous = lastHandledScanRef.current;
+
+    if (previous && previous.value === data && now - previous.at < SCAN_COOLDOWN_MS) {
+      return;
+    }
+
+    lastHandledScanRef.current = { value: data, at: now };
+    setIsProcessingScan(true);
+
+    if (!isOnline) {
+      setLastScanData(data);
+      setResultState({
+        status: 'OFFLINE',
+        tone: 'warning',
+        title: 'Offline mode detected',
+        description: 'Online scan API is paused because the device has no internet connection. Offline validation and sync are the next step.',
+        gateAction: 'Wait for network',
+        guestLabel: shortenQrValue(data),
+        icon: 'cloud-off-outline',
+        panelVariant: 'default',
+      });
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      unlockScannerSoon();
+      return;
+    }
+
+    try {
+      const response = await checkinApi.scanTicket({
+        concert_id: session.concertId,
+        gate_id: session.gateNumber,
+        qr_code_hash: data.trim(),
+        scanned_at: new Date().toISOString(),
+      });
+
+      await applyScanResult(data.trim(), response);
+    } catch (error) {
+      setLastScanData(data);
+      setResultState({
+        status: 'ERROR',
+        tone: 'danger',
+        title: 'Scan request failed',
+        description: getErrorMessage(error, 'Unable to validate this ticket right now.'),
+        gateAction: 'Retry scan',
+        guestLabel: shortenQrValue(data),
+        icon: 'server-network-off',
+        panelVariant: 'danger',
+      });
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      unlockScannerSoon();
+    }
+  };
 
   if (isLoading || !session) {
     return (
@@ -76,20 +256,62 @@ export function ScannerPlaceholderScreen() {
     );
   }
 
+  if (!permission) {
+    return (
+      <AppScreen scroll={false}>
+        <View style={styles.loadingState}>
+          <ActivityIndicator color={colors.primary} />
+          <AppText tone="muted">Checking camera permission...</AppText>
+        </View>
+      </AppScreen>
+    );
+  }
+
+  if (!permission.granted) {
+    return (
+      <AppScreen>
+        <View style={styles.permissionState}>
+          <SurfaceCard variant="hero" style={styles.permissionCard}>
+            <View style={styles.permissionIconWrap}>
+              <MaterialCommunityIcons color={colors.primary} name="camera-outline" size={30} />
+            </View>
+            <AppText variant="hero">Camera access required</AppText>
+            <AppText tone="muted">
+              TicketBox Staff needs camera permission to scan ticket QR codes at the gate for {session.concertTitle}.
+            </AppText>
+            <Button icon="camera-outline" label="Allow camera access" onPress={() => void requestPermission()} />
+            <Button icon="arrow-left" label="Back to session" onPress={() => router.push(routes.staffSessionSetup)} variant="ghost" />
+          </SurfaceCard>
+        </View>
+      </AppScreen>
+    );
+  }
+
   return (
-    <AppScreen scroll={false}>
-      <View style={styles.container}>
+    <AppScreen contentBottomPadding={20} scroll={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.container}>
         <View style={styles.topBar}>
-          <View style={styles.topBarCopy}>
-            <AppText variant="eyebrow" tone="muted">
-              Live check-in session
-            </AppText>
-            <AppText variant="label">
-              {session.concertTitle} - {session.gateLabel}
-            </AppText>
-            <AppText tone="muted">{session.concertVenue}</AppText>
+          <View style={styles.topBarLeft}>
+            <Pressable onPress={() => router.push(routes.staffSessionSetup)} style={styles.backButton}>
+              <MaterialCommunityIcons color={colors.text} name="arrow-left" size={18} />
+              <AppText variant="label">Sessions</AppText>
+            </Pressable>
+            <View style={styles.topBarCopy}>
+              <AppText variant="eyebrow" tone="muted">
+                Live check-in session
+              </AppText>
+              <AppText variant="label">
+                {session.concertTitle} - {session.gateLabel}
+              </AppText>
+              <AppText tone="muted">{session.concertVenue}</AppText>
+            </View>
           </View>
-          <StatusPill label={isOfflinePreview ? 'Offline' : 'Online'} tone={isOfflinePreview ? 'warning' : 'success'} />
+          <StatusPill label={topStatus.label} tone={topStatus.tone} />
         </View>
 
         <View style={styles.sessionBoard}>
@@ -102,20 +324,38 @@ export function ScannerPlaceholderScreen() {
           <View style={styles.sessionBoardDivider} />
           <View style={styles.sessionBoardBlock}>
             <AppText variant="eyebrow" tone="muted">
-              Sync strategy
+              Prefetched
             </AppText>
-            <AppText variant="subtitle">{isOfflinePreview ? 'Queue locally' : 'Send instantly'}</AppText>
+            <AppText variant="subtitle">{session.prefetchedHashCount.toLocaleString()} hashes</AppText>
           </View>
         </View>
 
         <View style={styles.placeholder}>
-          <View style={styles.cameraFog} />
+          <CameraView
+            active={isFocused}
+            autofocus="off"
+            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+            enableTorch={isTorchEnabled}
+            facing="back"
+            onBarcodeScanned={isFocused ? handleBarcodeScanned : undefined}
+            style={StyleSheet.absoluteFillObject}
+          />
+
           <View style={styles.cameraTopStrip}>
             <StatusPill label="Rear camera" tone="neutral" />
-            <StatusPill label={session.gateLabel} tone="info" />
+            <View style={styles.cameraActions}>
+              <StatusPill label={session.gateLabel} tone="info" />
+              <Pressable onPress={() => setIsTorchEnabled((value) => !value)} style={styles.cameraIconButton}>
+                <MaterialCommunityIcons
+                  color={isTorchEnabled ? colors.warning : colors.textMuted}
+                  name={isTorchEnabled ? 'flashlight' : 'flashlight-off'}
+                  size={18}
+                />
+              </Pressable>
+            </View>
           </View>
 
-          <View style={styles.targetFrame}>
+          <View pointerEvents="none" style={styles.targetFrame}>
             <View style={[styles.corner, styles.topLeft]} />
             <View style={[styles.corner, styles.topRight]} />
             <View style={[styles.corner, styles.bottomLeft]} />
@@ -128,21 +368,25 @@ export function ScannerPlaceholderScreen() {
               <AppText variant="eyebrow" tone="muted">
                 Accepted
               </AppText>
-              <AppText variant="label">420</AppText>
+              <AppText variant="label">{syncedCount}</AppText>
             </View>
             <View style={styles.sideMetricTile}>
               <AppText variant="eyebrow" tone="muted">
                 Duplicates
               </AppText>
-              <AppText variant="label">12</AppText>
+              <AppText variant="label">{duplicateCount}</AppText>
             </View>
           </View>
 
           <View style={styles.overlayText}>
             <AppText variant="eyebrow" tone="primary">
-              Scanner ready
+              {isProcessingScan ? 'Validating ticket' : 'Scanner ready'}
             </AppText>
-            <AppText tone="muted">Center the ticket QR inside the frame for instant validation.</AppText>
+            <AppText tone="muted">
+              {isProcessingScan
+                ? 'Hold steady while the API confirms the scanned QR code.'
+                : 'Center the ticket QR inside the frame for instant validation.'}
+            </AppText>
           </View>
         </View>
 
@@ -151,128 +395,145 @@ export function ScannerPlaceholderScreen() {
             <AppText variant="eyebrow" tone="muted">
               Scanned
             </AppText>
-            <AppText variant="label">420</AppText>
+            <AppText variant="label">{scanCount}</AppText>
           </View>
           <View style={styles.statPanel}>
             <AppText variant="eyebrow" tone="success">
               Synced
             </AppText>
-            <AppText variant="label">418</AppText>
+            <AppText variant="label">{syncedCount}</AppText>
           </View>
           <View style={styles.statPanel}>
             <AppText variant="eyebrow" tone="danger">
               Pending
             </AppText>
-            <AppText variant="label">2</AppText>
+            <AppText variant="label">{pendingCount}</AppText>
           </View>
         </View>
 
-        <View style={styles.previewToolbar}>
-          <View style={styles.previewTabs}>
-            {[
-              { key: 'valid', label: 'Valid' },
-              { key: 'duplicate', label: 'Duplicate' },
-              { key: 'wrong_gate', label: 'Wrong gate' },
-              { key: 'offline_queue', label: 'Offline' },
-            ].map((item) => {
-              const isActive = item.key === previewState;
-
-              return (
-                <Pressable
-                  key={item.key}
-                  onPress={() => setPreviewState(item.key as PreviewState)}
-                  style={[styles.previewTab, isActive ? styles.previewTabActive : null]}
-                >
-                  <AppText variant="eyebrow" style={isActive ? styles.previewTabTextActive : styles.previewTabText}>
-                    {item.label}
-                  </AppText>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <Pressable onPress={() => setIsOfflinePreview((value) => !value)} style={styles.networkToggle}>
-            <MaterialCommunityIcons
-              color={isOfflinePreview ? colors.warning : colors.primary}
-              name={isOfflinePreview ? 'cloud-off-outline' : 'cloud-check-outline'}
-              size={18}
-            />
-            <AppText variant="eyebrow" style={styles.networkToggleText}>
-              {isOfflinePreview ? 'Preview offline mode' : 'Preview online mode'}
-            </AppText>
-          </Pressable>
-        </View>
-
-        <SurfaceCard variant={previewConfig.panelVariant} style={styles.resultCard}>
+        <SurfaceCard variant={resultState.panelVariant} style={styles.resultCard}>
           <View style={styles.resultTop}>
             <View
               style={[
                 styles.resultIcon,
-                previewConfig.tone === 'success'
+                resultState.tone === 'success'
                   ? styles.resultIconSuccess
-                  : previewConfig.tone === 'warning'
+                  : resultState.tone === 'warning'
                     ? styles.resultIconWarning
-                    : previewConfig.tone === 'danger'
+                    : resultState.tone === 'danger'
                       ? styles.resultIconDanger
                       : styles.resultIconInfo,
               ]}
             >
               <MaterialCommunityIcons
                 color={
-                  previewConfig.tone === 'success'
+                  resultState.tone === 'success'
                     ? colors.success
-                    : previewConfig.tone === 'warning'
+                    : resultState.tone === 'warning'
                       ? colors.warning
-                      : previewConfig.tone === 'danger'
+                      : resultState.tone === 'danger'
                         ? colors.danger
                         : colors.primary
                 }
-                name={previewConfig.icon}
+                name={resultState.icon}
                 size={28}
               />
             </View>
 
             <View style={styles.resultText}>
-              <AppText variant="eyebrow" tone={previewConfig.tone === 'info' ? 'primary' : previewConfig.tone}>
-                {previewConfig.eyebrow}
+              <AppText variant="eyebrow" tone={resultState.tone === 'info' ? 'primary' : resultState.tone}>
+                {formatEyebrow(resultState.status)}
               </AppText>
-              <AppText variant="title">{previewConfig.title}</AppText>
-              <AppText tone="muted">{previewConfig.description}</AppText>
+              <AppText variant="title">{resultState.title}</AppText>
+              <AppText tone="muted">{resultState.description}</AppText>
             </View>
           </View>
 
           <View style={styles.resultMeta}>
             <View style={styles.resultMetaItem}>
               <AppText variant="eyebrow" tone="muted">
-                Session
+                Last scan
               </AppText>
-              <AppText variant="label">{session.concertTitle}</AppText>
+              <AppText variant="label">{lastScanData ? resultState.guestLabel : 'No ticket scanned yet'}</AppText>
             </View>
             <View style={styles.resultMetaDivider} />
             <View style={styles.resultMetaItem}>
               <AppText variant="eyebrow" tone="muted">
                 Gate action
               </AppText>
-              <AppText variant="label">
-                {previewState === 'wrong_gate' ? 'Redirect guest' : isOfflinePreview ? 'Queue sync' : 'Next scan'}
-              </AppText>
+              <AppText variant="label">{resultState.gateAction}</AppText>
             </View>
           </View>
 
           <View style={styles.resultActions}>
-            <Button icon="qrcode-scan" label="Ready for next scan" onPress={() => {}} />
+            <Button
+              icon="qrcode-scan"
+              label={isProcessingScan ? 'Processing scan...' : 'Ready for next scan'}
+              onPress={resetScanner}
+              disabled={isProcessingScan}
+            />
             <Button icon="cog-outline" label="Change session" onPress={() => router.push(routes.staffSessionSetup)} variant="ghost" />
           </View>
         </SurfaceCard>
-      </View>
+        </View>
+      </ScrollView>
     </AppScreen>
   );
 }
 
+function formatEyebrow(status: LiveResultState['status']) {
+  switch (status) {
+    case 'ACCEPTED':
+      return 'Ticket valid';
+    case 'DUPLICATE':
+      return 'Duplicate detected';
+    case 'INVALID_GATE':
+      return 'Gate mismatch';
+    case 'NOT_FOUND':
+      return 'Ticket missing';
+    case 'UNPAID':
+      return 'Payment issue';
+    case 'OFFLINE':
+      return 'Offline mode';
+    case 'ERROR':
+      return 'Service issue';
+    default:
+      return 'Scanner live';
+  }
+}
+
+function shortenQrValue(value: string) {
+  if (value.length <= 18) {
+    return value;
+  }
+
+  return `${value.slice(0, 8)}...${value.slice(-6)}`;
+}
+
+function formatScanTime(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
 const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
+  },
   container: {
-    flex: 1,
-    justifyContent: 'center',
+    minHeight: '100%',
+    justifyContent: 'flex-start',
     gap: spacing.xl,
   },
   loadingState: {
@@ -281,14 +542,43 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.md,
   },
+  permissionState: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  permissionCard: {
+    gap: spacing.lg,
+    alignItems: 'center',
+  },
+  permissionIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 22,
+    backgroundColor: colors.surfaceOverlay,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.md,
   },
-  topBarCopy: {
+  topBarLeft: {
     flex: 1,
+    gap: spacing.sm,
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 12,
+    backgroundColor: colors.surfaceOverlay,
+  },
+  topBarCopy: {
     gap: spacing.xs,
   },
   sessionBoard: {
@@ -321,10 +611,6 @@ const styles = StyleSheet.create({
     shadowRadius: 30,
     elevation: 12,
   },
-  cameraFog: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.surfaceOverlay,
-  },
   cameraTopStrip: {
     position: 'absolute',
     top: spacing.md,
@@ -333,6 +619,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: spacing.sm,
+  },
+  cameraActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  cameraIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(6, 16, 29, 0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   targetFrame: {
     width: 240,
@@ -414,42 +713,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     backgroundColor: colors.surface,
     alignItems: 'center',
-  },
-  previewToolbar: {
-    gap: spacing.sm,
-  },
-  previewTabs: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  previewTab: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-  },
-  previewTabActive: {
-    backgroundColor: colors.primary,
-  },
-  previewTabText: {
-    color: colors.textMuted,
-  },
-  previewTabTextActive: {
-    color: colors.background,
-  },
-  networkToggle: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 12,
-    backgroundColor: colors.surfaceOverlay,
-  },
-  networkToggleText: {
-    color: colors.textMuted,
   },
   resultCard: {
     gap: spacing.md,

@@ -11,7 +11,16 @@ export type CurrentScanSession = {
   concertId: string;
   concertTitle: string;
   concertVenue: string;
+  gateNumber: number;
   gateLabel: string;
+  prefetchedHashCount: number;
+  prefetchedAt: string;
+};
+
+export type PrefetchedTicketSet = {
+  concertId: string;
+  gateNumber: number;
+  hashes: string[];
   prefetchedAt: string;
 };
 
@@ -62,5 +71,30 @@ export const scanSessionStorage = {
 
   async clearCurrentSession() {
     await AsyncStorage.removeItem(STORAGE_KEYS.currentScanSession);
+  },
+};
+
+export const prefetchStorage = {
+  async getPrefetchedTicketSet(): Promise<PrefetchedTicketSet | null> {
+    const raw = await AsyncStorage.getItem(STORAGE_KEYS.prefetchedTicketSet);
+
+    if (!raw) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(raw) as PrefetchedTicketSet;
+    } catch {
+      await AsyncStorage.removeItem(STORAGE_KEYS.prefetchedTicketSet);
+      return null;
+    }
+  },
+
+  async setPrefetchedTicketSet(payload: PrefetchedTicketSet) {
+    await AsyncStorage.setItem(STORAGE_KEYS.prefetchedTicketSet, JSON.stringify(payload));
+  },
+
+  async clearPrefetchedTicketSet() {
+    await AsyncStorage.removeItem(STORAGE_KEYS.prefetchedTicketSet);
   },
 };

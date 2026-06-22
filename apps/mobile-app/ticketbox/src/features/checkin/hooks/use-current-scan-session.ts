@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 
 import { scanSessionStorage, type CurrentScanSession } from '@/lib/storage';
 
 export function useCurrentScanSession() {
   const [session, setSession] = useState<CurrentScanSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const isFocused = useIsFocused();
 
   useEffect(() => {
     async function loadSession() {
+      setIsLoading(true);
+
       try {
         const stored = await scanSessionStorage.getCurrentSession();
         setSession(stored);
@@ -16,8 +20,10 @@ export function useCurrentScanSession() {
       }
     }
 
-    loadSession();
-  }, []);
+    if (isFocused) {
+      void loadSession();
+    }
+  }, [isFocused]);
 
   return {
     session,

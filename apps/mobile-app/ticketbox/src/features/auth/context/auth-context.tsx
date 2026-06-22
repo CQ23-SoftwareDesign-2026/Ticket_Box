@@ -15,7 +15,7 @@ import { resolveAuthRoute } from '@/features/auth/utils/resolve-auth-route';
 import { setApiAccessToken } from '@/lib/api';
 import { routes } from '@/lib/routes';
 import { registerSessionUserHandler, registerUnauthorizedHandler, setSessionTokens } from '@/lib/session';
-import { scanSessionStorage, tokenStorage } from '@/lib/storage';
+import { prefetchStorage, scanSessionStorage, tokenStorage } from '@/lib/storage';
 
 export type AuthContextValue = {
   user: User | null;
@@ -44,7 +44,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const clearSession = async () => {
     setSessionTokens(null, null);
     setApiAccessToken(null);
-    await Promise.all([tokenStorage.clearTokens(), scanSessionStorage.clearCurrentSession()]);
+    await Promise.all([
+      tokenStorage.clearTokens(),
+      scanSessionStorage.clearCurrentSession(),
+      prefetchStorage.clearPrefetchedTicketSet(),
+    ]);
     setUser(null);
   };
 
