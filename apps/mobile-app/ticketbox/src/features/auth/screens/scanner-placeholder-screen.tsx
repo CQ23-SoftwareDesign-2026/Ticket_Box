@@ -51,7 +51,7 @@ export function ScannerPlaceholderScreen() {
   const [isTorchEnabled, setIsTorchEnabled] = useState(false);
   const [isProcessingScan, setIsProcessingScan] = useState(false);
   const [isSyncingPending, setIsSyncingPending] = useState(false);
-  const [attemptCount, setAttemptCount] = useState(0);
+  const [scannedCount, setScannedCount] = useState(0);
   const [acceptedCount, setAcceptedCount] = useState(0);
   const [syncedCount, setSyncedCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
@@ -215,7 +215,7 @@ export function ScannerPlaceholderScreen() {
   };
 
   const applyScanResult = async (qrValue: string, response: ScanTicketResponse) => {
-    setAttemptCount((count) => count + 1);
+    setScannedCount((count) => count + 1);
     setLastScanData(qrValue);
 
     switch (response.status) {
@@ -370,7 +370,7 @@ export function ScannerPlaceholderScreen() {
       prefetchedSet.gateNumber === session.gateNumber;
 
     if (!matchesActiveSession) {
-      setAttemptCount((count) => count + 1);
+      setScannedCount((count) => count + 1);
       setLastScanData(qrValue);
       setResultState({
         status: 'OFFLINE',
@@ -387,7 +387,7 @@ export function ScannerPlaceholderScreen() {
     }
 
     if (!prefetchedSet.hashes.includes(qrValue)) {
-      setAttemptCount((count) => count + 1);
+      setScannedCount((count) => count + 1);
       setLastScanData(qrValue);
       setResultState({
         status: 'NOT_FOUND',
@@ -416,7 +416,7 @@ export function ScannerPlaceholderScreen() {
     const isAlreadyQueued = queuedItems.some((item) => item.qrCodeHash === qrValue);
 
     if (isLocallyScanned || isAlreadyQueued) {
-      setAttemptCount((count) => count + 1);
+      setScannedCount((count) => count + 1);
       setDuplicateCount((count) => count + 1);
       setLastScanData(qrValue);
       setResultState({
@@ -458,7 +458,7 @@ export function ScannerPlaceholderScreen() {
       pendingSyncStorage.enqueue(pendingItem),
     ]);
 
-    setAttemptCount((count) => count + 1);
+    setScannedCount((count) => count + 1);
     setAcceptedCount((count) => count + 1);
     setLastScanData(qrValue);
     setResultState({
@@ -620,13 +620,6 @@ export function ScannerPlaceholderScreen() {
             </AppText>
             <AppText variant="subtitle">{session.prefetchedHashCount.toLocaleString()} hashes</AppText>
           </View>
-          <View style={styles.sessionBoardDivider} />
-          <View style={styles.sessionBoardBlock}>
-            <AppText variant="eyebrow" tone="muted">
-              Pending
-            </AppText>
-            <AppText variant="subtitle">{pendingCount}</AppText>
-          </View>
         </View>
 
         <View style={styles.quickActionRow}>
@@ -673,21 +666,6 @@ export function ScannerPlaceholderScreen() {
             <View style={styles.scanLine} />
           </View>
 
-          <View style={styles.sideMetricRail}>
-            <View style={styles.sideMetricTile}>
-              <AppText variant="eyebrow" tone="muted">
-                Synced
-              </AppText>
-              <AppText variant="label">{syncedCount}</AppText>
-            </View>
-            <View style={styles.sideMetricTile}>
-              <AppText variant="eyebrow" tone="muted">
-                Pending
-              </AppText>
-              <AppText variant="label">{pendingCount}</AppText>
-            </View>
-          </View>
-
           <View style={styles.overlayText}>
             <AppText variant="eyebrow" tone="primary">
               {isProcessingScan ? 'Validating ticket' : 'Scanner ready'}
@@ -710,12 +688,12 @@ export function ScannerPlaceholderScreen() {
               Scans
             </AppText>
             <AppText numberOfLines={1} style={styles.statValue} variant="label">
-              {attemptCount}
+              {scannedCount}
             </AppText>
           </View>
           <View style={styles.statPanel}>
             <AppText variant="caption" tone="success" numberOfLines={1}>
-              Valid
+              Accepted
             </AppText>
             <AppText numberOfLines={1} style={styles.statValue} variant="label">
               {acceptedCount}
@@ -723,7 +701,7 @@ export function ScannerPlaceholderScreen() {
           </View>
           <View style={styles.statPanel}>
             <AppText variant="caption" tone="warning" numberOfLines={1}>
-              Queue
+              Pending
             </AppText>
             <AppText numberOfLines={1} style={styles.statValue} variant="label">
               {pendingCount}
@@ -740,9 +718,9 @@ export function ScannerPlaceholderScreen() {
           </View>
           <View style={styles.secondaryStatPill}>
             <AppText variant="eyebrow" tone={isSyncingPending ? 'primary' : 'muted'}>
-              Sync
+              Synced
             </AppText>
-            <AppText variant="label">{isSyncingPending ? 'Syncing' : isOnline ? 'Up to date' : 'Offline'}</AppText>
+            <AppText variant="label">{syncedCount}</AppText>
           </View>
         </View>
 
@@ -1026,20 +1004,6 @@ const styles = StyleSheet.create({
   targetFrame: {
     width: 240,
     height: 240,
-  },
-  sideMetricRail: {
-    position: 'absolute',
-    top: 84,
-    right: spacing.md,
-    gap: spacing.sm,
-  },
-  sideMetricTile: {
-    minWidth: 88,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    borderRadius: 14,
-    backgroundColor: 'rgba(6, 16, 29, 0.62)',
-    gap: spacing.xs,
   },
   corner: {
     position: 'absolute',
