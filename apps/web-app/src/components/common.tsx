@@ -3,8 +3,15 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { siteNavigation, siteName } from "@/lib/constants";
-import { LayoutDashboard } from "lucide-react";
+import {
+  LayoutDashboard,
+  User as UserIcon,
+  Ticket,
+  LogOut,
+} from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { Suspense } from "react";
 
 type ButtonProps = {
   children: ReactNode;
@@ -131,25 +138,45 @@ export function SectionHeading({
   title,
   description,
   action,
+  tone = "light",
 }: {
-  eyebrow?: string;
+  eyebrow?: ReactNode;
   title: string;
   description?: string;
   action?: ReactNode;
+  /** "light" = original surface styling, "dark" = for use on dark/hero backgrounds */
+  tone?: "light" | "dark";
 }) {
+  const isDark = tone === "dark";
+
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="max-w-2xl space-y-2">
         {eyebrow ? (
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
+          <div
+            className={
+              "text-xs font-semibold uppercase tracking-[0.24em] " +
+              (isDark ? "text-[#d8b56e]" : "text-primary")
+            }
+          >
             {eyebrow}
-          </p>
+          </div>
         ) : null}
-        <h2 className="font-display text-2xl font-bold tracking-tight text-on-surface sm:text-3xl">
+        <h2
+          className={
+            "font-display text-2xl font-bold tracking-tight sm:text-3xl " +
+            (isDark ? "text-[#f6f2ec]" : "text-on-surface")
+          }
+        >
           {title}
         </h2>
         {description ? (
-          <p className="max-w-2xl text-sm leading-6 text-on-surface-variant sm:text-base">
+          <p
+            className={
+              "max-w-2xl text-sm leading-6 sm:text-base " +
+              (isDark ? "text-[#f6f2ec]/65" : "text-on-surface-variant")
+            }
+          >
             {description}
           </p>
         ) : null}
@@ -209,6 +236,58 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
   );
 }
 
+function HeaderSearchInput() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams?.get("q") || "";
+
+  return (
+    <input
+      type="text"
+      placeholder="Search by name or location"
+      defaultValue={searchQuery}
+      onChange={(e) => {
+        const params = new URLSearchParams(searchParams?.toString() || "");
+        if (e.target.value) params.set("q", e.target.value);
+        else params.delete("q");
+        router.push(`/?${params.toString()}#upcoming-concerts`);
+      }}
+      className="hidden sm:block w-48 lg:w-64 rounded-full border border-outline-variant bg-surface px-4 py-2 text-sm text-white outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/50"
+    />
+  );
+}
+
+function HeaderStatusFilters() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const statusFilter = searchParams?.get("status") || "PUBLISHED";
+
+  return (
+    <div className="flex items-center bg-outline-variant/30 p-1 rounded-full">
+      <button
+        onClick={() => {
+          const params = new URLSearchParams(searchParams?.toString() || "");
+          params.set("status", "PUBLISHED");
+          router.push(`/?${params.toString()}#upcoming-concerts`);
+        }}
+        className={`px-4 py-1 text-xs sm:text-sm font-bold rounded-full transition-all duration-300 ${statusFilter === "PUBLISHED" ? "bg-surface text-primary shadow-sm" : "text-on-surface-variant/70 hover:text-on-surface-variant"}`}
+      >
+        Published
+      </button>
+      <button
+        onClick={() => {
+          const params = new URLSearchParams(searchParams?.toString() || "");
+          params.set("status", "COMPLETED");
+          router.push(`/?${params.toString()}#upcoming-concerts`);
+        }}
+        className={`px-4 py-1 text-xs sm:text-sm font-bold rounded-full transition-all duration-300 ${statusFilter === "COMPLETED" ? "bg-surface text-primary shadow-sm" : "text-on-surface-variant/70 hover:text-on-surface-variant"}`}
+      >
+        Completed
+      </button>
+    </div>
+  );
+}
+
 export function SiteShell({
   children,
   active = "/",
@@ -218,7 +297,8 @@ export function SiteShell({
   active?: string;
   action?: ReactNode;
 }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
+  const router = useRouter();
   const isAdmin =
     user?.roles?.includes("Admin") ||
     (typeof user === "object" &&
@@ -228,66 +308,252 @@ export function SiteShell({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 border-b border-outline-variant/60 bg-background/90 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <Link href="/" className="shrink-0">
+      <header className="sticky top-0 z-50 border-b border-outline-variant/50 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 shadow-[0_1px_0_0_rgba(0,0,0,0.03)]">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <Link
+            href="/"
+            className="shrink-0 transition-opacity hover:opacity-80"
+          >
             <BrandMark compact />
           </Link>
-          <nav className="hidden items-center gap-7 md:flex">
-            {siteNavigation.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`text-sm font-semibold transition ${active === item.href ? "text-primary" : "text-on-surface-variant hover:text-primary"}`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="flex items-center gap-3">
-            {isAuthenticated && isAdmin && (
-              <Link
-                href="/admin/dashboard"
-                className="ticketbox-button-secondary px-4 py-2 text-sm flex items-center gap-1.5"
-              >
-                <LayoutDashboard size={18} className="text-current" /> Admin
-              </Link>
+
+          <div className="flex items-center gap-4">
+            <Suspense
+              fallback={
+                <div className="hidden sm:block w-48 lg:w-64 h-9 rounded-full bg-outline-variant/30 animate-pulse" />
+              }
+            >
+              <HeaderSearchInput />
+            </Suspense>
+
+            {isAuthenticated ? (
+              <div className="relative group">
+                <button className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-container text-primary-foreground font-bold shadow-sm ring-2 ring-transparent transition-all duration-200 hover:ring-primary/40 hover:shadow-md active:scale-95">
+                  {user?.fullName?.charAt(0).toUpperCase() || "U"}
+                </button>
+
+                {/* Dropdown */}
+                <div
+                  className="absolute right-0 mt-3 w-52 origin-top-right rounded-2xl border border-outline-variant/60 bg-surface-low/95 backdrop-blur-md shadow-xl ring-1 ring-black/5
+              opacity-0 invisible translate-y-1 scale-95
+              group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100
+              transition-all duration-200 ease-out z-50 overflow-hidden"
+                >
+                  <div className="p-1.5 flex flex-col gap-0.5 text-left">
+                    <Link
+                      href="/profile"
+                      className="flex items-center gap-2.5 px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface hover:text-on-surface rounded-xl transition-colors"
+                    >
+                      <UserIcon
+                        size={16}
+                        className="text-on-surface-variant/70"
+                      />{" "}
+                      Profile
+                    </Link>
+                    <Link
+                      href="/my-tickets"
+                      className="flex items-center gap-2.5 px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface hover:text-on-surface rounded-xl transition-colors"
+                    >
+                      <Ticket
+                        size={16}
+                        className="text-on-surface-variant/70"
+                      />{" "}
+                      My Tickets
+                    </Link>
+                    {isAdmin && (
+                      <Link
+                        href="/admin/dashboard"
+                        className="flex items-center gap-2.5 px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface hover:text-on-surface rounded-xl transition-colors"
+                      >
+                        <LayoutDashboard
+                          size={16}
+                          className="text-on-surface-variant/70"
+                        />{" "}
+                        Admin
+                      </Link>
+                    )}
+
+                    <div className="h-px bg-outline-variant/60 my-1 mx-1" />
+
+                    <button
+                      onClick={() => {
+                        void logout().then(() => router.replace("/login"));
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-semibold text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
+                    >
+                      <LogOut size={16} /> Log out
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              action
             )}
-            {action}
+          </div>
+        </div>
+
+        {/* Second Row for filters and links */}
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 pb-3 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-4">
+            <Suspense
+              fallback={
+                <div className="w-48 h-8 rounded-full bg-outline-variant/30 animate-pulse" />
+              }
+            >
+              <HeaderStatusFilters />
+            </Suspense>
+          </div>
+
+          <div className="flex items-center gap-6 text-sm font-bold text-on-surface-variant">
+            <Link
+              href="/support"
+              className="relative transition-colors hover:text-primary after:absolute after:-bottom-1 after:left-0 after:h-[1.5px] after:w-0 after:bg-primary after:transition-all after:duration-200 hover:after:w-full mr-12"
+            >
+              Support
+            </Link>
+            <Link
+              href="/contact-us"
+              className="relative transition-colors hover:text-primary after:absolute after:-bottom-1 after:left-0 after:h-[1.5px] after:w-0 after:bg-primary after:transition-all after:duration-200 hover:after:w-full mr-12"
+            >
+              Contact Us
+            </Link>
           </div>
         </div>
       </header>
       <main className="flex-1">{children}</main>
-      <footer className="border-t border-outline-variant/60 bg-surface">
-        <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1.5fr_1fr_1fr] lg:px-8">
-          <div className="space-y-4">
-            <BrandMark compact />
-            <p className="max-w-md text-sm leading-6 text-on-surface-variant">
-              TicketBox is a premium concert booking experience with a clean
-              checkout flow, live ticket management, and responsive support.
-            </p>
-          </div>
-          <div>
-            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-on-surface-variant">
-              Navigate
-            </p>
-            <div className="space-y-3 text-sm text-on-surface-variant">
-              {siteNavigation.map((item) => (
-                <div key={item.href}>
-                  <Link href={item.href} className="hover:text-primary">
-                    {item.label}
-                  </Link>
-                </div>
-              ))}
+      <footer className="border-t border-gray-800 bg-[#2b2d31]">
+        <div className="mx-auto flex w-full max-w-7xl flex-col items-start justify-between gap-8 px-4 py-12 sm:flex-row sm:px-6 lg:px-8">
+          <div className="flex flex-col space-y-4">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-3 transition-transform hover:scale-105"
+            >
+              <svg
+                className="h-10 w-10"
+                viewBox="0 0 200 200"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <defs>
+                  <linearGradient
+                    id="ticketbox-brand-gradient-footer"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                  >
+                    <stop offset="0%" stopColor="#4f46e5" />
+                    <stop offset="100%" stopColor="#7c3aed" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M40 60Q40 50 50 50H150Q160 50 160 60V85Q150 100 160 115V140Q160 150 150 150H50Q40 150 40 140V115Q50 100 40 85Z"
+                  fill="url(#ticketbox-brand-gradient-footer)"
+                />
+                <rect
+                  x="85"
+                  y="85"
+                  width="30"
+                  height="30"
+                  rx="15"
+                  fill="white"
+                  className="animate-pulse"
+                />
+                <path
+                  d="M100 70V130M70 100H130"
+                  stroke="white"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span className="font-display text-3xl font-black italic tracking-tight text-white drop-shadow-sm">
+                TicketBox
+              </span>
+            </Link>
+            <div className="flex items-center gap-4 text-white/70">
+              <Link
+                href="#"
+                className="hover:text-white transition-colors"
+                aria-label="Facebook"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+                </svg>
+              </Link>
+              <Link
+                href="#"
+                className="hover:text-white transition-colors"
+                aria-label="Instagram"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                </svg>
+              </Link>
+              <Link
+                href="#"
+                className="hover:text-white transition-colors"
+                aria-label="YouTube"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33 2.78 2.78 0 0 0 1.94 2c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.33 29 29 0 0 0-.46-5.33z" />
+                  <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
+                </svg>
+              </Link>
             </div>
+            <p className="text-xs font-semibold text-white/50 tracking-wide mt-2">
+              © 2026 TicketBox. All rights reserved.
+            </p>
           </div>
-          <div>
-            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-on-surface-variant">
-              Need help?
-            </p>
-            <p className="text-sm leading-6 text-on-surface-variant">
-              Support is available 24/7 for order, entry, and payment issues.
-            </p>
+          <div className="flex flex-wrap items-center justify-start sm:justify-end gap-x-8 gap-y-4 text-sm font-bold text-white/80">
+            <Link
+              href="/#upcoming-concerts"
+              className="hover:text-white transition-colors"
+            >
+              Concerts
+            </Link>
+            <Link
+              href="/private-policy"
+              className="hover:text-white transition-colors"
+            >
+              Private Policy
+            </Link>
+            <Link
+              href="/support"
+              className="hover:text-white transition-colors"
+            >
+              Support
+            </Link>
           </div>
         </div>
       </footer>

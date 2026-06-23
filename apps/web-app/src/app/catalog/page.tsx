@@ -72,12 +72,12 @@ export default function CatalogPage() {
             ].map((event) => (
               <article
                 key={event.title}
-                className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)]"
+                className="overflow-hidden rounded-[28px] border border-slate-200 bg-surface shadow-[0_12px_40px_rgba(15,23,42,0.08)]"
               >
                 <div
-                  className={`h-44 bg-gradient-to-br ${event.accent} p-5 text-white`}
+                  className={`h-44 bg-linear-to-br ${event.accent} p-5 text-white`}
                 >
-                  <div className="mt-auto inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-white/80">
+                  <div className="mt-auto inline-flex rounded-full bg-surface/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-white/80">
                     Featured
                   </div>
                 </div>
@@ -85,8 +85,10 @@ export default function CatalogPage() {
                   <h2 className="text-xl font-bold text-slate-900">
                     {event.title}
                   </h2>
-                  <p className="mt-2 text-sm text-slate-500">{event.time}</p>
-                  <p className="mt-4 text-sm leading-6 text-slate-600">
+                  <p className="mt-2 text-sm text-on-surface-variant/70">
+                    {event.time}
+                  </p>
+                  <p className="mt-4 text-sm leading-6 text-on-surface-variant">
                     Prototype ticket card that can later be wired to concert,
                     concept, and order data.
                   </p>

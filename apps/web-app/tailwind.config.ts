@@ -23,6 +23,12 @@ const config: Config = {
         border: "var(--border)",
         input: "var(--input)",
         ring: "var(--ring)",
+        surface: "var(--surface)",
+        "surface-low": "var(--surface-low)",
+        "on-surface": "var(--on-surface)",
+        "on-surface-variant": "var(--on-surface-variant)",
+        outline: "var(--outline)",
+        "outline-variant": "var(--outline-variant)",
       },
       fontFamily: {
         sans: ["var(--font-inter)", "sans-serif"],

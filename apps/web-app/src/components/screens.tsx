@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   activityTimeline,
@@ -17,13 +17,14 @@ import {
   tickets,
 } from "@/lib/mock-data";
 import { Badge, Button, Card, SectionHeading, Tabs } from "@/components/common";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, X, ZoomIn, ZoomOut } from "lucide-react";
 import {
   formatConcertCurrency,
   formatConcertDateTime,
   getConcertById,
   getConcerts,
   type ConcertDetailItem,
+  type ConcertCardItem,
 } from "@/services/concert.service";
 import { reserveTickets } from "@/services/ticketing.service";
 import {
@@ -90,10 +91,6 @@ export function HeroCarousel() {
   const dateTime = featuredConcert
     ? formatConcertDateTime(featuredConcert.startTime)
     : { date: "TBA", time: "" };
-  const date = dateTime.date;
-  const time = dateTime.time;
-  const venue = featuredConcert?.venue ?? "Awaiting venue";
-  const city = featuredConcert?.city ?? "Awaiting city";
   const description = loading
     ? "We are loading the latest concert from the database."
     : featuredConcert?.aiBio ||
@@ -107,89 +104,66 @@ export function HeroCarousel() {
       : "Loading...";
 
   return (
-    <section className="relative overflow-hidden bg-surface text-white">
-      <div className="hero-shimmer absolute inset-0 opacity-95" />
-      <div className="surface-grid absolute inset-0 opacity-20" />
-      <div className="relative mx-auto grid w-full max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-20">
-        <div className="max-w-3xl space-y-6">
-          <Badge className="border border-white/20 bg-white/10 text-white">
-            {badge}
-          </Badge>
-          <h1 className="font-display text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl">
-            {title}
-          </h1>
-          <p className="max-w-2xl text-base leading-7 text-white/80 sm:text-lg">
-            {description}
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              href={
-                featuredConcert ? `/concerts/${featuredConcert.id}` : "/catalog"
-              }
-              variant="secondary"
-            >
-              {loading ? "Loading..." : "Buy Tickets"} <ArrowRight size={18} />
-            </Button>
-            <Button
-              href="/support"
-              variant="ghost"
-              className="border border-white/20 text-white hover:bg-white/10"
-            >
-              Need help
-            </Button>
+    <section className="group relative overflow-hidden bg-[#111318] text-white min-h-[600px] flex items-end pb-20">
+      {featuredConcert && (
+        <img
+          src={
+            featuredConcert.posterUrl &&
+            featuredConcert.posterUrl !==
+              "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih"
+              ? featuredConcert.posterUrl
+              : "/Mockimg.webp"
+          }
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-2000 ease-out group-hover:scale-105"
+          alt="Hero background"
+        />
+      )}
+      <div className="absolute inset-0 bg-linear-to-t from-bg-[#111318]/90 via-bg-[#111318]/20 to-transparent transition-opacity duration-700 opacity-80 group-hover:opacity-100" />
+      <div className="absolute inset-0 bg-linear-to-r from-bg-[#111318]/90 via-bg-[#111318]/50 to-transparent transition-opacity duration-700 opacity-0 group-hover:opacity-100" />
+      <div className="hero-shimmer absolute inset-0 opacity-20 mix-blend-overlay transition-opacity duration-700 group-hover:opacity-40" />
+
+      <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 z-10">
+        <div className="max-w-3xl">
+          <div className="space-y-4 transform transition-transform duration-700 ease-out group-hover:-translate-y-2">
+            <Badge className="border border-white/20 bg-surface/20 backdrop-blur-md text-white shadow-xl px-4 py-1.5 rounded-full uppercase tracking-wider text-xs font-bold inline-flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+              </span>
+              {badge}
+            </Badge>
+            <h1 className="font-display text-4xl font-black tracking-tight sm:text-5xl lg:text-7xl drop-shadow-xl text-white">
+              {title}
+            </h1>
           </div>
-          <div className="flex flex-wrap gap-3 text-sm text-white/75">
-            <span className="rounded-full bg-white/10 px-4 py-2">{date}</span>
-            {time ? (
-              <span className="rounded-full bg-white/10 px-4 py-2">{time}</span>
-            ) : null}
-            <span className="rounded-full bg-white/10 px-4 py-2">{venue}</span>
-            <span className="rounded-full bg-white/10 px-4 py-2">{city}</span>
+
+          <div className="grid grid-rows-[0fr] opacity-0 transition-all duration-700 ease-in-out group-hover:grid-rows-[1fr] group-hover:opacity-100">
+            <div className="overflow-hidden">
+              <div className="pt-6">
+                <p className="max-w-2xl text-base leading-relaxed text-white/90 sm:text-lg drop-shadow-lg mb-8 line-clamp-3">
+                  {description}
+                </p>
+                <div className="flex flex-wrap gap-4">
+                  <Button
+                    href={
+                      featuredConcert
+                        ? `/concerts/${featuredConcert.id}`
+                        : "/catalog"
+                    }
+                    variant="secondary"
+                    className="group/btn bg-primary hover:bg-primary-container text-white border-0 shadow-[0_0_40px_rgba(var(--color-primary),0.3)] hover:shadow-[0_0_60px_rgba(var(--color-primary),0.5)] px-8 py-4 text-base transition-all duration-300"
+                  >
+                    {loading ? "Loading..." : "Buy Tickets"}
+                    <ArrowRight
+                      size={18}
+                      className="ml-2 transform transition-transform duration-300 group-hover/btn:translate-x-1"
+                    />
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <Card className="border-white/15 bg-white/10 p-5 text-white backdrop-blur-xl">
-          <div className="space-y-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/70">
-                  Featured tour
-                </p>
-                <h2 className="mt-2 font-display text-2xl font-bold">
-                  {title}
-                </h2>
-              </div>
-              <Badge className="bg-white/15 text-white">{badge}</Badge>
-            </div>
-            <div className="grid gap-3 rounded-2xl bg-white/10 p-4 sm:grid-cols-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-white/65">
-                  Start time
-                </p>
-                <p className="mt-1 text-lg font-semibold">
-                  {date}
-                  {time ? ` • ${time}` : ""}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-white/65">
-                  Price
-                </p>
-                <p className="mt-1 text-lg font-semibold">{priceLabel}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-white/65">
-                  Max / user
-                </p>
-                <p className="mt-1 text-lg font-semibold">
-                  {ticketTier?.max_per_user ?? "N/A"}
-                </p>
-              </div>
-            </div>
-            <div className="rounded-2xl bg-white/10 p-4">
-              <p className="text-sm leading-6 text-white/80">{description}</p>
-            </div>
-          </div>
-        </Card>
       </div>
     </section>
   );
@@ -199,54 +173,114 @@ export function ConcertCard({
   concert,
   featured = false,
 }: {
-  concert: (typeof concerts)[number];
+  concert: ConcertCardItem | (typeof concerts)[number];
   featured?: boolean;
 }) {
   return (
     <Card
-      className={`card-lift h-full overflow-hidden ${featured ? "border-primary/30 bg-gradient-to-br from-white to-primary/5" : ""}`}
+      className={`group h-full overflow-hidden flex flex-col p-0 bg-surface border border-outline-variant shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.15)] transition-all duration-500 hover:-translate-y-1 ${featured ? "sm:flex-row rounded-4xl" : "rounded-3xl"}`}
     >
-      <div className="flex h-full flex-col">
-        <div
-          className={`ticket-grid flex items-start justify-between gap-4 p-5 ${featured ? "min-h-44" : "min-h-36"}`}
-        >
-          <div className="max-w-[70%] space-y-2">
-            <Badge className="bg-white/90 text-primary">{concert.genre}</Badge>
-            <h3 className="font-display text-2xl font-bold text-on-surface">
-              {concert.title}
-            </h3>
-            <p className="text-sm leading-6 text-on-surface-variant">
-              {concert.description}
-            </p>
-          </div>
-          <div className="rounded-2xl bg-white px-3 py-2 text-right shadow-sm">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-error">
-              {concert.date}
-            </div>
-            <div className="text-xl font-black text-on-surface">
-              {concert.price}
-            </div>
-          </div>
+      <div
+        className={`relative overflow-hidden ${featured ? "w-full sm:w-5/12 min-h-[280px] sm:min-h-full" : "w-full h-64"}`}
+      >
+        <img
+          src={
+            (concert as Record<string, unknown>).posterUrl &&
+            typeof (concert as Record<string, unknown>).posterUrl ===
+              "string" &&
+            (concert as Record<string, unknown>).posterUrl !==
+              "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih"
+              ? ((concert as Record<string, unknown>).posterUrl as string)
+              : "/Mockimg.webp"
+          }
+          alt={concert.title}
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+        />
+        <div className="absolute inset-0 bg-linear-to-t from-bg-[#111318]/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+        <div className="absolute top-4 left-4 bg-surface/95 backdrop-blur-md text-on-surface px-3 py-2 rounded-2xl flex flex-col items-center shadow-lg border border-white/50 transform transition-transform duration-500 group-hover:-translate-y-1">
+          <span className="text-[10px] uppercase font-bold text-on-surface-variant/70 tracking-wider">
+            {concert.date.split(" ")[0] || "OCT"}
+          </span>
+          <span className="text-xl font-black text-primary leading-none mt-1">
+            {concert.date.split(" ")[1]?.replace(",", "") || "15"}
+          </span>
         </div>
-        <div className="flex flex-1 flex-col justify-between p-5">
-          <div className="space-y-2 text-sm text-on-surface-variant">
-            <p>
-              {concert.venue} · {concert.city}
-            </p>
-            <p>{concert.time}</p>
-          </div>
-          <div className="mt-4 flex items-center justify-between gap-3">
-            <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
-              <span className="h-2 w-2 rounded-full bg-secondary animate-pulse" />
+      </div>
+      <div
+        className={`flex flex-1 flex-col justify-between bg-surface transition-colors duration-500 group-hover:bg-surface-low/50 ${featured ? "p-8 sm:p-10 sm:w-7/12" : "p-6 w-full"}`}
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-secondary">
               {concert.status}
             </span>
-            <Link
-              href={`/concerts/${concert.id}`}
-              className="inline-flex items-center gap-1 text-sm font-semibold text-primary"
-            >
-              View details <ArrowRight size={18} />
-            </Link>
           </div>
+          <h3 className="font-display text-2xl sm:text-3xl font-black text-on-surface transition-colors duration-300 group-hover:text-primary line-clamp-2">
+            {concert.title}
+          </h3>
+          {featured && (
+            <p className="text-sm sm:text-base leading-relaxed text-on-surface-variant line-clamp-3">
+              {concert.description}
+            </p>
+          )}
+          <div className="flex items-center gap-2 text-sm text-on-surface-variant/70 font-medium">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-on-surface-variant/50"
+            >
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            <span className="truncate">{concert.venue}</span>
+          </div>
+        </div>
+        <div className="mt-8 flex items-end justify-between border-t border-outline-variant pt-6">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-on-surface-variant/50 font-bold mb-1">
+              Starting from
+            </p>
+            <p className="text-2xl font-black text-on-surface">
+              {concert.price}
+            </p>
+          </div>
+          <Link
+            href={`/concerts/${concert.id}`}
+            className={`group/btn inline-flex items-center justify-center gap-2 overflow-hidden relative transition-all duration-300 ${
+              featured
+                ? "bg-[#111318] text-white w-12 h-12 rounded-full hover:bg-primary shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                : "bg-surface border-2 border-outline-variant text-on-surface px-6 py-2.5 rounded-full text-sm font-bold hover:border-primary hover:text-primary hover:bg-primary/5"
+            }`}
+          >
+            {featured ? (
+              <ArrowRight
+                size={20}
+                className="transform transition-transform duration-300 group-hover/btn:translate-x-1"
+              />
+            ) : (
+              <>
+                <span className="relative z-10 transition-transform duration-300 group-hover/btn:-translate-x-1">
+                  Tickets
+                </span>
+                <ArrowRight
+                  size={16}
+                  className="absolute right-4 transform transition-all duration-300 translate-x-4 opacity-0 group-hover/btn:translate-x-0 group-hover/btn:opacity-100"
+                />
+              </>
+            )}
+          </Link>
         </div>
       </div>
     </Card>
@@ -441,13 +475,15 @@ export function InteractiveTicketSelector({
   };
 
   return (
-    <Card className="overflow-hidden border-0 shadow-lg bg-white">
+    <Card className="overflow-hidden border-0 shadow-lg bg-surface">
       <div className="p-8">
-        <SectionHeading
-          eyebrow="TICKET TIERS"
-          title="Choose your experience"
-          description="Select from standing, priority, or lounge access."
-        />
+        <div className="flex items-center justify-between">
+          <SectionHeading
+            eyebrow="TICKETS"
+            title="Real-Time Availability"
+            description="Select from standing, priority, or lounge access."
+          />
+        </div>
 
         <div className="mt-8 space-y-3">
           {tiers.length > 0 ? (
@@ -492,48 +528,50 @@ export function InteractiveTicketSelector({
               );
             })
           ) : (
-            <p className="text-sm text-gray-500">No ticket tiers available.</p>
+            <p className="text-sm text-on-surface-variant/70">
+              No ticket tiers available.
+            </p>
           )}
         </div>
 
         {selectedTier && (
-          <div className="mt-8 border-t border-gray-100 pt-6 space-y-6">
+          <div className="mt-8 border-t border-outline-variant pt-6 space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-gray-900">
+                <p className="text-sm font-semibold text-on-surface">
                   Select Quantity
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-on-surface-variant/70 mt-1">
                   {maxQty > 0
                     ? `Limit: ${maxQty} tickets per user`
                     : "Sold out right now"}
                 </p>
               </div>
-              <div className="flex items-center gap-4 bg-gray-50 border border-gray-200 rounded-xl p-1">
+              <div className="flex items-center gap-4 bg-surface-low border border-outline rounded-xl p-1">
                 <button
                   type="button"
                   disabled={quantity <= 1}
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white text-lg font-bold text-gray-700 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface text-lg font-bold text-on-surface-variant disabled:opacity-30 disabled:pointer-events-none transition-colors"
                 >
                   −
                 </button>
-                <span className="w-8 text-center font-bold text-gray-900 text-lg">
+                <span className="w-8 text-center font-bold text-on-surface text-lg">
                   {quantity}
                 </span>
                 <button
                   type="button"
                   disabled={maxQty < 1 || quantity >= maxQty}
                   onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))}
-                  className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white text-lg font-bold text-gray-700 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface text-lg font-bold text-on-surface-variant disabled:opacity-30 disabled:pointer-events-none transition-colors"
                 >
                   +
                 </button>
               </div>
             </div>
 
-            <div className="rounded-2xl bg-gray-50 p-4 border border-gray-100">
-              <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+            <div className="rounded-2xl bg-surface-low p-4 border border-outline-variant">
+              <div className="flex items-center justify-between text-sm text-on-surface-variant mb-2">
                 <span>
                   Subtotal ({quantity} x{" "}
                   {formatConcertCurrency(selectedTier.price)})
@@ -542,7 +580,7 @@ export function InteractiveTicketSelector({
                   {formatConcertCurrency(selectedTier.price * quantity)}
                 </span>
               </div>
-              <div className="flex items-center justify-between border-t border-gray-200 pt-2 text-base font-bold text-gray-900">
+              <div className="flex items-center justify-between border-t border-outline pt-2 text-base font-bold text-on-surface">
                 <span>Estimated Total</span>
                 <span>
                   {formatConcertCurrency(selectedTier.price * quantity)}
@@ -570,42 +608,204 @@ export function ConcertDetailHero({ concert }: { concert: ConcertDetailItem }) {
   const date = dateTime.date;
   const time = dateTime.time;
 
+  const spotlightRef = useRef<HTMLDivElement>(null);
+
+  function handlePosterMove(e: React.MouseEvent<HTMLDivElement>) {
+    const el = spotlightRef.current;
+    if (!el) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    el.style.background = `radial-gradient(320px circle at ${x}% ${y}%, rgba(216,181,110,0.22), transparent 70%)`;
+  }
+
+  function handlePosterLeave() {
+    const el = spotlightRef.current;
+    if (el) el.style.background = "transparent";
+  }
+
   return (
-    <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-white via-white to-primary/5 p-0">
-      <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-6 p-6 sm:p-8">
-          <Badge className="bg-primary/10 text-primary">{concert.status}</Badge>
-          <h1 className="font-display text-4xl font-black tracking-tight text-on-surface sm:text-5xl">
-            {concert.title}
-          </h1>
-          <p className="max-w-2xl text-base leading-7 text-on-surface-variant">
-            {concert.aiBio || concert.description}
-          </p>
-          <div className="flex flex-wrap gap-3 text-sm text-on-surface-variant">
-            <span className="rounded-full bg-surface-low px-4 py-2">
-              {date}
-              {time ? ` · ${time}` : ""}
-            </span>
-            <span className="rounded-full bg-surface-low px-4 py-2">
-              {concert.venue}
-            </span>
-            {concert.city && (
-              <span className="rounded-full bg-surface-low px-4 py-2">
-                {concert.city}
+    <section
+      className="relative overflow-hidden rounded-[28px] shadow-2xl"
+      style={{ backgroundColor: "#15111c" }}
+    >
+      <style>{`
+        @media (prefers-reduced-motion: no-preference) {
+          .ticket-rise {
+            opacity: 0;
+            transform: translateY(10px);
+            animation: ticketRise 0.7s cubic-bezier(0.16, 0.84, 0.44, 1) forwards;
+          }
+          @keyframes ticketRise {
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .ticket-poster {
+            opacity: 0;
+            transform: scale(1.04);
+            animation: ticketPoster 0.9s cubic-bezier(0.16, 0.84, 0.44, 1) forwards;
+          }
+          @keyframes ticketPoster {
+            to { opacity: 1; transform: scale(1); }
+          }
+        }
+      `}</style>
+
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.05] mix-blend-overlay"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(45deg, #fff 0px, #fff 1px, transparent 1px, transparent 3px)",
+        }}
+      />
+      <div className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-[#d8b56e]/10 blur-3xl" />
+
+      <div className="relative grid grid-cols-1 lg:grid-cols-[minmax(0,440px)_28px_1fr]">
+        <div
+          className="relative z-10 flex flex-col gap-7 p-6 sm:p-8 lg:p-10"
+          style={{
+            backgroundImage:
+              "linear-gradient(to bottom, rgba(255,255,255,0.045), transparent)",
+          }}
+        >
+          <div className="ticket-rise" style={{ animationDelay: "60ms" }}>
+            <SectionHeading
+              tone="dark"
+              eyebrow={
+                <span className="inline-flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-[#d8b56e] opacity-70 motion-safe:animate-ping" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#d8b56e]" />
+                  </span>
+                  {concert.status}
+                </span>
+              }
+              title={concert.title}
+            />
+          </div>
+
+          <div
+            className="ticket-rise flex flex-col gap-4 border-t border-[#f6f2ec]/10 pt-6 text-sm"
+            style={{ animationDelay: "180ms" }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full ring-1 ring-[#d8b56e]/25 bg-[#d8b56e]/10">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#d8b56e"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+                  <line x1="16" x2="16" y1="2" y2="6" />
+                  <line x1="8" x2="8" y1="2" y2="6" />
+                  <line x1="3" x2="21" y1="10" y2="10" />
+                </svg>
               </span>
-            )}
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#f6f2ec]/45">
+                  Thời gian
+                </span>
+                <span className="font-mono text-sm text-[#f6f2ec]">
+                  {time ? `${time} · ` : ""}
+                  {date}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full ring-1 ring-[#d8b56e]/25 bg-[#d8b56e]/10">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#d8b56e"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+              </span>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#f6f2ec]/45">
+                  Địa điểm
+                </span>
+                <span className="text-sm font-semibold text-[#f6f2ec]">
+                  {concert.venue}
+                  {concert.city ? (
+                    <span className="font-normal text-[#f6f2ec]/55">
+                      , {concert.city}
+                    </span>
+                  ) : null}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="bg-[radial-gradient(circle_at_top,_rgba(79,70,229,0.35),_transparent_55%),linear-gradient(160deg,_#1f1b4d,_#3525cd_50%,_#712ae2)] p-6 text-white sm:p-8 flex items-center justify-center">
-          <div className="w-full max-w-md rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur-xl flex flex-col items-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/70 mb-4 self-start">
-              Seat Map Preview
-            </p>
-            <SeatMapSvg className="w-full h-auto" />
-          </div>
+
+        {/* SEAM — mobile: horizontal tear line */}
+        <div className="flex lg:hidden items-center gap-2 px-6">
+          <span className="h-3 w-3 rounded-full bg-[#15111c] ring-1 ring-[#d8b56e]/30 ml-[-22px]" />
+          <span className="flex-1 border-t border-dashed border-[#f6f2ec]/15" />
+          <span className="h-3 w-3 rounded-full bg-[#15111c] ring-1 ring-[#d8b56e]/30 mr-[-22px]" />
+        </div>
+
+        {/* SEAM — desktop: vertical tear line with rotated stub label */}
+        <div className="relative hidden lg:flex flex-col items-center py-6">
+          <span className="h-3 w-3 rounded-full bg-[#15111c] ring-1 ring-[#d8b56e]/30 mt-[-22px]" />
+          <span className="mt-2 flex-1 w-px border-l border-dashed border-[#f6f2ec]/15" />
+          <span className="my-3 rotate-180 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.3em] text-[#f6f2ec]/30 [writing-mode:vertical-rl]">
+            Vé điện tử
+          </span>
+          <span className="flex-1 w-px border-l border-dashed border-[#f6f2ec]/15" />
+          <span className="h-3 w-3 rounded-full bg-[#15111c] ring-1 ring-[#d8b56e]/30 mb-[-22px]" />
+        </div>
+
+        {/* RIGHT: poster */}
+        <div
+          className="ticket-poster relative min-h-[280px] sm:min-h-[380px] lg:min-h-[520px] overflow-hidden"
+          onMouseMove={handlePosterMove}
+          onMouseLeave={handlePosterLeave}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={concert.posterUrl || "/Mockimg.webp"}
+            alt={concert.title}
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out hover:scale-[1.03]"
+          />
+
+          {/* cursor-driven stage spotlight */}
+          <div
+            ref={spotlightRef}
+            className="pointer-events-none absolute inset-0 transition-[background] duration-200"
+          />
+
+          {/* legibility fades, anchored to the ink tone so the seam reads continuous */}
+          <div
+            className="pointer-events-none absolute inset-0 hidden lg:block"
+            style={{
+              backgroundImage:
+                "linear-gradient(to right, #15111c 0%, rgba(21,17,28,0.05) 30%, transparent 55%)",
+            }}
+          />
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              backgroundImage:
+                "linear-gradient(to top, rgba(21,17,28,0.65) 0%, transparent 38%)",
+            }}
+          />
         </div>
       </div>
-    </Card>
+    </section>
   );
 }
 
@@ -662,7 +862,7 @@ export function VenueMap() {
       <div className="hero-sheen p-6 text-white">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <Badge className="bg-white/15 text-white">Seat selection</Badge>
+            <Badge className="bg-surface/15 text-white">Seat selection</Badge>
             <h2 className="mt-4 font-display text-3xl font-black">
               Central Stadium
             </h2>
@@ -670,7 +870,7 @@ export function VenueMap() {
               Stage view, zone labels, and ticket availability
             </p>
           </div>
-          <div className="rounded-2xl bg-white/10 px-4 py-3 text-right backdrop-blur">
+          <div className="rounded-2xl bg-surface/10 px-4 py-3 text-right backdrop-blur">
             <div className="text-xs uppercase tracking-[0.2em] text-white/70">
               Stage
             </div>
@@ -679,14 +879,14 @@ export function VenueMap() {
         </div>
       </div>
       <div className="space-y-6 p-6">
-        <div className="grid grid-cols-10 gap-2 rounded-[2rem] border border-outline-variant bg-surface-low p-3 text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-on-surface-variant">
+        <div className="grid grid-cols-10 gap-2 rounded-4xl border border-outline-variant bg-surface-low p-3 text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-on-surface-variant">
           {Array.from({ length: 10 }, (_, index) => (
             <div key={index} className="rounded-xl bg-surface py-2">
               {index + 1}
             </div>
           ))}
         </div>
-        <div className="rounded-[2rem] bg-surface-low p-4">
+        <div className="rounded-4xl bg-surface-low p-4">
           <div className="grid grid-cols-10 gap-2">
             {seatRows.map((row, rowIndex) =>
               row.map((seat, seatIndex) => {
@@ -851,7 +1051,7 @@ export function PaymentMethodPicker() {
         <div className="rounded-2xl border border-primary bg-primary/5 p-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="flex h-10 w-16 items-center justify-center rounded-lg bg-white shadow-sm">
+              <div className="flex h-10 w-16 items-center justify-center rounded-lg bg-surface shadow-sm">
                 <span className="font-bold text-blue-600">PayOS</span>
               </div>
               <div>
@@ -862,7 +1062,7 @@ export function PaymentMethodPicker() {
               </div>
             </div>
             <span className="h-5 w-5 rounded-full border-2 border-primary bg-primary">
-              <span className="mx-auto mt-[3px] block h-2.5 w-2.5 rounded-full bg-white" />
+              <span className="mx-auto mt-[3px] block h-2.5 w-2.5 rounded-full bg-surface" />
             </span>
           </div>
         </div>
@@ -1024,7 +1224,7 @@ export function CountdownTimer({ orderId }: { orderId?: string }) {
   return (
     <>
       {isExpired && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md">
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-md">
           <Card className="w-full max-w-md p-8 text-center shadow-2xl mx-4">
             <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-error/10 text-error">
               <span className="material-symbols-outlined text-[32px]">
@@ -1061,8 +1261,8 @@ export function ProcessingAnimation() {
   return (
     <Card className="mx-auto max-w-2xl overflow-hidden p-0">
       <div className="hero-sheen px-6 py-12 text-center text-white sm:px-10">
-        <div className="mx-auto flex h-36 w-36 items-center justify-center rounded-full border border-white/20 bg-white/10 pulse-ring">
-          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-white/15 backdrop-blur">
+        <div className="mx-auto flex h-36 w-36 items-center justify-center rounded-full border border-white/20 bg-surface/10 pulse-ring">
+          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-surface/15 backdrop-blur">
             <span className="material-symbols-outlined text-[44px]">
               hourglass_top
             </span>
@@ -1153,7 +1353,7 @@ export function ETicketCard() {
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">
               QR access
             </p>
-            <div className="mt-4 rounded-3xl bg-white p-4 shadow-xl">
+            <div className="mt-4 rounded-3xl bg-surface p-4 shadow-xl">
               <div className="qr-grid">
                 {Array.from({ length: 49 }, (_, index) => (
                   <span
@@ -1161,7 +1361,7 @@ export function ETicketCard() {
                     className={
                       index % 3 === 0 || index % 7 === 0 || index % 11 === 0
                         ? "bg-slate-900"
-                        : "bg-white"
+                        : "bg-surface"
                     }
                   />
                 ))}
@@ -1174,7 +1374,7 @@ export function ETicketCard() {
             </Button>
             <Button
               variant="ghost"
-              className="w-full border border-white/20 text-white hover:bg-white/10"
+              className="w-full border border-white/20 text-white hover:bg-surface/10"
             >
               Download ticket
             </Button>
@@ -1222,7 +1422,7 @@ export function ProfileHeader() {
     <Card className="overflow-hidden p-0">
       <div className="hero-sheen grid gap-6 px-6 py-8 text-white sm:px-8 lg:grid-cols-[auto_1fr_auto] lg:items-center">
         <div className="flex items-center gap-4">
-          <div className="flex h-18 w-18 items-center justify-center rounded-full bg-white/15 text-2xl font-black">
+          <div className="flex h-18 w-18 items-center justify-center rounded-full bg-surface/15 text-2xl font-black">
             AC
           </div>
           <div>
@@ -1299,7 +1499,7 @@ export function SupportHero() {
       <div className="surface-grid absolute inset-0 opacity-20" />
       <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="max-w-3xl space-y-6">
-          <Badge className="border border-white/20 bg-white/10 text-white">
+          <Badge className="border border-white/20 bg-surface/10 text-white">
             Support center
           </Badge>
           <h1 className="font-display text-4xl font-black tracking-tight sm:text-5xl">
@@ -1309,8 +1509,8 @@ export function SupportHero() {
             Search for FAQs, guides, and order help, or choose a category below
             to jump straight into the right support flow.
           </p>
-          <div className="flex flex-wrap gap-3 rounded-3xl bg-white/10 p-3 backdrop-blur">
-            <div className="flex min-w-[240px] flex-1 items-center gap-3 rounded-2xl bg-white px-4 py-3 text-on-surface shadow-lg">
+          <div className="flex flex-wrap gap-3 rounded-3xl bg-surface/10 p-3 backdrop-blur">
+            <div className="flex min-w-[240px] flex-1 items-center gap-3 rounded-2xl bg-surface px-4 py-3 text-on-surface shadow-lg">
               <Search className="h-4 w-4 text-primary" />
               <input
                 type="text"
@@ -1389,7 +1589,7 @@ export function MyTicketsHero() {
     <Card className="hero-shimmer p-6 text-white">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <Badge className="bg-white/10 text-white">Your tickets</Badge>
+          <Badge className="bg-surface/10 text-white">Your tickets</Badge>
           <h1 className="mt-4 font-display text-4xl font-black">
             My ticket library
           </h1>
@@ -1403,3 +1603,174 @@ export function MyTicketsHero() {
     </Card>
   );
 }
+
+export function SeatMapViewer({ mapUrl }: { mapUrl?: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  const effectiveUrl =
+    mapUrl && mapUrl !== "https://cdn.ticketbox.local/maps/default.svg"
+      ? mapUrl
+      : "/mock/seat_map.svg";
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
+  const handleZoomIn = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setScale((s) => Math.min(s + 0.5, 4));
+  };
+
+  const handleZoomOut = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setScale((s) => Math.max(s - 0.5, 0.5));
+  };
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+  };
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (isDragging) {
+      setPosition({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+    }
+  };
+
+  const onMouseUp = () => setIsDragging(false);
+
+  return (
+    <>
+      <div
+        onClick={() => {
+          setScale(1);
+          setPosition({ x: 0, y: 0 });
+          setIsOpen(true);
+        }}
+        className="group bg-surface-low rounded-2xl border border-outline-variant p-8 flex flex-col items-center justify-center min-h-[300px] hover:bg-outline-variant/30 transition-colors cursor-pointer relative overflow-hidden"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={effectiveUrl}
+          alt="Seat Map"
+          className="w-full h-auto max-h-[350px] object-contain transition-transform duration-500 group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-surface/0 group-hover:bg-surface/40 transition-colors duration-300 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100">
+          <div className="inline-flex items-center justify-center p-4 bg-primary rounded-full shadow-xl mb-3 text-white transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+            <ZoomIn size={28} />
+          </div>
+          <p className="text-sm font-bold text-on-surface transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 delay-75 bg-surface/90 px-4 py-1.5 rounded-full shadow-sm">
+            Click to View Map Details
+          </p>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-[#111318]/95 backdrop-blur-md">
+          <button
+            onClick={() => setIsOpen(false)}
+            className="absolute top-6 right-6 text-white/70 hover:text-white p-3 bg-surface/10 hover:bg-surface/20 rounded-full transition-colors z-50"
+          >
+            <X size={24} />
+          </button>
+
+          <div className="absolute bottom-10 flex items-center gap-2 bg-surface/10 backdrop-blur-xl p-2 rounded-2xl z-50 border border-white/20 shadow-2xl">
+            <button
+              onClick={handleZoomOut}
+              className="p-3 text-white hover:bg-surface/20 rounded-xl transition-colors active:scale-95"
+            >
+              <ZoomOut size={24} />
+            </button>
+            <div className="w-px h-8 bg-surface/20 mx-2" />
+            <button
+              onClick={handleZoomIn}
+              className="p-3 text-white hover:bg-surface/20 rounded-xl transition-colors active:scale-95"
+            >
+              <ZoomIn size={24} />
+            </button>
+          </div>
+
+          <div
+            className={`w-full h-full overflow-hidden flex items-center justify-center ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+            onMouseDown={onMouseDown}
+            onMouseMove={onMouseMove}
+            onMouseUp={onMouseUp}
+            onMouseLeave={onMouseUp}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={effectiveUrl}
+              alt="Seat Map Fullscreen"
+              style={{
+                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                transition: isDragging
+                  ? "none"
+                  : "transform 0.2s cubic-bezier(0.2, 0, 0, 1)",
+              }}
+              className="max-w-[90vw] max-h-[90vh] object-contain pointer-events-none drop-shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+export function useRevealOnView<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return { ref, visible };
+}
+
+export function RevealItem({
+  children,
+  delay = 0,
+  className = "",
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+}) {
+  const { ref, visible } = useRevealOnView<HTMLDivElement>();
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-700 ease-out ${
+        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+      } ${className}`}
+      style={{ transitionDelay: visible ? `${delay}ms` : "0ms" }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// Force HMR rebuild

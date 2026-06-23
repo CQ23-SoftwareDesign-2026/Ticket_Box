@@ -4,19 +4,27 @@
 
 @layer base {
   :root {
-    --background: #ffffff;
-    --foreground: #0f172a;
+    --background: #0f1115;
+    --foreground: #f8fafc;
 
-    --primary: #020617;
+    --primary: #4f46e5;
     --primary-foreground: #ffffff;
-    --primary-hover: #1e293b;
+    --primary-hover: #4338ca;
 
-    --muted: #f1f5f9;
-    --muted-foreground: #64748b;
+    --muted: #1e293b;
+    --muted-foreground: #94a3b8;
 
-    --border: #e2e8f0;
-    --input: #e2e8f0;
-    --ring: #020617;
+    --border: #1e293b;
+    --input: #1e293b;
+    --ring: #4f46e5;
+
+    /* Semantic Colors for Dark Mode */
+    --surface: #1e1e24;
+    --surface-low: #2b2d31;
+    --on-surface: #f8fafc;
+    --on-surface-variant: #cbd5e1;
+    --outline: #334155;
+    --outline-variant: #1e293b;
   }
 }
 
@@ -24,6 +32,7 @@
   * {
     border-color: var(--border);
   }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings:
@@ -48,4 +57,20 @@
   .ticketbox-button-outline {
     @apply inline-flex h-12 items-center justify-center rounded-xl border border-input bg-transparent px-6 py-2 text-sm font-semibold text-foreground shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50;
   }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out;
 }

@@ -55,7 +55,7 @@ export default function AdminDashboardPage() {
 
         {/* Tickets Sold */}
         <div className="bg-surface p-6 rounded-xl shadow-sm border border-border hover:-translate-y-1 transition-transform duration-300 relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div className="absolute inset-0 bg-linear-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
           <div className="flex justify-between items-start mb-4 relative z-10">
             <div className="p-2 bg-tertiary/10 rounded-lg text-tertiary">
               <Ticket className="w-6 h-6" />
@@ -123,7 +123,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          <div className="flex-grow flex items-end gap-2 relative mt-4 pb-8 border-b border-border">
+          <div className="grow flex items-end gap-2 relative mt-4 pb-8 border-b border-border">
             {/* Y-axis labels */}
             <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-muted-foreground font-body text-[10px] pb-8 w-8 text-right pr-2">
               <span>10k</span>
@@ -201,7 +201,7 @@ export default function AdminDashboardPage() {
               </p>
             </div>
           </div>
-          <div className="space-y-4 flex-grow">
+          <div className="space-y-4 grow">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-secondary block"></span>
@@ -298,7 +298,7 @@ export default function AdminDashboardPage() {
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-10 h-10 rounded bg-primary/10 flex-shrink-0 bg-cover bg-center"
+                          className="w-10 h-10 rounded bg-primary/10 shrink-0 bg-cover bg-center"
                           style={{
                             backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuCN_eZtQcxBMCNY07lBpWVyl6Q6fIrgvEfDf3BInMqhCXeQRd_aGCdyH1Hx-kdRqt_YZpkHVuWbhWuhJCsDqTJRr3BYYihWnQsrZJObp3EeKCtRAgWABU6Oy7WYabdYB1mh5l2adlyHUdRxyJ3RTKTzEmmGBA5S_Y7bEDOAqOW5zlKBkNEQ9Y6fg_teMxYFKjb_L4jg14R4vXH2-ZmeaYq82-UmLVD9Ta_3WRdcX3Tkxk4CT8k4fLJft6lxEyWHfB5onwg5apD8dyWb')`,
                           }}

@@ -7,6 +7,7 @@ export interface ConcertApiItem {
   location: string;
   start_time: string;
   svg_map_url: string;
+  poster_url?: string;
   status: string;
 }
 
@@ -26,6 +27,7 @@ export interface ConcertDetailResponse {
   ai_bio: string;
   start_time: string;
   svg_map_url: string;
+  poster_url?: string;
   status: string;
   ticketTiers: ConcertTicketTier[];
 }
@@ -55,6 +57,7 @@ export interface ConcertCardItem {
   status: string;
   genre: string;
   mapUrl: string;
+  posterUrl?: string;
 }
 
 export interface ConcertDetailItem extends ConcertCardItem {
@@ -67,6 +70,13 @@ export interface ConcertQuery {
   page?: number;
   limit?: number;
   search?: string;
+  status?: string;
+}
+
+export const DEFAULT_POSTER_URL = "/Mockimg.webp";
+
+export function getConcertPosterUrl(posterUrl?: string | null) {
+  return posterUrl?.trim() || DEFAULT_POSTER_URL;
 }
 
 function splitLocation(location: string) {
@@ -124,6 +134,7 @@ function mapConcert(item: ConcertApiItem): ConcertCardItem {
     status: item.status,
     genre: "Live concert",
     mapUrl: item.svg_map_url,
+    posterUrl: item.poster_url,
   };
 }
 
@@ -135,6 +146,7 @@ function mapConcertDetail(item: ConcertDetailResponse): ConcertDetailItem {
     location: item.location,
     start_time: item.start_time,
     svg_map_url: item.svg_map_url,
+    poster_url: item.poster_url,
     status: item.status,
   });
 
@@ -154,6 +166,10 @@ export async function getConcerts(query: ConcertQuery = {}) {
 
   if (query.search && query.search.trim()) {
     params.set("search", query.search.trim());
+  }
+
+  if (query.status && query.status.trim()) {
+    params.set("status", query.status.trim());
   }
 
   const isServer = typeof window === "undefined";
@@ -212,11 +228,9 @@ export function formatConcertDateTime(value: string) {
 }
 
 export function formatConcertCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "VND",
+  return `${new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(value)}đ`;
 }
 
 export interface CreateConcertDto {

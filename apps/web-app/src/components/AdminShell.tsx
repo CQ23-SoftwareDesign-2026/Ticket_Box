@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
   LayoutDashboard,
@@ -14,6 +14,8 @@ import {
   HelpCircle,
   Menu,
   Bell,
+  LogOut,
+  User as UserIcon,
 } from "lucide-react";
 
 const navItems = [
@@ -26,7 +28,8 @@ const navItems = [
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, logout } = useAuth();
 
   return (
     <div className="flex min-h-screen bg-background text-foreground font-body">
@@ -49,7 +52,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <Plus className="w-4 h-4" />
           Create Event
         </Link>
-        <ul className="flex flex-col gap-1 mt-6 flex-grow">
+        <ul className="flex flex-col gap-1 mt-6 grow">
           {navItems.map((item) => {
             const isActive = pathname?.startsWith(item.href);
             return (
@@ -101,14 +104,35 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <Bell className="w-6 h-6" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full border border-surface"></span>
             </button>
-            <div className="h-8 w-8 rounded-full bg-primary-container text-primary-foreground flex items-center justify-center font-bold text-sm overflow-hidden ring-2 ring-transparent hover:ring-primary transition-all cursor-pointer">
-              {user?.fullName?.charAt(0).toUpperCase() || "A"}
+            <div className="relative group">
+              <div className="h-8 w-8 rounded-full bg-primary-container text-primary-foreground flex items-center justify-center font-bold text-sm overflow-hidden ring-2 ring-transparent group-hover:ring-primary transition-all cursor-pointer">
+                {user?.fullName?.charAt(0).toUpperCase() || "A"}
+              </div>
+              <div className="absolute right-0 mt-2 w-48 bg-surface rounded-xl shadow-lg border border-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
+                <div className="p-2 flex flex-col gap-1 text-left">
+                  <Link
+                    href="/"
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-foreground hover:bg-surface-high rounded-lg transition-colors"
+                  >
+                    <UserIcon size={16} /> User Site
+                  </Link>
+                  <div className="h-px bg-border my-1" />
+                  <button
+                    onClick={() => {
+                      void logout().then(() => router.replace("/login"));
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-error hover:bg-error/10 rounded-lg transition-colors"
+                  >
+                    <LogOut size={16} /> Log out
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <div className="p-4 md:p-10 flex-grow max-w-[1600px] w-full mx-auto">
+        <div className="p-4 md:p-10 grow max-w-[1600px] w-full mx-auto">
           {children}
         </div>
       </main>
