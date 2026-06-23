@@ -1,7 +1,7 @@
 export function ConcertHeroIllustration() {
   return (
-    <div className="relative h-full overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(255,122,89,0.35),_transparent_30%),linear-gradient(135deg,_#140c2e_0%,_#2a0b5e_40%,_#0f62fe_100%)]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.2),_transparent_42%)]" />
+    <div className="relative h-full overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,122,89,0.35),transparent_30%),linear-gradient(135deg,#140c2e_0%,#2a0b5e_40%,#0f62fe_100%)]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2),transparent_42%)]" />
       <div className="absolute left-8 top-8 h-16 w-16 rounded-full border border-white/30 bg-white/10" />
       <div className="absolute bottom-12 left-10 right-10 rounded-[28px] border border-white/15 bg-black/35 p-6 text-white backdrop-blur-md">
         <p className="text-sm uppercase tracking-[0.35em] text-white/70">
@@ -25,9 +25,9 @@ export function ConcertHeroIllustration() {
 
 export function SecurityIllustration() {
   return (
-    <div className="relative h-full overflow-hidden bg-[linear-gradient(135deg,_#f8f4ff_0%,_#ffffff_50%,_#edf2ff_100%)] p-10">
+    <div className="relative h-full overflow-hidden bg-[linear-gradient(135deg,#f8f4ff_0%,#ffffff_50%,#edf2ff_100%)] p-10">
       <div className="grid h-full gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="ticketbox-card bg-[linear-gradient(135deg,_#140c2e_0%,_#30135f_40%,_#0f62fe_100%)] p-8 text-white">
+        <div className="ticketbox-card bg-[linear-gradient(135deg,#140c2e_0%,#30135f_40%,#0f62fe_100%)] p-8 text-white">
           <div className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-white/80">
             Security Center
           </div>

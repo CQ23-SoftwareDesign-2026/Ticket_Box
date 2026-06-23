@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Card, SectionHeading, SiteShell } from "@/components/common";
-import { HeroCarousel } from "@/components/screens";
+import { HeroCarousel, ConcertCard } from "@/components/screens";
 import {
   getConcerts,
   type ConcertCardItem,
@@ -23,14 +23,16 @@ function LoadingState() {
   );
 }
 
-function ConcertsSection() {
-  const [search, setSearch] = useState("");
+function ConcertsSectionInner() {
+  const searchParams = useSearchParams();
+  const search = searchParams?.get("q") || "";
+  const statusFilter = searchParams?.get("status") || "PUBLISHED";
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<ConcertCardItem[]>([]);
   const [meta, setMeta] = useState<ConcertListMeta>({
     totalItems: 0,
     itemCount: 0,
-    itemsPerPage: 3,
+    itemsPerPage: 2,
     totalPages: 1,
     currentPage: 1,
   });
@@ -49,6 +51,7 @@ function ConcertsSection() {
             page,
             limit: meta.itemsPerPage,
             search: search.trim() || undefined,
+            status: statusFilter,
           });
 
           if (!isActive) {
@@ -82,7 +85,7 @@ function ConcertsSection() {
       isActive = false;
       window.clearTimeout(timeoutId);
     };
-  }, [meta.itemsPerPage, page, search]);
+  }, [meta.itemsPerPage, page, search, statusFilter]);
 
   const totalPages = Math.max(meta.totalPages, 1);
   const startItem =
@@ -108,51 +111,45 @@ function ConcertsSection() {
   });
 
   return (
-    <section className="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+    <section
+      id="upcoming-concerts"
+      className="mx-auto w-full max-w-7xl px-4 pt-10 pb-16 sm:px-6 lg:px-8"
+    >
       <div className="ticketbox-panel p-6 sm:p-8">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <SectionHeading
-            eyebrow="Discover"
-            title="Upcoming concerts"
-            description="Live data from the concert database, with server-side pagination and search."
-          />
-          <div className="w-full max-w-md">
-            <label
-              className="mb-2 block text-sm font-semibold text-slate-700"
-              htmlFor="concert-search"
-            >
-              Search concerts
-            </label>
-            <input
-              id="concert-search"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(1);
-              }}
-              placeholder="Search by name or location"
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#0f62fe] focus:ring-4 focus:ring-[#0f62fe]/10"
-            />
-          </div>
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <SectionHeading eyebrow="Discover" title="Upcoming concerts" />
         </div>
 
-        <div className="mt-8 flex items-center justify-between gap-3 text-sm text-slate-500">
-          <p>
-            {loading
-              ? "Loading concerts..."
-              : error
-                ? "Concert data unavailable"
-                : meta.totalItems === 0
-                  ? "No concerts found"
-                  : `Showing ${startItem}-${endItem} of ${meta.totalItems} concerts`}
+        <div className="mt-8 flex items-center justify-between gap-3 border-b border-outline-variant/40 pb-4 text-sm text-on-surface-variant/70">
+          <p className="font-medium">
+            {loading ? (
+              "Loading concerts..."
+            ) : error ? (
+              "Concert data unavailable"
+            ) : meta.totalItems === 0 ? (
+              "No concerts found"
+            ) : (
+              <>
+                Showing{" "}
+                <span className="font-semibold text-on-surface">
+                  {startItem}-{endItem}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-on-surface">
+                  {meta.totalItems}
+                </span>{" "}
+                concerts
+              </>
+            )}
           </p>
-          <p>
+          <p className="tabular-nums">
             Page {meta.currentPage} of {totalPages}
           </p>
         </div>
 
         {error ? (
-          <div className="mt-6 rounded-[24px] border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+          <div className="mt-6 flex items-center gap-3 rounded-[24px] border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+            <span className="flex h-2 w-2 shrink-0 rounded-full bg-rose-500" />
             {error}
           </div>
         ) : null}
@@ -162,83 +159,37 @@ function ConcertsSection() {
             ? Array.from({ length: 6 }, (_, index) => (
                 <div
                   key={index}
-                  className="animate-pulse rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.05)]"
+                  className="animate-pulse rounded-[28px] border border-slate-200 bg-surface p-5 shadow-[0_14px_40px_rgba(15,23,42,0.05)]"
                 >
-                  <div className="h-4 w-24 rounded-full bg-slate-100" />
-                  <div className="mt-4 h-6 w-3/4 rounded-full bg-slate-100" />
-                  <div className="mt-3 h-4 w-full rounded-full bg-slate-100" />
-                  <div className="mt-2 h-4 w-5/6 rounded-full bg-slate-100" />
-                  <div className="mt-6 h-10 w-full rounded-2xl bg-slate-100" />
+                  <div className="h-4 w-24 rounded-full bg-outline-variant/30" />
+                  <div className="mt-4 h-6 w-3/4 rounded-full bg-outline-variant/30" />
+                  <div className="mt-3 h-4 w-full rounded-full bg-outline-variant/30" />
+                  <div className="mt-2 h-4 w-5/6 rounded-full bg-outline-variant/30" />
+                  <div className="mt-6 h-10 w-full rounded-2xl bg-outline-variant/30" />
                 </div>
               ))
-            : items.map((concert) => {
-                return (
-                  <article
-                    key={concert.id}
-                    className="group rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.05)] transition hover:-translate-y-1 hover:shadow-[0_18px_50px_rgba(15,23,42,0.08)]"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p
-                          className={`ticketbox-badge w-fit border ${
-                            concert.status?.toUpperCase() === "PUBLISHED"
-                              ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                              : concert.status?.toUpperCase() === "COMING_SOON"
-                                ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                                : concert.status?.toUpperCase() === "COMPLETED"
-                                  ? "bg-slate-500/10 text-slate-600 border-slate-500/20"
-                                  : "bg-slate-500/10 text-slate-600 border-slate-500/20"
-                          }`}
-                        >
-                          {concert.status}
-                        </p>
-                        <h3 className="mt-3 text-xl font-black tracking-tight text-slate-900">
-                          {concert.title}
-                        </h3>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 space-y-2 text-sm text-slate-600">
-                      <p>{concert.venue}</p>
-                      <p>{concert.city || "Unknown city"}</p>
-                      <p>
-                        {concert.date} at {concert.time}
-                      </p>
-                    </div>
-
-                    <p className="mt-4 max-h-[4.5rem] overflow-hidden text-sm leading-6 text-slate-500">
-                      {concert.description}
-                    </p>
-
-                    <div className="mt-5 flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-                          Concert
-                        </p>
-                        <p className="mt-1 text-sm font-semibold text-slate-900">
-                          {concert.price}
-                        </p>
-                      </div>
-                      <Link
-                        href={`/concerts/${concert.id}`}
-                        className="rounded-full bg-[#0f62fe]/10 px-4 py-2 text-sm font-semibold text-[#0f62fe] transition hover:bg-[#0f62fe]/15"
-                      >
-                        View details
-                      </Link>
-                    </div>
-                  </article>
-                );
-              })}
+            : items.map((concert, index) => (
+                <div
+                  key={concert.id}
+                  className={`group transition-transform duration-300 ease-out hover:-translate-y-1 ${
+                    index === 0 ? "md:col-span-2" : ""
+                  }`}
+                >
+                  <div className="h-full rounded-[28px] transition-shadow duration-300 group-hover:shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
+                    <ConcertCard concert={concert} featured={index === 0} />
+                  </div>
+                </div>
+              ))}
         </div>
 
         {totalPages > 1 ? (
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-outline-variant/40 pt-6">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
                 disabled={page === 1 || loading}
-                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-on-surface-variant transition-all duration-200 hover:border-primary/40 hover:bg-primary/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-slate-200 disabled:hover:bg-transparent"
               >
                 Previous
               </button>
@@ -265,10 +216,10 @@ function ConcertsSection() {
                     type="button"
                     onClick={() => setPage(pageNumber)}
                     disabled={loading}
-                    className={`min-w-[2.5rem] rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    className={`min-w-10 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ${
                       pageNumber === page
-                        ? "bg-primary text-white"
-                        : "border border-slate-200 text-slate-700 hover:border-primary hover:text-primary"
+                        ? "bg-primary text-white shadow-sm shadow-primary/30"
+                        : "border border-slate-200 text-on-surface-variant hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
                     } disabled:cursor-not-allowed disabled:opacity-50`}
                   >
                     {pageNumber}
@@ -281,18 +232,32 @@ function ConcertsSection() {
                   setPage((current) => Math.min(totalPages, current + 1))
                 }
                 disabled={page === totalPages || loading}
-                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-on-surface-variant transition-all duration-200 hover:border-primary/40 hover:bg-primary/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-slate-200 disabled:hover:bg-transparent"
               >
                 Next
               </button>
             </div>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-on-surface-variant/70 tabular-nums">
               Page {meta.currentPage} of {totalPages}
             </p>
           </div>
         ) : null}
       </div>
     </section>
+  );
+}
+
+function ConcertsSection() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-64 flex items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      }
+    >
+      <ConcertsSectionInner />
+    </Suspense>
   );
 }
 
@@ -380,31 +345,6 @@ function AuthenticatedHome() {
     >
       <HeroCarousel />
       <ConcertsSection />
-      <section className="mx-auto grid w-full max-w-7xl gap-6 px-4 pb-16 sm:px-6 lg:grid-cols-3 lg:px-8">
-        {[
-          ["Live drops", "New seats open every Friday at 9 AM."],
-          [
-            "Best sellers",
-            "Premium floor and lounge access are the first to disappear.",
-          ],
-          [
-            "Instant checkout",
-            "Reserve seats with a short timer and a streamlined payment flow.",
-          ],
-        ].map(([title, description]) => (
-          <Card key={title} className="card-lift p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-              Highlights
-            </p>
-            <h3 className="mt-3 font-display text-2xl font-bold text-on-surface">
-              {title}
-            </h3>
-            <p className="mt-3 text-sm leading-6 text-on-surface-variant">
-              {description}
-            </p>
-          </Card>
-        ))}
-      </section>
     </SiteShell>
   );
 }

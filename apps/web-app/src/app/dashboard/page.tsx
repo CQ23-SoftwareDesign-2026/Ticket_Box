@@ -57,9 +57,9 @@ function DashboardContent() {
                   "Protect your session and password lifecycle.",
                 ],
               ].map(([title, body]) => (
-                <div key={title} className="rounded-[24px] bg-slate-50 p-5">
+                <div key={title} className="rounded-[24px] bg-surface-low p-5">
                   <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                  <p className="mt-2 text-sm leading-6 text-on-surface-variant/70">
                     {body}
                   </p>
                   <button className="ticketbox-button-primary mt-4 w-full">
@@ -74,14 +74,14 @@ function DashboardContent() {
             <h2 className="text-2xl font-black text-slate-900">
               User information
             </h2>
-            <div className="mt-5 space-y-4 text-sm text-slate-600">
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+            <div className="mt-5 space-y-4 text-sm text-on-surface-variant">
+              <div className="rounded-2xl bg-surface-low px-4 py-3">
                 <strong>Email:</strong> {user?.email}
               </div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+              <div className="rounded-2xl bg-surface-low px-4 py-3">
                 <strong>Roles:</strong> {user?.roles?.join(", ") || "User"}
               </div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+              <div className="rounded-2xl bg-surface-low px-4 py-3">
                 <strong>Permissions:</strong>{" "}
                 {user?.permissions?.join(", ") || "None"}
               </div>
@@ -90,7 +90,7 @@ function DashboardContent() {
               <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#0f62fe]">
                 Prototype note
               </p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
+              <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                 Keep this dashboard shell simple so later ticket and concept
                 sections can plug in without changing the auth baseline.
               </p>
