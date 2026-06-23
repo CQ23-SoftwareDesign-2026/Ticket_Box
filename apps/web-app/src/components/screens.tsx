@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   activityTimeline,
@@ -17,7 +17,7 @@ import {
   tickets,
 } from "@/lib/mock-data";
 import { Badge, Button, Card, SectionHeading, Tabs } from "@/components/common";
-import { ArrowRight, X, ZoomIn, ZoomOut } from "lucide-react";
+import { ArrowRight, X, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   formatConcertCurrency,
   formatConcertDateTime,
@@ -35,67 +35,96 @@ import {
 import { Search } from "lucide-react";
 
 export function HeroCarousel() {
-  const [featuredConcert, setFeaturedConcert] =
-    useState<ConcertDetailItem | null>(null);
+  const [concerts, setConcerts] = useState<ConcertDetailItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [prevIndex, setPrevIndex] = useState<number | null>(null);
+  const transitionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let isActive = true;
 
-    const loadFeaturedConcert = async () => {
+    const loadFeaturedConcerts = async () => {
       try {
-        const response = await getConcerts({ page: 1, limit: 1 });
+        const response = await getConcerts({ page: 1, limit: 4 });
 
-        if (!isActive) {
-          return;
-        }
+        if (!isActive) return;
 
-        const firstConcert = response.items[0];
+        const details = await Promise.all(
+          response.items.map((item) => getConcertById(item.id))
+        );
 
-        if (!firstConcert) {
-          setFeaturedConcert(null);
-          return;
-        }
+        if (!isActive) return;
 
-        const detail = await getConcertById(firstConcert.id);
-
-        if (!isActive) {
-          return;
-        }
-
-        setFeaturedConcert(detail);
+        setConcerts(details.filter(Boolean) as ConcertDetailItem[]);
       } catch {
-        if (!isActive) {
-          return;
-        }
-
-        setFeaturedConcert(null);
+        if (!isActive) return;
+        setConcerts([]);
       } finally {
-        if (isActive) {
-          setLoading(false);
-        }
+        if (isActive) setLoading(false);
       }
     };
 
-    void loadFeaturedConcert();
+    void loadFeaturedConcerts();
 
     return () => {
       isActive = false;
     };
   }, []);
+  const changeSlide = useCallback(
+    (nextIndex: number) => {
+      setActiveIndex((current) => {
+        if (current === nextIndex) return current;
+        setPrevIndex(current);
+
+        if (transitionTimeout.current) {
+          clearTimeout(transitionTimeout.current);
+        }
+        transitionTimeout.current = setTimeout(() => {
+          setPrevIndex(null);
+        }, 600);
+
+        return nextIndex;
+      });
+    },
+    []
+  );
+
+  const goPrev = useCallback(() => {
+    if (concerts.length === 0) return;
+    changeSlide((activeIndex - 1 + concerts.length) % concerts.length);
+  }, [concerts.length, activeIndex, changeSlide]);
+
+  const goNext = useCallback(() => {
+    if (concerts.length === 0) return;
+    changeSlide((activeIndex + 1) % concerts.length);
+  }, [concerts.length, activeIndex, changeSlide]);
+
+  useEffect(() => {
+    return () => {
+      if (transitionTimeout.current) clearTimeout(transitionTimeout.current);
+    };
+  }, []);
+
+  const featuredConcert = concerts[activeIndex] ?? null;
+  const previousConcert = prevIndex !== null ? concerts[prevIndex] ?? null : null;
+
+  const getImageSrc = (concert: ConcertDetailItem | null) =>
+    concert?.posterUrl &&
+      concert.posterUrl !==
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih"
+      ? concert.posterUrl
+      : "/Mockimg.webp";
 
   const title = loading
     ? "Loading featured concert..."
     : (featuredConcert?.title ?? "No featured concert available");
   const badge = featuredConcert?.status ?? "Featured event";
-  const dateTime = featuredConcert
-    ? formatConcertDateTime(featuredConcert.startTime)
-    : { date: "TBA", time: "" };
   const description = loading
     ? "We are loading the latest concert from the database."
     : featuredConcert?.aiBio ||
-      featuredConcert?.description ||
-      "No featured concert is available right now.";
+    featuredConcert?.description ||
+    "No featured concert is available right now.";
   const ticketTier = featuredConcert?.ticketTiers?.[0];
   const priceLabel = ticketTier
     ? `${ticketTier.name} • ${formatConcertCurrency(ticketTier.price)}`
@@ -104,46 +133,78 @@ export function HeroCarousel() {
       : "Loading...";
 
   return (
-    <section className="group relative overflow-hidden bg-[#111318] text-white min-h-[600px] flex items-end pb-20">
-      {featuredConcert && (
+    <section className="group relative overflow-hidden bg-[#111318] text-white min-h-[600px] flex items-end pb-16">
+      {/* Ảnh cũ — fade out, giữ lại trong lúc ảnh mới fade in để tránh giật/đen màn hình */}
+      {previousConcert && (
         <img
-          src={
-            featuredConcert.posterUrl &&
-            featuredConcert.posterUrl !==
-              "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih"
-              ? featuredConcert.posterUrl
-              : "/Mockimg.webp"
-          }
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-2000 ease-out group-hover:scale-105"
-          alt="Hero background"
+          key={`prev-${previousConcert.id}`}
+          src={getImageSrc(previousConcert)}
+          className="absolute inset-0 w-full h-full object-cover"
+          alt=""
         />
       )}
-      <div className="absolute inset-0 bg-linear-to-t from-bg-[#111318]/90 via-bg-[#111318]/20 to-transparent transition-opacity duration-700 opacity-80 group-hover:opacity-100" />
-      <div className="absolute inset-0 bg-linear-to-r from-bg-[#111318]/90 via-bg-[#111318]/50 to-transparent transition-opacity duration-700 opacity-0 group-hover:opacity-100" />
+
+      {/* Ảnh hiện tại — fade in chồng lên ảnh cũ */}
+      {featuredConcert && (
+        <img
+          key={`current-${featuredConcert.id}`}
+          src={getImageSrc(featuredConcert)}
+          className="absolute inset-0 w-full h-full object-cover opacity-0 animate-fade-in-quick"
+          alt={featuredConcert.title}
+        />
+      )}
+
+      <div className="absolute inset-0 bg-linear-to-t from-[#111318]/90 via-[#111318]/20 to-transparent transition-opacity duration-700 opacity-90 group-hover:opacity-100" />
+      <div className="absolute inset-0 bg-linear-to-r from-[#111318]/80 via-[#111318]/30 to-transparent transition-opacity duration-700 opacity-0 group-hover:opacity-100" />
       <div className="hero-shimmer absolute inset-0 opacity-20 mix-blend-overlay transition-opacity duration-700 group-hover:opacity-40" />
 
+      {concerts.length > 1 && (
+        <button
+          type="button"
+          onClick={goPrev}
+          aria-label="Concert trước"
+          className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-all duration-200 hover:bg-black/60 hover:scale-105 active:scale-95 sm:left-5 sm:h-12 sm:w-12"
+        >
+          <ChevronLeft size={22} />
+        </button>
+      )}
+
+      {concerts.length > 1 && (
+        <button
+          type="button"
+          onClick={goNext}
+          aria-label="Concert tiếp theo"
+          className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-all duration-200 hover:bg-black/60 hover:scale-105 active:scale-95 sm:right-5 sm:h-12 sm:w-12"
+        >
+          <ChevronRight size={22} />
+        </button>
+      )}
+
       <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 z-10">
-        <div className="max-w-3xl">
-          <div className="space-y-4 transform transition-transform duration-700 ease-out group-hover:-translate-y-2">
-            <Badge className="border border-white/20 bg-surface/20 backdrop-blur-md text-white shadow-xl px-4 py-1.5 rounded-full uppercase tracking-wider text-xs font-bold inline-flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
+        <div
+          key={featuredConcert?.id ?? "empty"}
+          className="max-w-2xl animate-[fadeSlideUp_0.5s_ease-out_forwards]"
+        >
+          <div className="space-y-3 transform transition-transform duration-700 ease-out group-hover:-translate-y-2">
+            <Badge className="border border-white/20 bg-surface/20 backdrop-blur-md text-white shadow-xl px-3.5 py-1 rounded-full uppercase tracking-wider text-[11px] font-bold inline-flex items-center gap-2">
+              <span className="relative flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-secondary"></span>
               </span>
               {badge}
             </Badge>
-            <h1 className="font-display text-4xl font-black tracking-tight sm:text-5xl lg:text-7xl drop-shadow-xl text-white">
+            <h1 className="font-display text-2xl font-black tracking-tight sm:text-3xl lg:text-4xl drop-shadow-xl text-white line-clamp-2">
               {title}
             </h1>
           </div>
 
           <div className="grid grid-rows-[0fr] opacity-0 transition-all duration-700 ease-in-out group-hover:grid-rows-[1fr] group-hover:opacity-100">
             <div className="overflow-hidden">
-              <div className="pt-6">
-                <p className="max-w-2xl text-base leading-relaxed text-white/90 sm:text-lg drop-shadow-lg mb-8 line-clamp-3">
+              <div className="pt-4">
+                <p className="max-w-xl text-sm leading-relaxed text-white/90 sm:text-base drop-shadow-lg mb-6 line-clamp-2">
                   {description}
                 </p>
-                <div className="flex flex-wrap gap-4">
+                <div className="flex flex-wrap items-center gap-4">
                   <Button
                     href={
                       featuredConcert
@@ -151,20 +212,42 @@ export function HeroCarousel() {
                         : "/catalog"
                     }
                     variant="secondary"
-                    className="group/btn bg-primary hover:bg-primary-container text-white border-0 shadow-[0_0_40px_rgba(var(--color-primary),0.3)] hover:shadow-[0_0_60px_rgba(var(--color-primary),0.5)] px-8 py-4 text-base transition-all duration-300"
+                    className="group/btn bg-primary hover:bg-primary-container text-white border-0 shadow-[0_0_30px_rgba(var(--color-primary),0.3)] hover:shadow-[0_0_50px_rgba(var(--color-primary),0.5)] px-6 py-3 text-sm transition-all duration-300"
                   >
-                    {loading ? "Loading..." : "Buy Tickets"}
+                    {loading ? "Loading..." : "Xem chi tiết"}
                     <ArrowRight
-                      size={18}
+                      size={16}
                       className="ml-2 transform transition-transform duration-300 group-hover/btn:translate-x-1"
                     />
                   </Button>
+                  {ticketTier && (
+                    <span className="text-xs font-semibold text-white/70">
+                      {priceLabel}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {concerts.length > 1 && (
+        <div className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
+          {concerts.map((concert, index) => (
+            <button
+              key={concert.id}
+              type="button"
+              onClick={() => changeSlide(index)}
+              aria-label={`Xem concert ${index + 1}`}
+              className={`h-2 rounded-full transition-all duration-300 ${index === activeIndex
+                ? "w-6 bg-white"
+                : "w-2 bg-white/40 hover:bg-white/60"
+                }`}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -186,9 +269,9 @@ export function ConcertCard({
         <img
           src={
             (concert as Record<string, unknown>).posterUrl &&
-            typeof (concert as Record<string, unknown>).posterUrl ===
+              typeof (concert as Record<string, unknown>).posterUrl ===
               "string" &&
-            (concert as Record<string, unknown>).posterUrl !==
+              (concert as Record<string, unknown>).posterUrl !==
               "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih"
               ? ((concert as Record<string, unknown>).posterUrl as string)
               : "/Mockimg.webp"
@@ -258,11 +341,10 @@ export function ConcertCard({
           </div>
           <Link
             href={`/concerts/${concert.id}`}
-            className={`group/btn inline-flex items-center justify-center gap-2 overflow-hidden relative transition-all duration-300 ${
-              featured
-                ? "bg-[#111318] text-white w-12 h-12 rounded-full hover:bg-primary shadow-md hover:shadow-lg hover:-translate-y-0.5"
-                : "bg-surface border-2 border-outline-variant text-on-surface px-6 py-2.5 rounded-full text-sm font-bold hover:border-primary hover:text-primary hover:bg-primary/5"
-            }`}
+            className={`group/btn inline-flex items-center justify-center gap-2 overflow-hidden relative transition-all duration-300 ${featured
+              ? "bg-[#111318] text-white w-12 h-12 rounded-full hover:bg-primary shadow-md hover:shadow-lg hover:-translate-y-0.5"
+              : "bg-surface border-2 border-outline-variant text-on-surface px-6 py-2.5 rounded-full text-sm font-bold hover:border-primary hover:text-primary hover:bg-primary/5"
+              }`}
           >
             {featured ? (
               <ArrowRight
@@ -497,11 +579,10 @@ export function InteractiveTicketSelector({
                     setQuantity(1);
                     setError(null);
                   }}
-                  className={`p-5 cursor-pointer rounded-[20px] border-2 transition-all duration-200 ${
-                    isSelected
-                      ? "border-primary bg-primary/5 shadow-sm scale-[1.01]"
-                      : "border-outline-variant/60 bg-surface hover:border-primary/30"
-                  }`}
+                  className={`p-5 cursor-pointer rounded-[20px] border-2 transition-all duration-200 ${isSelected
+                    ? "border-primary bg-primary/5 shadow-sm scale-[1.01]"
+                    : "border-outline-variant/60 bg-surface hover:border-primary/30"
+                    }`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-2">
@@ -1763,14 +1844,11 @@ export function RevealItem({
   return (
     <div
       ref={ref}
-      className={`transition-all duration-700 ease-out ${
-        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-      } ${className}`}
+      className={`transition-all duration-700 ease-out ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+        } ${className}`}
       style={{ transitionDelay: visible ? `${delay}ms` : "0ms" }}
     >
       {children}
     </div>
   );
 }
-
-// Force HMR rebuild
