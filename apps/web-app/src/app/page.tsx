@@ -11,7 +11,13 @@ import {
   type ConcertCardItem,
   type ConcertListMeta,
 } from "@/services/concert.service";
-import { ChevronLeft, ChevronRight, ArrowRight, MapPin, Calendar } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ArrowRight,
+  MapPin,
+  Calendar,
+} from "lucide-react";
 
 // ─── Mini Concert Card (carousel style) ──────────────────────────────────────
 function MiniConcertCard({ concert }: { concert: ConcertCardItem }) {
@@ -24,7 +30,11 @@ function MiniConcertCard({ concert }: { concert: ConcertCardItem }) {
       <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-surface">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={concert.posterUrl && concert.posterUrl.startsWith("http") ? concert.posterUrl : "/Mockimg.webp"}
+          src={
+            concert.posterUrl && concert.posterUrl.startsWith("http")
+              ? concert.posterUrl
+              : "/Mockimg.webp"
+          }
           alt={concert.title}
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
@@ -35,9 +45,7 @@ function MiniConcertCard({ concert }: { concert: ConcertCardItem }) {
         <h3 className="line-clamp-2 text-sm font-bold text-on-surface transition-colors group-hover:text-primary">
           {concert.title}
         </h3>
-        <p className="text-[13px] font-bold text-primary">
-          {concert.price}
-        </p>
+        <p className="text-[13px] font-bold text-primary">{concert.price}</p>
         <div className="flex items-center gap-1 text-xs text-on-surface-variant/70">
           <Calendar size={11} />
           <span>{concert.date}</span>
@@ -97,7 +105,9 @@ function ConcertsCarousel({ onShowAll }: { onShowAll: () => void }) {
       }
     };
     void load();
-    return () => { isActive = false; };
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   const maxScroll = Math.max(0, items.length - VISIBLE + 1); // +1 for explore tile
@@ -119,26 +129,34 @@ function ConcertsCarousel({ onShowAll }: { onShowAll: () => void }) {
       >
         {loading
           ? Array.from({ length: 4 }, (_, i) => (
-            <div
-              key={i}
-              className="shrink-0 animate-pulse rounded-2xl bg-surface"
-              style={{ width: CARD_WIDTH }}
-            >
-              <div className="aspect-[4/3] w-full rounded-2xl bg-outline-variant/30" />
-              <div className="mt-3 h-4 w-3/4 rounded-full bg-outline-variant/30" />
-              <div className="mt-2 h-3 w-1/2 rounded-full bg-outline-variant/20" />
-            </div>
-          ))
-          : [
-            ...items.map((concert) => (
-              <div key={concert.id} className="shrink-0" style={{ width: CARD_WIDTH }}>
-                <MiniConcertCard concert={concert} />
+              <div
+                key={i}
+                className="shrink-0 animate-pulse rounded-2xl bg-surface"
+                style={{ width: CARD_WIDTH }}
+              >
+                <div className="aspect-[4/3] w-full rounded-2xl bg-outline-variant/30" />
+                <div className="mt-3 h-4 w-3/4 rounded-full bg-outline-variant/30" />
+                <div className="mt-2 h-3 w-1/2 rounded-full bg-outline-variant/20" />
               </div>
-            )),
-            <div key="explore" className="shrink-0" style={{ width: CARD_WIDTH }}>
-              <ExploreMoreTile onClick={onShowAll} />
-            </div>,
-          ]}
+            ))
+          : [
+              ...items.map((concert) => (
+                <div
+                  key={concert.id}
+                  className="shrink-0"
+                  style={{ width: CARD_WIDTH }}
+                >
+                  <MiniConcertCard concert={concert} />
+                </div>
+              )),
+              <div
+                key="explore"
+                className="shrink-0"
+                style={{ width: CARD_WIDTH }}
+              >
+                <ExploreMoreTile onClick={onShowAll} />
+              </div>,
+            ]}
       </div>
     </div>
   );
@@ -149,7 +167,9 @@ function ConcertsFullList() {
   const searchParams = useSearchParams();
   const search = searchParams?.get("q") || "";
   // URL is the single source of truth — header buttons and in-list buttons both push to URL
-  const activeStatus = (searchParams?.get("status") || "PUBLISHED") as "PUBLISHED" | "COMPLETED";
+  const activeStatus = (searchParams?.get("status") || "PUBLISHED") as
+    | "PUBLISHED"
+    | "COMPLETED";
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<ConcertCardItem[]>([]);
   const [meta, setMeta] = useState<ConcertListMeta>({
@@ -202,7 +222,10 @@ function ConcertsFullList() {
       };
       void load();
     }, 250);
-    return () => { isActive = false; clearTimeout(id); };
+    return () => {
+      isActive = false;
+      clearTimeout(id);
+    };
   }, [meta.itemsPerPage, page, search, activeStatus]);
 
   const totalPages = Math.max(meta.totalPages, 1);
@@ -217,10 +240,11 @@ function ConcertsFullList() {
               key={s}
               type="button"
               onClick={() => handleStatusChange(s)}
-              className={`px-5 py-1.5 text-sm font-bold rounded-full transition-all duration-300 ${activeStatus === s
+              className={`px-5 py-1.5 text-sm font-bold rounded-full transition-all duration-300 ${
+                activeStatus === s
                   ? "bg-surface text-primary shadow-sm"
                   : "text-on-surface-variant/70 hover:text-on-surface-variant"
-                }`}
+              }`}
             >
               {s === "PUBLISHED" ? "Published" : "Completed"}
             </button>
@@ -242,20 +266,24 @@ function ConcertsFullList() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {loading
           ? Array.from({ length: 8 }, (_, i) => (
-            <div key={i} className="animate-pulse flex flex-col gap-3">
-              <div className="aspect-[4/3] w-full rounded-2xl bg-outline-variant/30" />
-              <div className="h-4 w-3/4 rounded-full bg-outline-variant/30" />
-              <div className="h-3 w-1/2 rounded-full bg-outline-variant/20" />
-            </div>
-          ))
+              <div key={i} className="animate-pulse flex flex-col gap-3">
+                <div className="aspect-[4/3] w-full rounded-2xl bg-outline-variant/30" />
+                <div className="h-4 w-3/4 rounded-full bg-outline-variant/30" />
+                <div className="h-3 w-1/2 rounded-full bg-outline-variant/20" />
+              </div>
+            ))
           : items.map((concert) => (
-            <MiniConcertCard key={concert.id} concert={concert} />
-          ))}
+              <MiniConcertCard key={concert.id} concert={concert} />
+            ))}
       </div>
       {!loading && items.length === 0 && !error && (
         <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-          <p className="text-base font-semibold text-on-surface-variant">Không có sự kiện nào</p>
-          <p className="text-sm text-on-surface-variant/50">Thử bộ lọc khác hoặc quay lại sau</p>
+          <p className="text-base font-semibold text-on-surface-variant">
+            Không có sự kiện nào
+          </p>
+          <p className="text-sm text-on-surface-variant/50">
+            Thử bộ lọc khác hoặc quay lại sau
+          </p>
         </div>
       )}
 
@@ -270,21 +298,29 @@ function ConcertsFullList() {
             Trước
           </button>
           {Array.from({ length: totalPages }, (_, i) => i + 1)
-            .filter((n) => n === 1 || n === totalPages || Math.abs(n - page) <= 1)
+            .filter(
+              (n) => n === 1 || n === totalPages || Math.abs(n - page) <= 1,
+            )
             .map((n, idx, arr) => (
               <>
                 {idx > 0 && arr[idx - 1] !== n - 1 && (
-                  <span key={`el-${n}`} className="px-1 text-on-surface-variant/40">…</span>
+                  <span
+                    key={`el-${n}`}
+                    className="px-1 text-on-surface-variant/40"
+                  >
+                    …
+                  </span>
                 )}
                 <button
                   key={n}
                   type="button"
                   onClick={() => setPage(n)}
                   disabled={loading}
-                  className={`min-w-[40px] rounded-full px-3 py-2 text-sm font-bold transition-all duration-200 ${n === page
+                  className={`min-w-[40px] rounded-full px-3 py-2 text-sm font-bold transition-all duration-200 ${
+                    n === page
                       ? "bg-primary text-white shadow-sm"
                       : "border border-outline-variant text-on-surface-variant hover:border-primary/40 hover:text-primary"
-                    } disabled:opacity-40`}
+                  } disabled:opacity-40`}
                 >
                   {n}
                 </button>
@@ -328,7 +364,10 @@ function ConcertsSectionInner() {
   };
 
   return (
-    <section id="upcoming-concerts" className="mx-auto w-full max-w-7xl px-4 pt-8 pb-16 sm:px-6 lg:px-8">
+    <section
+      id="upcoming-concerts"
+      className="mx-auto w-full max-w-7xl px-4 pt-8 pb-16 sm:px-6 lg:px-8"
+    >
       <div className="ticketbox-panel p-6 sm:p-8">
         {/* Header row */}
         <div className="flex items-center justify-between mb-6">
@@ -339,7 +378,10 @@ function ConcertsSectionInner() {
             className="flex items-center gap-1.5 text-sm font-bold text-on-surface-variant hover:text-primary transition-colors"
           >
             {showAll ? "Thu gọn" : "Xem thêm"}
-            <ArrowRight size={15} className={`transition-transform duration-300 ${showAll ? "rotate-90" : ""}`} />
+            <ArrowRight
+              size={15}
+              className={`transition-transform duration-300 ${showAll ? "rotate-90" : ""}`}
+            />
           </button>
         </div>
 
@@ -363,16 +405,18 @@ function ConcertsSectionInner() {
               onScroll={onScroll}
               className="flex gap-5 overflow-x-auto scrollbar-none pb-1"
             >
-              <Suspense fallback={
-                <div className="flex gap-5">
-                  {Array.from({ length: 4 }, (_, i) => (
-                    <div key={i} className="shrink-0 w-[220px] animate-pulse">
-                      <div className="aspect-[4/3] rounded-2xl bg-outline-variant/30" />
-                      <div className="mt-3 h-4 w-3/4 rounded-full bg-outline-variant/20" />
-                    </div>
-                  ))}
-                </div>
-              }>
+              <Suspense
+                fallback={
+                  <div className="flex gap-5">
+                    {Array.from({ length: 4 }, (_, i) => (
+                      <div key={i} className="shrink-0 w-[220px] animate-pulse">
+                        <div className="aspect-[4/3] rounded-2xl bg-outline-variant/30" />
+                        <div className="mt-3 h-4 w-3/4 rounded-full bg-outline-variant/20" />
+                      </div>
+                    ))}
+                  </div>
+                }
+              >
                 <CarouselItems onShowAll={() => setShowAll(true)} />
               </Suspense>
             </div>
@@ -389,7 +433,13 @@ function ConcertsSectionInner() {
           </div>
         ) : (
           /* ── FULL LIST MODE ── */
-          <Suspense fallback={<div className="h-64 flex items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}>
+          <Suspense
+            fallback={
+              <div className="h-64 flex items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              </div>
+            }
+          >
             <ConcertsFullList />
           </Suspense>
         )}
@@ -424,7 +474,10 @@ function CarouselItems({ onShowAll }: { onShowAll: () => void }) {
       };
       void load();
     }, 0);
-    return () => { isActive = false; clearTimeout(id); };
+    return () => {
+      isActive = false;
+      clearTimeout(id);
+    };
   }, []);
 
   if (loading) {
@@ -489,7 +542,10 @@ function GuestLanding() {
           <Link href="/login" className="ticketbox-button-primary px-5 py-2.5">
             Đăng nhập
           </Link>
-          <Link href="/register" className="ticketbox-button-secondary px-5 py-2.5">
+          <Link
+            href="/register"
+            className="ticketbox-button-secondary px-5 py-2.5"
+          >
             Đăng ký
           </Link>
         </div>
@@ -513,12 +569,20 @@ function GuestLanding() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             {[
-              ["Danh mục công khai", "Thẻ concert và chi tiết tải mà không cần xác thực."],
-              ["Cùng trải nghiệm", "Giao diện duyệt giống nhau dù bạn đăng nhập hay không."],
+              [
+                "Danh mục công khai",
+                "Thẻ concert và chi tiết tải mà không cần xác thực.",
+              ],
+              [
+                "Cùng trải nghiệm",
+                "Giao diện duyệt giống nhau dù bạn đăng nhập hay không.",
+              ],
             ].map(([title, body]) => (
               <div key={title} className="rounded-2xl bg-surface-low p-4">
                 <p className="text-sm font-semibold text-on-surface">{title}</p>
-                <p className="mt-2 text-sm leading-6 text-on-surface-variant">{body}</p>
+                <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                  {body}
+                </p>
               </div>
             ))}
           </div>

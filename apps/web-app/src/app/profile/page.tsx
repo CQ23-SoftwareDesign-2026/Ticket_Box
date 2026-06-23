@@ -64,7 +64,8 @@ function ProfileContent() {
       setConfirmPassword("");
     } catch (err) {
       const errorMsg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message ||
         (err as Error)?.message ||
         "Đổi mật khẩu thất bại. Vui lòng thử lại.";
       setError(errorMsg);

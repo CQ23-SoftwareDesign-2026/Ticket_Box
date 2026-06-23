@@ -116,7 +116,7 @@ export function HeroCarousel() {
 
   const getImageSrc = (concert: ConcertDetailItem | null) =>
     concert?.posterUrl &&
-      concert.posterUrl !==
+    concert.posterUrl !==
       "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih"
       ? concert.posterUrl
       : "/Mockimg.webp";
@@ -128,8 +128,8 @@ export function HeroCarousel() {
   const description = loading
     ? "We are loading the latest concert from the database."
     : featuredConcert?.aiBio ||
-    featuredConcert?.description ||
-    "No featured concert is available right now.";
+      featuredConcert?.description ||
+      "No featured concert is available right now.";
   const ticketTier = featuredConcert?.ticketTiers?.[0];
   const priceLabel = ticketTier
     ? `${ticketTier.name} • ${formatConcertCurrency(ticketTier.price)}`
@@ -245,10 +245,11 @@ export function HeroCarousel() {
               type="button"
               onClick={() => changeSlide(index)}
               aria-label={`Xem concert ${index + 1}`}
-              className={`h-2 rounded-full transition-all duration-300 ${index === activeIndex
-                ? "w-6 bg-white"
-                : "w-2 bg-white/40 hover:bg-white/60"
-                }`}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                index === activeIndex
+                  ? "w-6 bg-white"
+                  : "w-2 bg-white/40 hover:bg-white/60"
+              }`}
             />
           ))}
         </div>
@@ -275,9 +276,9 @@ export function ConcertCard({
         <img
           src={
             (concert as Record<string, unknown>).posterUrl &&
-              typeof (concert as Record<string, unknown>).posterUrl ===
+            typeof (concert as Record<string, unknown>).posterUrl ===
               "string" &&
-              (concert as Record<string, unknown>).posterUrl !==
+            (concert as Record<string, unknown>).posterUrl !==
               "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih"
               ? ((concert as Record<string, unknown>).posterUrl as string)
               : "/Mockimg.webp"
@@ -347,10 +348,11 @@ export function ConcertCard({
           </div>
           <Link
             href={`/concerts/${concert.id}`}
-            className={`group/btn inline-flex items-center justify-center gap-2 overflow-hidden relative transition-all duration-300 ${featured
-              ? "bg-[#111318] text-white w-12 h-12 rounded-full hover:bg-primary shadow-md hover:shadow-lg hover:-translate-y-0.5"
-              : "bg-surface border-2 border-outline-variant text-on-surface px-6 py-2.5 rounded-full text-sm font-bold hover:border-primary hover:text-primary hover:bg-primary/5"
-              }`}
+            className={`group/btn inline-flex items-center justify-center gap-2 overflow-hidden relative transition-all duration-300 ${
+              featured
+                ? "bg-[#111318] text-white w-12 h-12 rounded-full hover:bg-primary shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                : "bg-surface border-2 border-outline-variant text-on-surface px-6 py-2.5 rounded-full text-sm font-bold hover:border-primary hover:text-primary hover:bg-primary/5"
+            }`}
           >
             {featured ? (
               <ArrowRight
@@ -582,10 +584,11 @@ export function InteractiveTicketSelector({
                     setQuantity(1);
                     setError(null);
                   }}
-                  className={`p-5 cursor-pointer rounded-[20px] border-2 transition-all duration-200 ${isSelected
-                    ? "border-primary bg-primary/5 shadow-sm scale-[1.01]"
-                    : "border-outline-variant/60 bg-surface hover:border-primary/30"
-                    }`}
+                  className={`p-5 cursor-pointer rounded-[20px] border-2 transition-all duration-200 ${
+                    isSelected
+                      ? "border-primary bg-primary/5 shadow-sm scale-[1.01]"
+                      : "border-outline-variant/60 bg-surface hover:border-primary/30"
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-2">
@@ -1846,8 +1849,9 @@ export function RevealItem({
   return (
     <div
       ref={ref}
-      className={`transition-all duration-700 ease-out ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-        } ${className}`}
+      className={`transition-all duration-700 ease-out ${
+        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+      } ${className}`}
       style={{ transitionDelay: visible ? `${delay}ms` : "0ms" }}
     >
       {children}
