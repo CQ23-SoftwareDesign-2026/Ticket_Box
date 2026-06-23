@@ -55,3 +55,22 @@ export type ScanTicketResponse = {
   scanned_at?: string;
   scanned_by?: string;
 };
+
+export type SyncTicketItemPayload = {
+  qr_code_hash: string;
+  scanned_at: string;
+  scanned_by: string;
+};
+
+export type SyncTicketsPayload = {
+  updates: SyncTicketItemPayload[];
+  concert_id?: string;
+  gate_id?: number;
+};
+
+export type SyncTicketsResponse = {
+  total: number;
+  synced: number;
+  skipped: number;
+  failed: number;
+};

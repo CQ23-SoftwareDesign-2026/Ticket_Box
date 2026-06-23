@@ -1,6 +1,9 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Network from 'expo-network';
+import { useIsFocused } from '@react-navigation/native';
 
 import { AppScreen } from '@/components/ui/app-screen';
 import { AppText } from '@/components/ui/app-text';
@@ -11,11 +14,17 @@ import { colors, radii, spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useCurrentScanSession } from '@/features/checkin/hooks/use-current-scan-session';
 import { routes } from '@/lib/routes';
+import { pendingSyncStorage, recentScanHistoryStorage } from '@/lib/storage';
 
 export function StaffHomeScreen() {
   const router = useRouter();
+  const isFocused = useIsFocused();
+  const networkState = Network.useNetworkState();
   const { user } = useAuth();
   const { session } = useCurrentScanSession();
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  const [acceptedCount, setAcceptedCount] = useState(0);
+  const [duplicateCount, setDuplicateCount] = useState(0);
 
   const activeStartTime = session
     ? new Date(session.prefetchedAt).toLocaleTimeString([], {
@@ -23,6 +32,39 @@ export function StaffHomeScreen() {
         minute: '2-digit',
       })
     : null;
+
+  const activeStartLabel = session ? formatSessionDate(session.prefetchedAt) : null;
+  const isOnline = networkState.isConnected === true && networkState.isInternetReachable !== false;
+
+  useEffect(() => {
+    async function loadOperationalSnapshot() {
+      if (!isFocused) {
+        return;
+      }
+
+      const queue = await pendingSyncStorage.getQueue();
+      setPendingSyncCount(queue.length);
+
+      if (!session) {
+        setAcceptedCount(0);
+        setDuplicateCount(0);
+        return;
+      }
+
+      const history = await recentScanHistoryStorage.getHistoryForSession(session.concertId, session.gateNumber);
+      setAcceptedCount(
+        history.filter((item) => item.status === 'ACCEPTED' || item.status === 'OFFLINE_ACCEPTED' || item.status === 'SYNCED').length,
+      );
+      setDuplicateCount(history.filter((item) => item.status === 'DUPLICATE').length);
+    }
+
+    void loadOperationalSnapshot();
+  }, [isFocused, session]);
+
+  const networkBadge = useMemo(
+    () => (isOnline ? { label: 'Online sync ready', tone: 'success' as const } : { label: 'Offline mode', tone: 'warning' as const }),
+    [isOnline],
+  );
 
   return (
     <AppScreen>
@@ -35,7 +77,7 @@ export function StaffHomeScreen() {
               </AppText>
               <AppText variant="hero">Good evening, {user?.fullName?.split(' ')[0] ?? 'staff'}.</AppText>
               <AppText tone="muted">
-                Run ticket control from one premium surface: prepare the gate, open the scanner, and keep the entry line moving.
+                Open the active gate fast and keep check-in moving.
               </AppText>
             </View>
             <View style={styles.avatarBadge}>
@@ -43,7 +85,10 @@ export function StaffHomeScreen() {
             </View>
           </View>
 
-          <StatusPill label="Gate-ready account" tone="success" />
+          <View style={styles.heroStatusRow}>
+            <StatusPill label="Gate-ready account" tone="success" />
+            <StatusPill label={networkBadge.label} tone={networkBadge.tone} />
+          </View>
 
           {session ? (
             <View style={styles.liveSessionPanel}>
@@ -67,9 +112,17 @@ export function StaffHomeScreen() {
                 <View style={styles.metaDivider} />
                 <View style={styles.metaBlock}>
                   <AppText variant="eyebrow" tone="muted">
-                    Started
+                    Prefetched
                   </AppText>
                   <AppText variant="label">{activeStartTime}</AppText>
+                  <AppText tone="muted">{activeStartLabel}</AppText>
+                </View>
+                <View style={styles.metaDivider} />
+                <View style={styles.metaBlock}>
+                  <AppText variant="eyebrow" tone="muted">
+                    Pending sync
+                  </AppText>
+                  <AppText variant="label">{pendingSyncCount} tickets</AppText>
                 </View>
               </View>
 
@@ -84,15 +137,23 @@ export function StaffHomeScreen() {
               </View>
             </View>
           ) : (
-            <Button icon="play-circle-outline" label="Start check-in session" onPress={() => router.push(routes.staffSessionSetup)} />
+            <View style={styles.emptySessionPanel}>
+              <View style={styles.emptySessionCopy}>
+                <AppText variant="subtitle">No gate session is active.</AppText>
+                <AppText tone="muted">
+                  Choose a concert and gate before scanning.
+                </AppText>
+              </View>
+              <Button icon="play-circle-outline" label="Start check-in session" onPress={() => router.push(routes.staffSessionSetup)} />
+            </View>
           )}
 
           <View style={styles.statsRow}>
             <View style={styles.statTile}>
               <AppText variant="eyebrow" tone="muted">
-                Tonight
+                Accepted
               </AppText>
-              <AppText variant="subtitle">1,240 scanned</AppText>
+              <AppText variant="subtitle">{acceptedCount}</AppText>
             </View>
             <View style={styles.statTile}>
               <AppText variant="eyebrow" tone="muted">
@@ -106,23 +167,23 @@ export function StaffHomeScreen() {
         <View style={styles.metricsBoard}>
           <View style={styles.metricColumn}>
             <AppText variant="eyebrow" tone="muted">
-              Queue risk
+              Session
             </AppText>
-            <AppText variant="subtitle">Low</AppText>
+            <AppText variant="subtitle">{session ? session.gateLabel : 'Not set'}</AppText>
           </View>
           <View style={styles.metricDivider} />
           <View style={styles.metricColumn}>
             <AppText variant="eyebrow" tone="muted">
               Network
             </AppText>
-            <AppText variant="subtitle">Stable</AppText>
+            <AppText variant="subtitle">{isOnline ? 'Online' : 'Offline'}</AppText>
           </View>
           <View style={styles.metricDivider} />
           <View style={styles.metricColumn}>
             <AppText variant="eyebrow" tone="muted">
               Pending sync
             </AppText>
-            <AppText variant="subtitle">18 tickets</AppText>
+            <AppText variant="subtitle">{pendingSyncCount} tickets</AppText>
           </View>
         </View>
 
@@ -135,12 +196,10 @@ export function StaffHomeScreen() {
               <View style={styles.actionHeaderText}>
                 <StatusPill label="Recommended" tone="info" />
                 <AppText variant="subtitle">Session control</AppText>
-                <AppText tone="muted">
-                  Choose the concert, assign the gate lane, and prepare offline data before the team enters scan mode.
-                </AppText>
+                <AppText tone="muted">Pick a concert, choose a gate, and scan.</AppText>
               </View>
             </View>
-            <Button icon="arrow-right" label="Configure session" onPress={() => router.push(routes.staffSessionSetup)} />
+            <Button icon="arrow-right" label={session ? 'Adjust session' : 'Configure session'} onPress={() => router.push(routes.staffSessionSetup)} />
           </SurfaceCard>
 
           <SurfaceCard variant="default" style={styles.actionCard}>
@@ -150,21 +209,21 @@ export function StaffHomeScreen() {
               </View>
               <View style={styles.actionHeaderText}>
                 <AppText variant="subtitle">Operational pulse</AppText>
-                <AppText tone="muted">Front gate health and scan outcomes.</AppText>
+                <AppText tone="muted">Live counts for this device.</AppText>
               </View>
             </View>
             <View style={styles.snapshotList}>
               <View style={styles.snapshotRow}>
                 <AppText tone="muted">Accepted</AppText>
-                <AppText variant="label">1,180</AppText>
+                <AppText variant="label">{acceptedCount}</AppText>
               </View>
               <View style={styles.snapshotRow}>
                 <AppText tone="muted">Duplicates</AppText>
-                <AppText variant="label">42</AppText>
+                <AppText variant="label">{duplicateCount}</AppText>
               </View>
               <View style={styles.snapshotRow}>
                 <AppText tone="muted">Offline queued</AppText>
-                <AppText variant="label">18</AppText>
+                <AppText variant="label">{pendingSyncCount}</AppText>
               </View>
             </View>
           </SurfaceCard>
@@ -176,7 +235,7 @@ export function StaffHomeScreen() {
               </View>
               <View style={styles.actionHeaderText}>
                 <AppText variant="subtitle">Account clearance</AppText>
-                <AppText tone="muted">Review profile, role and device access.</AppText>
+                <AppText tone="muted">Profile and role access.</AppText>
               </View>
             </View>
             <Button icon="account-outline" label="View profile" onPress={() => router.push(routes.staffProfile)} variant="ghost" />
@@ -193,6 +252,11 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     gap: spacing.lg,
+  },
+  heroStatusRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
   heroTop: {
     flexDirection: 'row',
@@ -217,6 +281,15 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: radii.lg,
     backgroundColor: colors.surfaceOverlay,
+  },
+  emptySessionPanel: {
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: radii.lg,
+    backgroundColor: colors.surfaceOverlay,
+  },
+  emptySessionCopy: {
+    gap: spacing.xs,
   },
   liveSessionHeader: {
     flexDirection: 'row',
@@ -311,3 +384,16 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
 });
+
+function formatSessionDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown time';
+  }
+
+  return date.toLocaleDateString([], {
+    month: 'short',
+    day: 'numeric',
+  });
+}

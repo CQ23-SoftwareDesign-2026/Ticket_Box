@@ -10,6 +10,7 @@ import { SurfaceCard } from '@/components/ui/surface-card';
 import { StatusPill } from '@/components/ui/status-pill';
 import { colors, radii, spacing } from '@/constants/theme';
 import { checkinApi } from '@/features/checkin/api/checkin-api';
+import { useCurrentScanSession } from '@/features/checkin/hooks/use-current-scan-session';
 import { concertApi } from '@/features/checkin/api/concert-api';
 import type { ConcertDetail, ConcertListItem } from '@/features/checkin/types/checkin.types';
 import { getErrorMessage } from '@/lib/errors';
@@ -26,6 +27,7 @@ type GateOption = {
 
 export function SessionSetupScreen() {
   const router = useRouter();
+  const { session: currentSession } = useCurrentScanSession();
   const [concerts, setConcerts] = useState<ConcertListItem[]>([]);
   const [selectedConcertId, setSelectedConcertId] = useState<string | null>(null);
   const [selectedGateNumber, setSelectedGateNumber] = useState<number | null>(null);
@@ -140,7 +142,7 @@ export function SessionSetupScreen() {
 
       return gateOptions[0].gateNumber;
     });
-    setIsGateConfirmationVisible(false);
+    setIsGateConfirmationVisible(true);
   }, [gateOptions]);
 
   const selectedGateOption = useMemo(
@@ -175,7 +177,7 @@ export function SessionSetupScreen() {
     }
 
     setSelectedGateNumber(gateNumber);
-    setIsGateConfirmationVisible(false);
+    setIsGateConfirmationVisible(true);
   };
 
   const handleStartScanning = async () => {
@@ -223,7 +225,7 @@ export function SessionSetupScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.container}>
+        <View style={styles.container}>
         <View style={styles.header}>
           <View style={styles.headerCopy}>
             <AppText variant="eyebrow" tone="primary">
@@ -231,11 +233,31 @@ export function SessionSetupScreen() {
             </AppText>
             <AppText variant="hero">Prepare the scanner.</AppText>
             <AppText tone="muted">
-              Configure one real check-in session before the staff member enters live scan mode.
+              Pick a concert and gate, then start scanning.
             </AppText>
           </View>
           <Button icon="arrow-left" label="Back" onPress={() => router.back()} variant="ghost" />
         </View>
+
+        {currentSession ? (
+          <SurfaceCard variant="elevated" style={styles.resumeCard}>
+            <View style={styles.resumeHeader}>
+              <View style={styles.resumeCopy}>
+                <AppText variant="eyebrow" tone="primary">
+                  Active session on this device
+                </AppText>
+                <AppText variant="subtitle">{currentSession.concertTitle}</AppText>
+                <AppText tone="muted">
+                  {currentSession.gateLabel} - {currentSession.concertVenue}
+                </AppText>
+              </View>
+              <StatusPill label={`${currentSession.prefetchedHashCount} hashes`} tone="success" />
+            </View>
+            <View style={styles.resumeActions}>
+              <Button icon="qrcode-scan" label="Open current scanner" onPress={() => router.push(routes.staffScanner)} />
+            </View>
+          </SurfaceCard>
+        ) : null}
 
         <View style={styles.progressRail}>
           <View style={styles.progressStep}>
@@ -270,7 +292,7 @@ export function SessionSetupScreen() {
           <AppText variant="eyebrow" tone="muted">
             Select concert
           </AppText>
-          <AppText tone="primary">{concerts.length} available</AppText>
+          <AppText tone="primary">{concerts.length} live</AppText>
         </View>
 
         {isConcertsLoading ? (
@@ -378,7 +400,7 @@ export function SessionSetupScreen() {
                       <View style={styles.inlineSessionsBlock}>
                         <View style={styles.inlineSessionsHeader}>
                           <AppText variant="eyebrow" tone="primary">
-                            Available sessions
+                            Gates
                           </AppText>
                           <AppText tone="muted">{gateOptions.length} gates</AppText>
                         </View>
@@ -425,7 +447,7 @@ export function SessionSetupScreen() {
                             <View style={styles.gateConfirmationHeader}>
                               <View style={styles.gateConfirmationCopy}>
                                 <AppText variant="eyebrow" tone="primary">
-                                  Scan confirmation
+                                  Ready to scan
                                 </AppText>
                                 <AppText variant="subtitle">{selectedGateOption.label}</AppText>
                                 <AppText tone="muted">
@@ -445,7 +467,7 @@ export function SessionSetupScreen() {
                             <View style={styles.gateConfirmationActions}>
                               <Button
                                 icon="qrcode-scan"
-                                label="Scan with this gate"
+                                label="Start scanning with this gate"
                                 onPress={handleStartScanning}
                                 disabled={isConcertsLoading || isDetailLoading}
                                 loading={isSubmitting}
@@ -476,7 +498,7 @@ export function SessionSetupScreen() {
             <View style={styles.syncText}>
               <AppText variant="subtitle">Offline prefetch</AppText>
               <AppText tone="muted">
-                When you press `Start scanning`, the app will call the backend prefetch API and download the valid ticket hashes for the selected concert and gate.
+                Ticket hashes are saved before scanning.
               </AppText>
             </View>
           </View>
@@ -490,7 +512,7 @@ export function SessionSetupScreen() {
           <View style={styles.summaryRow}>
             <View style={styles.summaryCopy}>
               <AppText variant="eyebrow" tone="primary">
-                Ready to launch
+                Launch
               </AppText>
               <AppText variant="subtitle">{selectedConcert?.name ?? 'No concert selected'}</AppText>
               <AppText tone="muted">
@@ -507,14 +529,14 @@ export function SessionSetupScreen() {
               <AppText variant="eyebrow" tone="muted">
                 Session
               </AppText>
-              <AppText variant="label">Checker shift</AppText>
+              <AppText variant="label">Checker</AppText>
             </View>
             <View style={styles.summaryMetaDivider} />
             <View style={styles.summaryMetaItem}>
               <AppText variant="eyebrow" tone="muted">
                 Strategy
               </AppText>
-              <AppText variant="label">Offline-first</AppText>
+              <AppText variant="label">Hybrid</AppText>
             </View>
             <View style={styles.summaryMetaDivider} />
             <View style={styles.summaryMetaItem}>
@@ -580,6 +602,22 @@ const styles = StyleSheet.create({
   },
   headerCopy: {
     flex: 1,
+    gap: spacing.sm,
+  },
+  resumeCard: {
+    gap: spacing.md,
+  },
+  resumeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  resumeCopy: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  resumeActions: {
     gap: spacing.sm,
   },
   progressRail: {
@@ -703,6 +741,8 @@ const styles = StyleSheet.create({
   },
   gateConfirmationCard: {
     gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
   },
   gateConfirmationHeader: {
     flexDirection: 'row',

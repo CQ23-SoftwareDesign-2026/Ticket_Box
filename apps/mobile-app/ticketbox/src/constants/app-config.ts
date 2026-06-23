@@ -8,4 +8,7 @@ export const STORAGE_KEYS = {
   refreshToken: 'ticketbox.staff.refreshToken',
   currentScanSession: 'ticketbox.staff.currentScanSession',
   prefetchedTicketSet: 'ticketbox.staff.prefetchedTicketSet',
+  localScannedBuckets: 'ticketbox.staff.localScannedBuckets',
+  pendingSyncQueue: 'ticketbox.staff.pendingSyncQueue',
+  recentScanHistory: 'ticketbox.staff.recentScanHistory',
 } as const;

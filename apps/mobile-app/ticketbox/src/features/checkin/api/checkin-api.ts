@@ -1,4 +1,9 @@
-import type { ScanTicketPayload, ScanTicketResponse } from '@/features/checkin/types/checkin.types';
+import type {
+  ScanTicketPayload,
+  ScanTicketResponse,
+  SyncTicketsPayload,
+  SyncTicketsResponse,
+} from '@/features/checkin/types/checkin.types';
 import { apiClient } from '@/lib/api';
 
 export const checkinApi = {
@@ -14,6 +19,11 @@ export const checkinApi = {
 
   async scanTicket(payload: ScanTicketPayload) {
     const response = await apiClient.post<ScanTicketResponse>('/checkin/scan', payload);
+    return response.data;
+  },
+
+  async syncTickets(payload: SyncTicketsPayload) {
+    const response = await apiClient.post<SyncTicketsResponse>('/checkin/sync', payload);
     return response.data;
   },
 };

@@ -15,7 +15,14 @@ import { resolveAuthRoute } from '@/features/auth/utils/resolve-auth-route';
 import { setApiAccessToken } from '@/lib/api';
 import { routes } from '@/lib/routes';
 import { registerSessionUserHandler, registerUnauthorizedHandler, setSessionTokens } from '@/lib/session';
-import { prefetchStorage, scanSessionStorage, tokenStorage } from '@/lib/storage';
+import {
+  localScanStorage,
+  pendingSyncStorage,
+  prefetchStorage,
+  recentScanHistoryStorage,
+  scanSessionStorage,
+  tokenStorage,
+} from '@/lib/storage';
 
 export type AuthContextValue = {
   user: User | null;
@@ -48,6 +55,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       tokenStorage.clearTokens(),
       scanSessionStorage.clearCurrentSession(),
       prefetchStorage.clearPrefetchedTicketSet(),
+      localScanStorage.clearAll(),
+      pendingSyncStorage.clearAll(),
+      recentScanHistoryStorage.clearAll(),
     ]);
     setUser(null);
   };

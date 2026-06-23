@@ -13,11 +13,20 @@ import { Button } from '@/components/ui/button';
 import { SurfaceCard } from '@/components/ui/surface-card';
 import { StatusPill } from '@/components/ui/status-pill';
 import { colors, radii, spacing } from '@/constants/theme';
+import { useAuth } from '@/features/auth/hooks/use-auth';
 import { checkinApi } from '@/features/checkin/api/checkin-api';
 import { useCurrentScanSession } from '@/features/checkin/hooks/use-current-scan-session';
 import type { ScanTicketResponse, ScanTicketStatus } from '@/features/checkin/types/checkin.types';
 import { getErrorMessage } from '@/lib/errors';
 import { routes } from '@/lib/routes';
+import {
+  localScanStorage,
+  pendingSyncStorage,
+  prefetchStorage,
+  recentScanHistoryStorage,
+  type PendingSyncScan,
+  type RecentScanHistoryItem,
+} from '@/lib/storage';
 
 type LiveResultState = {
   description: string;
@@ -36,20 +45,24 @@ export function ScannerPlaceholderScreen() {
   const router = useRouter();
   const isFocused = useIsFocused();
   const networkState = Network.useNetworkState();
+  const { user } = useAuth();
   const { session, isLoading } = useCurrentScanSession();
   const [permission, requestPermission] = useCameraPermissions();
   const [isTorchEnabled, setIsTorchEnabled] = useState(false);
   const [isProcessingScan, setIsProcessingScan] = useState(false);
-  const [scanCount, setScanCount] = useState(0);
+  const [isSyncingPending, setIsSyncingPending] = useState(false);
+  const [attemptCount, setAttemptCount] = useState(0);
+  const [acceptedCount, setAcceptedCount] = useState(0);
   const [syncedCount, setSyncedCount] = useState(0);
-  const [pendingCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
   const [duplicateCount, setDuplicateCount] = useState(0);
   const [lastScanData, setLastScanData] = useState<string | null>(null);
+  const [recentHistory, setRecentHistory] = useState<RecentScanHistoryItem[]>([]);
   const [resultState, setResultState] = useState<LiveResultState>({
     status: 'IDLE',
     tone: 'info',
     title: 'Scanner armed',
-    description: 'Center a QR code inside the frame to validate the ticket for this concert and gate.',
+    description: 'Center the QR code in the frame.',
     gateAction: 'Await scan',
     guestLabel: 'Ready for next guest',
     icon: 'qrcode-scan',
@@ -80,6 +93,83 @@ export function ScannerPlaceholderScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    async function loadOfflineState() {
+      if (!session) {
+        setPendingCount(0);
+        setRecentHistory([]);
+        return;
+      }
+
+      const [queue, history] = await Promise.all([
+        pendingSyncStorage.getQueueForSession(session.concertId, session.gateNumber),
+        recentScanHistoryStorage.getHistoryForSession(session.concertId, session.gateNumber),
+      ]);
+
+      setPendingCount(queue.length);
+      setRecentHistory(history);
+    }
+
+    void loadOfflineState();
+  }, [session]);
+
+  useEffect(() => {
+    async function syncPendingScans() {
+      if (!isOnline || !session || !user?.id || isSyncingPending) {
+        return;
+      }
+
+      const queue = await pendingSyncStorage.getQueueForSession(session.concertId, session.gateNumber);
+
+      if (queue.length === 0) {
+        setPendingCount(0);
+        return;
+      }
+
+      setIsSyncingPending(true);
+
+      try {
+        await checkinApi.syncTickets({
+          concert_id: session.concertId,
+          gate_id: session.gateNumber,
+          updates: queue.map((item) => ({
+            qr_code_hash: item.qrCodeHash,
+            scanned_at: item.scannedAt,
+            scanned_by: item.scannedBy,
+          })),
+        });
+
+        await pendingSyncStorage.removeMany(queue.map((item) => item.id));
+        setPendingCount(0);
+        setSyncedCount((count) => count + queue.length);
+
+        const syncedHistoryItems = await Promise.all(
+          queue.map((item) =>
+            recentScanHistoryStorage.push({
+              id: `${item.id}:synced`,
+              concertId: item.concertId,
+              gateNumber: item.gateNumber,
+              qrCodeHash: item.qrCodeHash,
+              scannedAt: new Date().toISOString(),
+              status: 'SYNCED',
+              title: 'Offline scan synced',
+              detail: `${shortenQrValue(item.qrCodeHash)} was uploaded to server successfully.`,
+            }),
+          ),
+        );
+
+        setRecentHistory(syncedHistoryItems[0] ?? []);
+      } catch {
+        const remainingQueue = await pendingSyncStorage.getQueueForSession(session.concertId, session.gateNumber);
+        setPendingCount(remainingQueue.length);
+      } finally {
+        setIsSyncingPending(false);
+      }
+    }
+
+    void syncPendingScans();
+  }, [isOnline, isSyncingPending, session, user?.id]);
+
   const unlockScannerSoon = () => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
@@ -101,7 +191,7 @@ export function ScannerPlaceholderScreen() {
       status: 'IDLE',
       tone: 'info',
       title: 'Scanner armed',
-      description: 'Center a QR code inside the frame to validate the ticket for this concert and gate.',
+      description: 'Center the QR code in the frame.',
       gateAction: 'Await scan',
       guestLabel: 'Ready for next guest',
       icon: 'qrcode-scan',
@@ -109,23 +199,52 @@ export function ScannerPlaceholderScreen() {
     });
   };
 
+  const refreshOfflinePanels = async (concertId: string, gateNumber: number) => {
+    const [queue, history] = await Promise.all([
+      pendingSyncStorage.getQueueForSession(concertId, gateNumber),
+      recentScanHistoryStorage.getHistoryForSession(concertId, gateNumber),
+    ]);
+
+    setPendingCount(queue.length);
+    setRecentHistory(history);
+  };
+
+  const pushHistoryItem = async (item: RecentScanHistoryItem) => {
+    const nextHistory = await recentScanHistoryStorage.push(item);
+    setRecentHistory(nextHistory.filter((entry) => entry.concertId === item.concertId && entry.gateNumber === item.gateNumber));
+  };
+
   const applyScanResult = async (qrValue: string, response: ScanTicketResponse) => {
-    setScanCount((count) => count + 1);
+    setAttemptCount((count) => count + 1);
     setLastScanData(qrValue);
 
     switch (response.status) {
       case 'ACCEPTED':
+        setAcceptedCount((count) => count + 1);
         setSyncedCount((count) => count + 1);
         setResultState({
           status: 'ACCEPTED',
           tone: 'success',
           title: 'Entry approved',
           description: 'This ticket is valid for the active concert and gate. The check-in has been recorded on the server.',
+          
           gateAction: 'Allow entry',
           guestLabel: shortenQrValue(qrValue),
           icon: 'check-circle',
           panelVariant: 'elevated',
         });
+        if (session) {
+          await pushHistoryItem({
+            id: `online:${session.concertId}:${session.gateNumber}:${qrValue}:${Date.now()}`,
+            concertId: session.concertId,
+            gateNumber: session.gateNumber,
+            qrCodeHash: qrValue,
+            scannedAt: response.scanned_at ?? new Date().toISOString(),
+            status: 'ACCEPTED',
+            title: 'Online check-in accepted',
+            detail: `${shortenQrValue(qrValue)} was validated by the server for ${session.gateLabel}.`,
+          });
+        }
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         break;
       case 'DUPLICATE':
@@ -142,6 +261,18 @@ export function ScannerPlaceholderScreen() {
           icon: 'alert-circle',
           panelVariant: 'default',
         });
+        if (session) {
+          await pushHistoryItem({
+            id: `duplicate:${session.concertId}:${session.gateNumber}:${qrValue}:${Date.now()}`,
+            concertId: session.concertId,
+            gateNumber: session.gateNumber,
+            qrCodeHash: qrValue,
+            scannedAt: response.scanned_at ?? new Date().toISOString(),
+            status: 'DUPLICATE',
+            title: 'Duplicate ticket detected',
+            detail: `${shortenQrValue(qrValue)} was already used earlier.`,
+          });
+        }
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         break;
       case 'INVALID_GATE':
@@ -155,6 +286,18 @@ export function ScannerPlaceholderScreen() {
           icon: 'close-circle',
           panelVariant: 'danger',
         });
+        if (session) {
+          await pushHistoryItem({
+            id: `invalid-gate:${session.concertId}:${session.gateNumber}:${qrValue}:${Date.now()}`,
+            concertId: session.concertId,
+            gateNumber: session.gateNumber,
+            qrCodeHash: qrValue,
+            scannedAt: new Date().toISOString(),
+            status: 'INVALID_GATE',
+            title: 'Wrong gate scanned',
+            detail: `${shortenQrValue(qrValue)} does not belong to ${session.gateLabel}.`,
+          });
+        }
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         break;
       case 'NOT_FOUND':
@@ -168,6 +311,18 @@ export function ScannerPlaceholderScreen() {
           icon: 'help-circle',
           panelVariant: 'danger',
         });
+        if (session) {
+          await pushHistoryItem({
+            id: `not-found:${session.concertId}:${session.gateNumber}:${qrValue}:${Date.now()}`,
+            concertId: session.concertId,
+            gateNumber: session.gateNumber,
+            qrCodeHash: qrValue,
+            scannedAt: new Date().toISOString(),
+            status: 'NOT_FOUND',
+            title: 'Ticket not found',
+            detail: `${shortenQrValue(qrValue)} was not found in backend records.`,
+          });
+        }
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         break;
       case 'UNPAID':
@@ -181,9 +336,153 @@ export function ScannerPlaceholderScreen() {
           icon: 'cash-remove',
           panelVariant: 'default',
         });
+        if (session) {
+          await pushHistoryItem({
+            id: `unpaid:${session.concertId}:${session.gateNumber}:${qrValue}:${Date.now()}`,
+            concertId: session.concertId,
+            gateNumber: session.gateNumber,
+            qrCodeHash: qrValue,
+            scannedAt: new Date().toISOString(),
+            status: 'UNPAID',
+            title: 'Unpaid ticket',
+            detail: `${shortenQrValue(qrValue)} belongs to an unpaid order.`,
+          });
+        }
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         break;
     }
+  };
+
+  const handleOfflineScan = async (qrValue: string) => {
+    if (!session || !user?.id) {
+      return;
+    }
+
+    const [prefetchedSet, isLocallyScanned, queuedItems] = await Promise.all([
+      prefetchStorage.getPrefetchedTicketSet(),
+      localScanStorage.hasHash(session.concertId, session.gateNumber, qrValue),
+      pendingSyncStorage.getQueueForSession(session.concertId, session.gateNumber),
+    ]);
+
+    const matchesActiveSession =
+      prefetchedSet &&
+      prefetchedSet.concertId === session.concertId &&
+      prefetchedSet.gateNumber === session.gateNumber;
+
+    if (!matchesActiveSession) {
+      setAttemptCount((count) => count + 1);
+      setLastScanData(qrValue);
+      setResultState({
+        status: 'OFFLINE',
+        tone: 'warning',
+        title: 'Prefetch expired for this session',
+        description: 'Refresh this session online before using offline scan.',
+        gateAction: 'Return to setup',
+        guestLabel: shortenQrValue(qrValue),
+        icon: 'database-alert-outline',
+        panelVariant: 'default',
+      });
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      return;
+    }
+
+    if (!prefetchedSet.hashes.includes(qrValue)) {
+      setAttemptCount((count) => count + 1);
+      setLastScanData(qrValue);
+      setResultState({
+        status: 'NOT_FOUND',
+        tone: 'danger',
+        title: 'Hash not in offline set',
+        description: 'This QR code is not in the prefetched gate set.',
+        gateAction: 'Reject entry',
+        guestLabel: shortenQrValue(qrValue),
+        icon: 'help-circle',
+        panelVariant: 'danger',
+      });
+      await pushHistoryItem({
+        id: `offline-not-found:${session.concertId}:${session.gateNumber}:${qrValue}:${Date.now()}`,
+        concertId: session.concertId,
+        gateNumber: session.gateNumber,
+        qrCodeHash: qrValue,
+        scannedAt: new Date().toISOString(),
+        status: 'NOT_FOUND',
+        title: 'Offline hash missing',
+        detail: `${shortenQrValue(qrValue)} is not in the prefetched hash set.`,
+      });
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
+
+    const isAlreadyQueued = queuedItems.some((item) => item.qrCodeHash === qrValue);
+
+    if (isLocallyScanned || isAlreadyQueued) {
+      setAttemptCount((count) => count + 1);
+      setDuplicateCount((count) => count + 1);
+      setLastScanData(qrValue);
+      setResultState({
+        status: 'DUPLICATE',
+        tone: 'warning',
+        title: 'Already scanned on this device',
+        description: 'This ticket was already accepted on this device.',
+        gateAction: 'Verify attendee',
+        guestLabel: shortenQrValue(qrValue),
+        icon: 'alert-circle',
+        panelVariant: 'default',
+      });
+      await pushHistoryItem({
+        id: `offline-duplicate:${session.concertId}:${session.gateNumber}:${qrValue}:${Date.now()}`,
+        concertId: session.concertId,
+        gateNumber: session.gateNumber,
+        qrCodeHash: qrValue,
+        scannedAt: new Date().toISOString(),
+        status: 'DUPLICATE',
+        title: 'Offline duplicate blocked',
+        detail: `${shortenQrValue(qrValue)} was already accepted on this device.`,
+      });
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      return;
+    }
+
+    const scannedAt = new Date().toISOString();
+    const pendingItem: PendingSyncScan = {
+      id: `pending:${session.concertId}:${session.gateNumber}:${qrValue}:${Date.now()}`,
+      concertId: session.concertId,
+      gateNumber: session.gateNumber,
+      qrCodeHash: qrValue,
+      scannedAt,
+      scannedBy: user.id,
+    };
+
+    await Promise.all([
+      localScanStorage.addHash(session.concertId, session.gateNumber, qrValue),
+      pendingSyncStorage.enqueue(pendingItem),
+    ]);
+
+    setAttemptCount((count) => count + 1);
+    setAcceptedCount((count) => count + 1);
+    setLastScanData(qrValue);
+    setResultState({
+      status: 'OFFLINE',
+      tone: 'success',
+      title: 'Offline ticket accepted',
+      description: 'Saved locally and will sync when the device is online.',
+      gateAction: 'Allow entry',
+      guestLabel: shortenQrValue(qrValue),
+      icon: 'check-decagram',
+      panelVariant: 'elevated',
+    });
+    await pushHistoryItem({
+      id: `offline-accepted:${session.concertId}:${session.gateNumber}:${qrValue}:${Date.now()}`,
+      concertId: session.concertId,
+      gateNumber: session.gateNumber,
+      qrCodeHash: qrValue,
+      scannedAt,
+      status: 'OFFLINE_ACCEPTED',
+      title: 'Offline scan saved',
+      detail: `${shortenQrValue(qrValue)} was accepted locally and queued for sync.`,
+    });
+    await refreshOfflinePanels(session.concertId, session.gateNumber);
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
   const handleBarcodeScanned = async ({ data }: BarcodeScanningResult) => {
@@ -201,20 +500,14 @@ export function ScannerPlaceholderScreen() {
     lastHandledScanRef.current = { value: data, at: now };
     setIsProcessingScan(true);
 
+    const trimmedData = data.trim();
+
     if (!isOnline) {
-      setLastScanData(data);
-      setResultState({
-        status: 'OFFLINE',
-        tone: 'warning',
-        title: 'Offline mode detected',
-        description: 'Online scan API is paused because the device has no internet connection. Offline validation and sync are the next step.',
-        gateAction: 'Wait for network',
-        guestLabel: shortenQrValue(data),
-        icon: 'cloud-off-outline',
-        panelVariant: 'default',
-      });
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      unlockScannerSoon();
+      try {
+        await handleOfflineScan(trimmedData);
+      } finally {
+        unlockScannerSoon();
+      }
       return;
     }
 
@@ -222,20 +515,20 @@ export function ScannerPlaceholderScreen() {
       const response = await checkinApi.scanTicket({
         concert_id: session.concertId,
         gate_id: session.gateNumber,
-        qr_code_hash: data.trim(),
+        qr_code_hash: trimmedData,
         scanned_at: new Date().toISOString(),
       });
 
-      await applyScanResult(data.trim(), response);
+      await applyScanResult(trimmedData, response);
     } catch (error) {
-      setLastScanData(data);
+      setLastScanData(trimmedData);
       setResultState({
         status: 'ERROR',
         tone: 'danger',
         title: 'Scan request failed',
         description: getErrorMessage(error, 'Unable to validate this ticket right now.'),
         gateAction: 'Retry scan',
-        guestLabel: shortenQrValue(data),
+        guestLabel: shortenQrValue(trimmedData),
         icon: 'server-network-off',
         panelVariant: 'danger',
       });
@@ -299,7 +592,7 @@ export function ScannerPlaceholderScreen() {
           <View style={styles.topBarLeft}>
             <Pressable onPress={() => router.push(routes.staffSessionSetup)} style={styles.backButton}>
               <MaterialCommunityIcons color={colors.text} name="arrow-left" size={18} />
-              <AppText variant="label">Sessions</AppText>
+              <AppText variant="label">Change gate</AppText>
             </Pressable>
             <View style={styles.topBarCopy}>
               <AppText variant="eyebrow" tone="muted">
@@ -308,7 +601,6 @@ export function ScannerPlaceholderScreen() {
               <AppText variant="label">
                 {session.concertTitle} - {session.gateLabel}
               </AppText>
-              <AppText tone="muted">{session.concertVenue}</AppText>
             </View>
           </View>
           <StatusPill label={topStatus.label} tone={topStatus.tone} />
@@ -328,6 +620,24 @@ export function ScannerPlaceholderScreen() {
             </AppText>
             <AppText variant="subtitle">{session.prefetchedHashCount.toLocaleString()} hashes</AppText>
           </View>
+          <View style={styles.sessionBoardDivider} />
+          <View style={styles.sessionBoardBlock}>
+            <AppText variant="eyebrow" tone="muted">
+              Pending
+            </AppText>
+            <AppText variant="subtitle">{pendingCount}</AppText>
+          </View>
+        </View>
+
+        <View style={styles.quickActionRow}>
+          <Pressable onPress={resetScanner} style={styles.quickActionButton}>
+            <MaterialCommunityIcons color={colors.text} name="refresh" size={18} />
+            <AppText variant="label">Reset state</AppText>
+          </Pressable>
+          <Pressable onPress={() => router.push(routes.staffSessionSetup)} style={styles.quickActionButton}>
+            <MaterialCommunityIcons color={colors.text} name="tune-vertical-variant" size={18} />
+            <AppText variant="label">Change session</AppText>
+          </Pressable>
         </View>
 
         <View style={styles.placeholder}>
@@ -342,7 +652,7 @@ export function ScannerPlaceholderScreen() {
           />
 
           <View style={styles.cameraTopStrip}>
-            <StatusPill label="Rear camera" tone="neutral" />
+            <StatusPill label={isSyncingPending ? 'Syncing queue' : 'Rear camera'} tone={isSyncingPending ? 'info' : 'neutral'} />
             <View style={styles.cameraActions}>
               <StatusPill label={session.gateLabel} tone="info" />
               <Pressable onPress={() => setIsTorchEnabled((value) => !value)} style={styles.cameraIconButton}>
@@ -366,15 +676,15 @@ export function ScannerPlaceholderScreen() {
           <View style={styles.sideMetricRail}>
             <View style={styles.sideMetricTile}>
               <AppText variant="eyebrow" tone="muted">
-                Accepted
+                Synced
               </AppText>
               <AppText variant="label">{syncedCount}</AppText>
             </View>
             <View style={styles.sideMetricTile}>
               <AppText variant="eyebrow" tone="muted">
-                Duplicates
+                Pending
               </AppText>
-              <AppText variant="label">{duplicateCount}</AppText>
+              <AppText variant="label">{pendingCount}</AppText>
             </View>
           </View>
 
@@ -384,30 +694,55 @@ export function ScannerPlaceholderScreen() {
             </AppText>
             <AppText tone="muted">
               {isProcessingScan
-                ? 'Hold steady while the API confirms the scanned QR code.'
-                : 'Center the ticket QR inside the frame for instant validation.'}
+                ? isOnline
+                  ? 'Checking ticket...'
+                  : 'Checking offline...'
+                : isOnline
+                  ? 'Center the ticket QR in the frame.'
+                  : 'Offline scans will sync later.'}
             </AppText>
           </View>
         </View>
 
         <View style={styles.statRow}>
           <View style={styles.statPanel}>
+            <AppText variant="caption" tone="muted" numberOfLines={1}>
+              Scans
+            </AppText>
+            <AppText numberOfLines={1} style={styles.statValue} variant="label">
+              {attemptCount}
+            </AppText>
+          </View>
+          <View style={styles.statPanel}>
+            <AppText variant="caption" tone="success" numberOfLines={1}>
+              Valid
+            </AppText>
+            <AppText numberOfLines={1} style={styles.statValue} variant="label">
+              {acceptedCount}
+            </AppText>
+          </View>
+          <View style={styles.statPanel}>
+            <AppText variant="caption" tone="warning" numberOfLines={1}>
+              Queue
+            </AppText>
+            <AppText numberOfLines={1} style={styles.statValue} variant="label">
+              {pendingCount}
+            </AppText>
+          </View>
+        </View>
+
+        <View style={styles.secondaryStatRow}>
+          <View style={styles.secondaryStatPill}>
             <AppText variant="eyebrow" tone="muted">
-              Scanned
+              Duplicates
             </AppText>
-            <AppText variant="label">{scanCount}</AppText>
+            <AppText variant="label">{duplicateCount}</AppText>
           </View>
-          <View style={styles.statPanel}>
-            <AppText variant="eyebrow" tone="success">
-              Synced
+          <View style={styles.secondaryStatPill}>
+            <AppText variant="eyebrow" tone={isSyncingPending ? 'primary' : 'muted'}>
+              Sync
             </AppText>
-            <AppText variant="label">{syncedCount}</AppText>
-          </View>
-          <View style={styles.statPanel}>
-            <AppText variant="eyebrow" tone="danger">
-              Pending
-            </AppText>
-            <AppText variant="label">{pendingCount}</AppText>
+            <AppText variant="label">{isSyncingPending ? 'Syncing' : isOnline ? 'Up to date' : 'Offline'}</AppText>
           </View>
         </View>
 
@@ -445,7 +780,7 @@ export function ScannerPlaceholderScreen() {
                 {formatEyebrow(resultState.status)}
               </AppText>
               <AppText variant="title">{resultState.title}</AppText>
-              <AppText tone="muted">{resultState.description}</AppText>
+              <AppText numberOfLines={2} tone="muted">{resultState.description}</AppText>
             </View>
           </View>
 
@@ -454,7 +789,7 @@ export function ScannerPlaceholderScreen() {
               <AppText variant="eyebrow" tone="muted">
                 Last scan
               </AppText>
-              <AppText variant="label">{lastScanData ? resultState.guestLabel : 'No ticket scanned yet'}</AppText>
+              <AppText numberOfLines={1} variant="label">{lastScanData ? resultState.guestLabel : 'No scan yet'}</AppText>
             </View>
             <View style={styles.resultMetaDivider} />
             <View style={styles.resultMetaItem}>
@@ -474,6 +809,46 @@ export function ScannerPlaceholderScreen() {
             />
             <Button icon="cog-outline" label="Change session" onPress={() => router.push(routes.staffSessionSetup)} variant="ghost" />
           </View>
+        </SurfaceCard>
+
+        <SurfaceCard style={styles.historyCard}>
+          <View style={styles.historyHeader}>
+            <View style={styles.historyHeaderCopy}>
+              <AppText variant="eyebrow" tone="muted">
+                Recent
+              </AppText>
+              <AppText variant="title">Latest scans</AppText>
+            </View>
+            <StatusPill label={isOnline ? 'Live sync' : 'Queued offline'} tone={isOnline ? 'success' : 'warning'} />
+          </View>
+
+          {recentHistory.length === 0 ? (
+            <AppText tone="muted">No scan activity yet for this session.</AppText>
+          ) : (
+            <View style={styles.historyList}>
+              {recentHistory.slice(0, 5).map((item) => (
+                <View key={item.id} style={styles.historyRow}>
+                  <View
+                    style={[
+                      styles.historyToneBar,
+                      item.status === 'ACCEPTED' || item.status === 'OFFLINE_ACCEPTED' || item.status === 'SYNCED'
+                        ? styles.historyToneSuccess
+                        : item.status === 'DUPLICATE' || item.status === 'UNPAID'
+                          ? styles.historyToneWarning
+                          : styles.historyToneDanger,
+                    ]}
+                  />
+                  <View style={styles.historyContent}>
+                    <View style={styles.historyRowTop}>
+                      <AppText variant="label">{item.title}</AppText>
+                      <AppText tone="muted">{formatScanTime(item.scannedAt)}</AppText>
+                    </View>
+                    <AppText tone="muted">{item.detail}</AppText>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
         </SurfaceCard>
         </View>
       </ScrollView>
@@ -598,6 +973,21 @@ const styles = StyleSheet.create({
     width: 1,
     backgroundColor: colors.border,
   },
+  quickActionRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  quickActionButton: {
+    flex: 1,
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.md,
+    backgroundColor: colors.surfaceOverlay,
+  },
   placeholder: {
     height: 392,
     borderRadius: radii.lg,
@@ -705,6 +1095,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
   },
+  secondaryStatRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
   statPanel: {
     flex: 1,
     gap: spacing.xs,
@@ -713,6 +1107,20 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     backgroundColor: colors.surface,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 72,
+  },
+  statValue: {
+    fontSize: 18,
+    lineHeight: 24,
+  },
+  secondaryStatPill: {
+    flex: 1,
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
+    backgroundColor: colors.surfaceOverlay,
   },
   resultCard: {
     gap: spacing.md,
@@ -762,5 +1170,52 @@ const styles = StyleSheet.create({
   },
   resultActions: {
     gap: spacing.sm,
+  },
+  historyCard: {
+    gap: spacing.md,
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  historyHeaderCopy: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  historyList: {
+    gap: spacing.sm,
+  },
+  historyRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    alignItems: 'stretch',
+  },
+  historyToneBar: {
+    width: 4,
+    borderRadius: 999,
+  },
+  historyToneSuccess: {
+    backgroundColor: colors.success,
+  },
+  historyToneWarning: {
+    backgroundColor: colors.warning,
+  },
+  historyToneDanger: {
+    backgroundColor: colors.danger,
+  },
+  historyContent: {
+    flex: 1,
+    gap: spacing.xs,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  historyRowTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.md,
   },
 });
