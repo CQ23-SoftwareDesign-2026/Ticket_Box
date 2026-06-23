@@ -9,6 +9,7 @@ export interface ConcertApiItem {
   svg_map_url: string;
   poster_url?: string;
   status: string;
+  ticketTiers?: ConcertTicketTier[];
 }
 
 export interface ConcertTicketTier {
@@ -54,10 +55,12 @@ export interface ConcertCardItem {
   date: string;
   time: string;
   price: string;
+  minPrice?: number;
   status: string;
   genre: string;
   mapUrl: string;
   posterUrl?: string;
+  ticketTiers?: ConcertTicketTier[];
 }
 
 export interface ConcertDetailItem extends ConcertCardItem {
@@ -121,6 +124,9 @@ function formatDateTime(value: string) {
 function mapConcert(item: ConcertApiItem): ConcertCardItem {
   const { venue, city } = splitLocation(item.location);
   const { date, time } = formatDateTime(item.start_time);
+  const tiers = item.ticketTiers ?? [];
+  const minPrice =
+    tiers.length > 0 ? Math.min(...tiers.map((t) => t.price)) : undefined;
 
   return {
     id: item.id,
@@ -130,11 +136,13 @@ function mapConcert(item: ConcertApiItem): ConcertCardItem {
     city,
     date,
     time,
-    price: "See details",
+    price: minPrice !== undefined ? `Từ ${new Intl.NumberFormat("vi-VN").format(minPrice)}đ` : "Xem chi tiết",
+    minPrice,
     status: item.status,
     genre: "Live concert",
     mapUrl: item.svg_map_url,
     posterUrl: item.poster_url,
+    ticketTiers: tiers,
   };
 }
 
@@ -175,8 +183,8 @@ export async function getConcerts(query: ConcertQuery = {}) {
   const isServer = typeof window === "undefined";
   const baseUrl = isServer
     ? (
-        process.env.REMOTE_API_URL || "https://api.ticketbox.retrobit.io.vn"
-      ).replace(/\/+$/, "")
+      process.env.REMOTE_API_URL || "https://api.ticketbox.retrobit.io.vn"
+    ).replace(/\/+$/, "")
     : "/api/proxy";
   const url = `${baseUrl}/concerts?${params.toString()}`;
 
@@ -207,8 +215,8 @@ export async function getConcertById(id: string) {
   const isServer = typeof window === "undefined";
   const baseUrl = isServer
     ? (
-        process.env.REMOTE_API_URL || "https://api.ticketbox.retrobit.io.vn"
-      ).replace(/\/+$/, "")
+      process.env.REMOTE_API_URL || "https://api.ticketbox.retrobit.io.vn"
+    ).replace(/\/+$/, "")
     : "/api/proxy";
   const url = `${baseUrl}/concerts/${id}`;
 
