@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, useCallback, Suspense } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  Suspense,
+  Fragment,
+} from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Card, SectionHeading, SiteShell } from "@/components/common";
 import { HeroCarousel } from "@/components/screens";
@@ -175,7 +182,7 @@ function ConcertsFullList() {
   const [meta, setMeta] = useState<ConcertListMeta>({
     totalItems: 0,
     itemCount: 0,
-    itemsPerPage: 4,
+    itemsPerPage: 12,
     totalPages: 1,
     currentPage: 1,
   });
@@ -232,24 +239,8 @@ function ConcertsFullList() {
 
   return (
     <div className="mt-6">
-      {/* Status filter row */}
-      <div className="flex items-center justify-between gap-4 mb-6">
-        <div className="flex items-center bg-outline-variant/30 p-1 rounded-full">
-          {(["PUBLISHED", "COMPLETED"] as const).map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => handleStatusChange(s)}
-              className={`px-5 py-1.5 text-sm font-bold rounded-full transition-all duration-300 ${
-                activeStatus === s
-                  ? "bg-surface text-primary shadow-sm"
-                  : "text-on-surface-variant/70 hover:text-on-surface-variant"
-              }`}
-            >
-              {s === "PUBLISHED" ? "Published" : "Completed"}
-            </button>
-          ))}
-        </div>
+      {/* Header filter count (buttons are in the page header only) */}
+      <div className="flex items-center justify-end mb-6">
         <p className="text-sm text-on-surface-variant/60 tabular-nums">
           {loading ? "..." : `${meta.totalItems} sự kiện`}
         </p>
@@ -302,7 +293,7 @@ function ConcertsFullList() {
               (n) => n === 1 || n === totalPages || Math.abs(n - page) <= 1,
             )
             .map((n, idx, arr) => (
-              <>
+              <Fragment key={n}>
                 {idx > 0 && arr[idx - 1] !== n - 1 && (
                   <span
                     key={`el-${n}`}
@@ -312,7 +303,6 @@ function ConcertsFullList() {
                   </span>
                 )}
                 <button
-                  key={n}
                   type="button"
                   onClick={() => setPage(n)}
                   disabled={loading}
@@ -324,7 +314,7 @@ function ConcertsFullList() {
                 >
                   {n}
                 </button>
-              </>
+              </Fragment>
             ))}
           <button
             type="button"
@@ -348,13 +338,11 @@ function ConcertsSectionInner() {
   const [maxScroll, setMaxScroll] = useState(0);
 
   const CARD_WIDTH = 240; // matches carousel card + gap
-  const STEP = CARD_WIDTH;
+  const STEP = CARD_WIDTH * 4;
 
   const slide = (dir: 1 | -1) => {
     if (!trackRef.current) return;
-    const next = scrollPos + dir * STEP;
-    const clamped = Math.max(0, Math.min(maxScroll, next));
-    trackRef.current.scrollTo({ left: clamped, behavior: "smooth" });
+    trackRef.current.scrollBy({ left: dir * STEP, behavior: "smooth" });
   };
 
   const onScroll = () => {
@@ -362,6 +350,14 @@ function ConcertsSectionInner() {
     setScrollPos(trackRef.current.scrollLeft);
     setMaxScroll(trackRef.current.scrollWidth - trackRef.current.clientWidth);
   };
+
+  // Recalculate dimensions when view shifts
+  useEffect(() => {
+    if (!showAll) {
+      const timer = setTimeout(onScroll, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [showAll]);
 
   return (
     <section
@@ -393,8 +389,8 @@ function ConcertsSectionInner() {
               type="button"
               onClick={() => slide(-1)}
               aria-label="Cuộn trái"
-              disabled={scrollPos === 0}
-              className="absolute -left-4 top-[calc(50%-48px)] z-10 flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant bg-surface shadow-md transition-all duration-200 hover:border-primary hover:text-primary disabled:opacity-0"
+              disabled={scrollPos <= 5}
+              className="absolute -left-4 top-[calc(50%-48px)] z-10 flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant bg-surface shadow-md transition-all duration-200 hover:border-primary hover:text-primary disabled:opacity-0 disabled:pointer-events-none"
             >
               <ChevronLeft size={18} />
             </button>
@@ -417,7 +413,10 @@ function ConcertsSectionInner() {
                   </div>
                 }
               >
-                <CarouselItems onShowAll={() => setShowAll(true)} />
+                <CarouselItems
+                  onShowAll={() => setShowAll(true)}
+                  onLoaded={() => setTimeout(onScroll, 100)}
+                />
               </Suspense>
             </div>
 
@@ -426,7 +425,8 @@ function ConcertsSectionInner() {
               type="button"
               onClick={() => slide(1)}
               aria-label="Cuộn phải"
-              className="absolute -right-4 top-[calc(50%-48px)] z-10 flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant bg-surface shadow-md transition-all duration-200 hover:border-primary hover:text-primary"
+              disabled={scrollPos >= maxScroll - 5}
+              className="absolute -right-4 top-[calc(50%-48px)] z-10 flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant bg-surface shadow-md transition-all duration-200 hover:border-primary hover:text-primary disabled:opacity-0 disabled:pointer-events-none"
             >
               <ChevronRight size={18} />
             </button>
@@ -449,7 +449,17 @@ function ConcertsSectionInner() {
 }
 
 // ─── Carousel items (needs useSearchParams → Suspense boundary) ──────────────
-function CarouselItems({ onShowAll }: { onShowAll: () => void }) {
+function CarouselItems({
+  onShowAll,
+  onLoaded,
+}: {
+  onShowAll: () => void;
+  onLoaded?: () => void;
+}) {
+  const searchParams = useSearchParams();
+  const statusFilter = (searchParams?.get("status") || "PUBLISHED") as
+    | "PUBLISHED"
+    | "COMPLETED";
   const [items, setItems] = useState<ConcertCardItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -457,11 +467,12 @@ function CarouselItems({ onShowAll }: { onShowAll: () => void }) {
     let isActive = true;
     const id = window.setTimeout(() => {
       const load = async () => {
+        setLoading(true);
         try {
           const r = await getConcerts({
             page: 1,
             limit: 9,
-            status: "PUBLISHED",
+            status: statusFilter,
           });
           if (!isActive) return;
           setItems(r.items);
@@ -469,7 +480,10 @@ function CarouselItems({ onShowAll }: { onShowAll: () => void }) {
           if (!isActive) return;
           setItems([]);
         } finally {
-          if (isActive) setLoading(false);
+          if (isActive) {
+            setLoading(false);
+            onLoaded?.();
+          }
         }
       };
       void load();
@@ -478,7 +492,7 @@ function CarouselItems({ onShowAll }: { onShowAll: () => void }) {
       isActive = false;
       clearTimeout(id);
     };
-  }, []);
+  }, [statusFilter]);
 
   if (loading) {
     return (

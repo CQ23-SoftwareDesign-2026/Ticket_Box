@@ -1,9 +1,10 @@
-import { Button, Card, SectionHeading, SiteShell } from "@/components/common";
+import { Button, Card, SiteShell } from "@/components/common";
 import {
   ConcertDetailHero,
   InteractiveTicketSelector,
   SeatMapViewer,
 } from "@/components/screens";
+
 import { getConcertById } from "@/services/concert.service";
 
 export default async function ConcertDetailPage({
@@ -44,55 +45,69 @@ export default async function ConcertDetailPage({
         <ConcertDetailHero concert={concert} />
         <div className="mt-8 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-start">
           <div className="space-y-8">
+            {/* ── Select Section ── */}
             <Card className="overflow-hidden border-0 shadow-md bg-surface p-6 sm:p-8">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-display text-2xl font-bold text-on-surface">
                   Select Section
                 </h2>
               </div>
-
               <SeatMapViewer mapUrl={concert.mapUrl} />
             </Card>
 
-            <Card className="overflow-hidden border-0 shadow-md bg-surface p-6 sm:p-8">
-              <SectionHeading
-                eyebrow="About the show"
-                title="Event Details"
-                description={concert.description || "No description provided."}
-              />
+            {/* ── About the show ── */}
+            <Card className="overflow-hidden border-0 bg-surface shadow-lg shadow-black/20 px-7 py-6 sm:px-8 sm:py-7">
+              {/* Eyebrow */}
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant/40">
+                About the show
+              </p>
 
-              {concert.aiBio && (
-                <div className="mt-6 p-4 rounded-xl bg-purple-50 border border-purple-100 text-sm text-purple-900">
-                  <p className="font-semibold text-xs uppercase tracking-wider text-purple-700 mb-1">
-                    AI Generated Bio
-                  </p>
-                  <p>{concert.aiBio}</p>
-                </div>
-              )}
-
-              <div className="mt-8 grid gap-4 grid-cols-2">
-                {[
-                  ["Show Date", concert.date],
-                  ["Show Time", concert.time || "TBA"],
-                  ["Venue", concert.venue],
-                  ["City", concert.city || "TBA"],
-                  ["Status", concert.status],
-                ].map(([label, value]) => (
-                  <div
-                    key={label}
-                    className="rounded-xl border border-outline-variant bg-surface-low p-4"
-                  >
-                    <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant/70">
-                      {label}
-                    </p>
-                    <p
-                      className="mt-2 text-sm font-bold text-on-surface truncate"
-                      title={value}
+              <div className="mt-4 divide-y divide-outline-variant/25">
+                {/* ── Description ── */}
+                {concert.description ? (
+                  <div className="flex gap-5 pb-7">
+                    <span
+                      aria-hidden
+                      className="font-display select-none text-[52px] font-black leading-none text-on-surface/[0.07]"
                     >
-                      {value}
-                    </p>
+                      01
+                    </span>
+                    <div className="pt-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-on-surface-variant/50">
+                        Description
+                      </p>
+                      <p className="mt-2.5 text-[15px] leading-[1.8] text-on-surface-variant">
+                        {concert.description}
+                      </p>
+                    </div>
                   </div>
-                ))}
+                ) : (
+                  !concert.aiBio && (
+                    <p className="py-6 text-sm italic text-on-surface-variant/40">
+                      No description provided.
+                    </p>
+                  )
+                )}
+
+                {/* ── AI Bio ── */}
+                {concert.aiBio && (
+                  <div className="flex gap-5 pt-7">
+                    <span
+                      aria-hidden
+                      className="font-display select-none text-[52px] font-black leading-none text-secondary/[0.18]"
+                    >
+                      02
+                    </span>
+                    <div className="pt-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-secondary-container/70">
+                        ✦&nbsp; AI Generated Bio
+                      </p>
+                      <p className="mt-2.5 text-[15px] italic leading-[1.8] text-on-surface-variant/80">
+                        {concert.aiBio}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </Card>
           </div>
