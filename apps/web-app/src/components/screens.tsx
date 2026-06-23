@@ -17,7 +17,14 @@ import {
   tickets,
 } from "@/lib/mock-data";
 import { Badge, Button, Card, SectionHeading, Tabs } from "@/components/common";
-import { ArrowRight, X, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ArrowRight,
+  X,
+  ZoomIn,
+  ZoomOut,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import {
   formatConcertCurrency,
   formatConcertDateTime,
@@ -51,7 +58,7 @@ export function HeroCarousel() {
         if (!isActive) return;
 
         const details = await Promise.all(
-          response.items.map((item) => getConcertById(item.id))
+          response.items.map((item) => getConcertById(item.id)),
         );
 
         if (!isActive) return;
@@ -71,24 +78,21 @@ export function HeroCarousel() {
       isActive = false;
     };
   }, []);
-  const changeSlide = useCallback(
-    (nextIndex: number) => {
-      setActiveIndex((current) => {
-        if (current === nextIndex) return current;
-        setPrevIndex(current);
+  const changeSlide = useCallback((nextIndex: number) => {
+    setActiveIndex((current) => {
+      if (current === nextIndex) return current;
+      setPrevIndex(current);
 
-        if (transitionTimeout.current) {
-          clearTimeout(transitionTimeout.current);
-        }
-        transitionTimeout.current = setTimeout(() => {
-          setPrevIndex(null);
-        }, 600);
+      if (transitionTimeout.current) {
+        clearTimeout(transitionTimeout.current);
+      }
+      transitionTimeout.current = setTimeout(() => {
+        setPrevIndex(null);
+      }, 600);
 
-        return nextIndex;
-      });
-    },
-    []
-  );
+      return nextIndex;
+    });
+  }, []);
 
   const goPrev = useCallback(() => {
     if (concerts.length === 0) return;
@@ -107,7 +111,8 @@ export function HeroCarousel() {
   }, []);
 
   const featuredConcert = concerts[activeIndex] ?? null;
-  const previousConcert = prevIndex !== null ? concerts[prevIndex] ?? null : null;
+  const previousConcert =
+    prevIndex !== null ? (concerts[prevIndex] ?? null) : null;
 
   const getImageSrc = (concert: ConcertDetailItem | null) =>
     concert?.posterUrl &&
@@ -134,8 +139,8 @@ export function HeroCarousel() {
 
   return (
     <section className="group relative overflow-hidden bg-[#111318] text-white min-h-[600px] flex items-end pb-16">
-      {/* Ảnh cũ — fade out, giữ lại trong lúc ảnh mới fade in để tránh giật/đen màn hình */}
       {previousConcert && (
+        /* eslint-disable-next-line @next/next/no-img-element */
         <img
           key={`prev-${previousConcert.id}`}
           src={getImageSrc(previousConcert)}
@@ -144,8 +149,8 @@ export function HeroCarousel() {
         />
       )}
 
-      {/* Ảnh hiện tại — fade in chồng lên ảnh cũ */}
       {featuredConcert && (
+        /* eslint-disable-next-line @next/next/no-img-element */
         <img
           key={`current-${featuredConcert.id}`}
           src={getImageSrc(featuredConcert)}
@@ -266,6 +271,7 @@ export function ConcertCard({
       <div
         className={`relative overflow-hidden ${featured ? "w-full sm:w-5/12 min-h-[280px] sm:min-h-full" : "w-full h-64"}`}
       >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={
             (concert as Record<string, unknown>).posterUrl &&
@@ -536,9 +542,6 @@ export function InteractiveTicketSelector({
         quantity,
         remaining: response.items[0]?.remaining ?? 0,
         reservedAt: new Date().toISOString(),
-        // The backend does not return expires_at, so we derive the 10-minute
-        // ceiling here, at reservation time. This anchor is written once to
-        // localStorage and is NEVER regenerated on subsequent page mounts.
         expiresAt:
           response.expires_at ??
           new Date(Date.now() + 10 * 60 * 1000).toISOString(),
@@ -1300,7 +1303,6 @@ function TimerFootnote({ orderId }: { orderId?: string }) {
 
 export function CountdownTimer({ orderId }: { orderId?: string }) {
   const { formattedTime, isExpired } = useReservationTimer(orderId);
-  const router = useRouter();
 
   return (
     <>

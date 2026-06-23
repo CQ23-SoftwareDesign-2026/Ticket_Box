@@ -10,10 +10,9 @@ import {
   Eye,
   EyeOff,
   CheckCircle,
-  AlertCircle,
   Loader2,
   X,
-  ShieldAlert
+  ShieldAlert,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -55,17 +54,20 @@ function ProfileContent() {
 
     setLoading(true);
     try {
-      const response = await authService.changePassword(oldPassword, newPassword);
+      const response = await authService.changePassword(
+        oldPassword,
+        newPassword,
+      );
       setSuccess(response.message || "Đổi mật khẩu thành công!");
       setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");
-    } catch (err: any) {
-      setError(
-        err.response?.data?.message ||
-        err.message ||
-        "Đổi mật khẩu thất bại. Vui lòng thử lại."
-      );
+    } catch (err) {
+      const errorMsg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        (err as Error)?.message ||
+        "Đổi mật khẩu thất bại. Vui lòng thử lại.";
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -162,24 +164,36 @@ function ProfileContent() {
 
         <div className="grid gap-6 sm:grid-cols-2">
           <div className="rounded-xl bg-surface-low p-4 border border-outline-variant/40">
-            <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant block">Full Name</span>
-            <span className="text-base font-semibold text-on-surface mt-1.5 block">{user?.fullName}</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant block">
+              Full Name
+            </span>
+            <span className="text-base font-semibold text-on-surface mt-1.5 block">
+              {user?.fullName}
+            </span>
           </div>
 
           <div className="rounded-xl bg-surface-low p-4 border border-outline-variant/40">
-            <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant block">Email Address</span>
-            <span className="text-base font-semibold text-on-surface mt-1.5 block truncate">{user?.email}</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant block">
+              Email Address
+            </span>
+            <span className="text-base font-semibold text-on-surface mt-1.5 block truncate">
+              {user?.email}
+            </span>
           </div>
 
           <div className="rounded-xl bg-surface-low p-4 border border-outline-variant/40">
-            <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant block">Role</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant block">
+              Role
+            </span>
             <span className="text-base font-semibold text-on-surface mt-1.5 block">
               {user?.roles?.join(", ") || "User"}
             </span>
           </div>
 
           <div className="rounded-xl bg-surface-low p-4 border border-outline-variant/40">
-            <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant block">Account Status</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant block">
+              Account Status
+            </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 border border-emerald-500/20 mt-2">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
               {user?.status || "ACTIVE"}
@@ -286,13 +300,20 @@ function ProfileContent() {
                           placeholder="Enter current password"
                           className="w-full rounded-[12px] border border-outline-variant bg-surface-low pl-10 pr-10 py-3 text-sm text-on-surface outline-none transition focus:border-[#7132f5] focus:ring-2 focus:ring-[#7132f5]/15"
                         />
-                        <Lock size={15} className="absolute left-3.5 top-3.5 text-on-surface-variant/60" />
+                        <Lock
+                          size={15}
+                          className="absolute left-3.5 top-3.5 text-on-surface-variant/60"
+                        />
                         <button
                           type="button"
                           onClick={() => setShowOldPassword(!showOldPassword)}
                           className="absolute right-3.5 top-3.5 text-on-surface-variant/60 hover:text-[#7132f5] transition-colors"
                         >
-                          {showOldPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                          {showOldPassword ? (
+                            <EyeOff size={15} />
+                          ) : (
+                            <Eye size={15} />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -308,13 +329,20 @@ function ProfileContent() {
                           placeholder="Enter new password"
                           className="w-full rounded-[12px] border border-outline-variant bg-surface-low pl-10 pr-10 py-3 text-sm text-on-surface outline-none transition focus:border-[#7132f5] focus:ring-2 focus:ring-[#7132f5]/15"
                         />
-                        <Lock size={15} className="absolute left-3.5 top-3.5 text-on-surface-variant/60" />
+                        <Lock
+                          size={15}
+                          className="absolute left-3.5 top-3.5 text-on-surface-variant/60"
+                        />
                         <button
                           type="button"
                           onClick={() => setShowNewPassword(!showNewPassword)}
                           className="absolute right-3.5 top-3.5 text-on-surface-variant/60 hover:text-[#7132f5] transition-colors"
                         >
-                          {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                          {showNewPassword ? (
+                            <EyeOff size={15} />
+                          ) : (
+                            <Eye size={15} />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -330,13 +358,22 @@ function ProfileContent() {
                           placeholder="Confirm new password"
                           className="w-full rounded-[12px] border border-outline-variant bg-surface-low pl-10 pr-10 py-3 text-sm text-on-surface outline-none transition focus:border-[#7132f5] focus:ring-2 focus:ring-[#7132f5]/15"
                         />
-                        <Lock size={15} className="absolute left-3.5 top-3.5 text-on-surface-variant/60" />
+                        <Lock
+                          size={15}
+                          className="absolute left-3.5 top-3.5 text-on-surface-variant/60"
+                        />
                         <button
                           type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          onClick={() =>
+                            setShowConfirmPassword(!showConfirmPassword)
+                          }
                           className="absolute right-3.5 top-3.5 text-on-surface-variant/60 hover:text-[#7132f5] transition-colors"
                         >
-                          {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                          {showConfirmPassword ? (
+                            <EyeOff size={15} />
+                          ) : (
+                            <Eye size={15} />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -353,9 +390,7 @@ function ProfileContent() {
                           Updating Password...
                         </>
                       ) : (
-                        <>
-                          Update Password
-                        </>
+                        <>Update Password</>
                       )}
                     </motion.button>
                   </form>
