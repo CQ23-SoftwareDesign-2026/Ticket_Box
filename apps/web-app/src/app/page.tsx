@@ -175,7 +175,7 @@ function ConcertsFullList() {
   const [meta, setMeta] = useState<ConcertListMeta>({
     totalItems: 0,
     itemCount: 0,
-    itemsPerPage: 8,
+    itemsPerPage: 4,
     totalPages: 1,
     currentPage: 1,
   });
