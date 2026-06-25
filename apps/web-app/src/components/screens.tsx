@@ -168,7 +168,7 @@ export function HeroCarousel() {
           type="button"
           onClick={goPrev}
           aria-label="Concert trước"
-          className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-all duration-200 hover:bg-black/60 hover:scale-105 active:scale-95 sm:left-5 sm:h-12 sm:w-12"
+          className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-all duration-200 hover:bg-black/60 hover:scale-105 active:scale-95 sm:left-5 sm:h-12 sm:w-12 cursor-pointer"
         >
           <ChevronLeft size={22} />
         </button>
@@ -179,7 +179,7 @@ export function HeroCarousel() {
           type="button"
           onClick={goNext}
           aria-label="Concert tiếp theo"
-          className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-all duration-200 hover:bg-black/60 hover:scale-105 active:scale-95 sm:right-5 sm:h-12 sm:w-12"
+          className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-all duration-200 hover:bg-black/60 hover:scale-105 active:scale-95 sm:right-5 sm:h-12 sm:w-12 cursor-pointer"
         >
           <ChevronRight size={22} />
         </button>
@@ -245,7 +245,7 @@ export function HeroCarousel() {
               type="button"
               onClick={() => changeSlide(index)}
               aria-label={`Xem concert ${index + 1}`}
-              className={`h-2 rounded-full transition-all duration-300 ${
+              className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
                 index === activeIndex
                   ? "w-6 bg-white"
                   : "w-2 bg-white/40 hover:bg-white/60"

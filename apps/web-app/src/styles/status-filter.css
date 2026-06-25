@@ -1,0 +1,202 @@
+/**
+ * status-filter.css
+ * Premium animated styles for the Published / Completed status filter pills.
+ *
+ * Concept: "Liquid Selector"
+ *  • The wrapper pill has a subtle ambient glow that breathes
+ *  • Inactive buttons lift and glow on hover
+ *  • The active button gets a shimmering gradient + glow pulse
+ */
+
+/* ── Container ──────────────────────────────────────────────────────────────── */
+.status-filter-group {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(8px);
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  /* Slow ambient glow animation on the container */
+  animation: filter-ambient 6s ease-in-out infinite alternate;
+}
+
+@keyframes filter-ambient {
+  0% {
+    box-shadow:
+      0 2px 12px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 0 0px rgba(79, 70, 229, 0);
+  }
+  100% {
+    box-shadow:
+      0 2px 12px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 0 18px rgba(79, 70, 229, 0.18);
+  }
+}
+
+/* ── Base button ─────────────────────────────────────────────────────────────── */
+.status-filter-btn {
+  position: relative;
+  overflow: hidden;
+  padding: 5px 16px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(203, 213, 225, 0.55);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  outline: none;
+  transition:
+    color 0.25s ease,
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.25s ease,
+    background 0.25s ease;
+  /* isolate for z-index stacking */
+  isolation: isolate;
+}
+
+@media (min-width: 640px) {
+  .status-filter-btn {
+    font-size: 0.875rem;
+    padding: 5px 20px;
+  }
+}
+
+/* Hover — inactive: soft gradient preview of the active state */
+.status-filter-btn:not(.status-filter-btn--active):hover {
+  color: rgba(248, 250, 252, 0.95);
+  transform: translateY(-1px) scale(1.02);
+  background: linear-gradient(
+    135deg,
+    rgba(79, 70, 229, 0.35) 0%,
+    rgba(113, 42, 226, 0.35) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.07) inset,
+    0 4px 16px rgba(79, 70, 229, 0.3),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Hover shimmer — lighter, one-shot on hover via animation-play-state trick */
+.status-filter-btn:not(.status-filter-btn--active):hover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.14) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-sweep-hover 1.2s ease-out forwards;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes shimmer-sweep-hover {
+  0% {
+    background-position: -100% 0;
+    opacity: 1;
+  }
+  100% {
+    background-position: 250% 0;
+    opacity: 0;
+  }
+}
+
+.status-filter-btn:not(.status-filter-btn--active):active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* ── Active / chosen state ───────────────────────────────────────────────────── */
+.status-filter-btn--active {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.12);
+  /* Gradient background — primary → secondary */
+  background: linear-gradient(
+    135deg,
+    var(--primary, #4f46e5) 0%,
+    var(--secondary, #712ae2) 100%
+  );
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+    0 4px 16px rgba(79, 70, 229, 0.45),
+    0 1px 3px rgba(0, 0, 0, 0.4);
+  animation: active-pulse 3s ease-in-out infinite;
+}
+
+/* Pulse glow on active button */
+@keyframes active-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+      0 4px 16px rgba(79, 70, 229, 0.45),
+      0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.15) inset,
+      0 4px 28px rgba(113, 42, 226, 0.65),
+      0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Shimmer sweep on active button */
+.status-filter-btn--active::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.22) 50%,
+    transparent 65%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-sweep 2.4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    background-position: -100% 0;
+  }
+  60%,
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Text sits above the shimmer */
+.status-filter-btn span {
+  position: relative;
+  z-index: 2;
+}
+
+/* Active hover — lift slightly with stronger glow */
+.status-filter-btn--active:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.15) inset,
+    0 6px 28px rgba(113, 42, 226, 0.7),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.status-filter-btn--active:active {
+  transform: scale(0.97);
+}
