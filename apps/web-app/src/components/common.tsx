@@ -9,7 +9,7 @@ import {
   Ticket,
   LogOut,
 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Suspense } from "react";
 
@@ -34,7 +34,7 @@ export function Button({
   className = "",
 }: ButtonProps) {
   const classes = [
-    "inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98]",
+    "inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98] cursor-pointer",
     buttonStyles[variant],
     className,
   ]
@@ -238,6 +238,7 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
 
 function HeaderSearchInput() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchQuery = searchParams?.get("q") || "";
 
@@ -250,7 +251,12 @@ function HeaderSearchInput() {
         const params = new URLSearchParams(searchParams?.toString() || "");
         if (e.target.value) params.set("q", e.target.value);
         else params.delete("q");
-        router.push(`/?${params.toString()}#upcoming-concerts`);
+        // Stay on /concerts if already there, otherwise go to homepage
+        if (pathname?.startsWith("/concerts")) {
+          router.push(`/concerts?${params.toString()}`);
+        } else {
+          router.push(`/?${params.toString()}#upcoming-concerts`);
+        }
       }}
       className="hidden sm:block w-48 lg:w-64 rounded-full border border-outline-variant bg-surface px-4 py-2 text-sm text-white outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/50"
     />
@@ -258,32 +264,27 @@ function HeaderSearchInput() {
 }
 
 function HeaderStatusFilters() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const statusFilter = searchParams?.get("status") || "PUBLISHED";
+  const pathname = usePathname();
+  // Show active state only when on the /concerts page
+  const statusFilter = pathname?.startsWith("/concerts")
+    ? searchParams?.get("status") || "PUBLISHED"
+    : null;
 
   return (
-    <div className="flex items-center bg-outline-variant/30 p-1 rounded-full">
-      <button
-        onClick={() => {
-          const params = new URLSearchParams(searchParams?.toString() || "");
-          params.set("status", "PUBLISHED");
-          router.push(`/?${params.toString()}#upcoming-concerts`);
-        }}
-        className={`px-4 py-1 text-xs sm:text-sm font-bold rounded-full transition-all duration-300 ${statusFilter === "PUBLISHED" ? "bg-surface text-primary shadow-sm" : "text-on-surface-variant/70 hover:text-on-surface-variant"}`}
+    <div className="status-filter-group">
+      <Link
+        href="/concerts?status=PUBLISHED"
+        className={`status-filter-btn${statusFilter === "PUBLISHED" ? " status-filter-btn--active" : ""}`}
       >
-        Published
-      </button>
-      <button
-        onClick={() => {
-          const params = new URLSearchParams(searchParams?.toString() || "");
-          params.set("status", "COMPLETED");
-          router.push(`/?${params.toString()}#upcoming-concerts`);
-        }}
-        className={`px-4 py-1 text-xs sm:text-sm font-bold rounded-full transition-all duration-300 ${statusFilter === "COMPLETED" ? "bg-surface text-primary shadow-sm" : "text-on-surface-variant/70 hover:text-on-surface-variant"}`}
+        <span>Published</span>
+      </Link>
+      <Link
+        href="/concerts?status=COMPLETED"
+        className={`status-filter-btn${statusFilter === "COMPLETED" ? " status-filter-btn--active" : ""}`}
       >
-        Completed
-      </button>
+        <span>Completed</span>
+      </Link>
     </div>
   );
 }
@@ -328,7 +329,7 @@ export function SiteShell({
 
             {isAuthenticated ? (
               <div className="relative group">
-                <button className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-container text-primary-foreground font-bold shadow-sm ring-2 ring-transparent transition-all duration-200 hover:ring-primary/40 hover:shadow-md active:scale-95">
+                <button className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-container text-primary-foreground font-bold shadow-sm ring-2 ring-transparent transition-all duration-200 hover:ring-primary/40 hover:shadow-md active:scale-95 cursor-pointer">
                   {user?.fullName?.charAt(0).toUpperCase() || "U"}
                 </button>
 
@@ -379,7 +380,7 @@ export function SiteShell({
                       onClick={() => {
                         void logout().then(() => router.replace("/login"));
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-semibold text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-semibold text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer"
                     >
                       <LogOut size={16} /> Log out
                     </button>
