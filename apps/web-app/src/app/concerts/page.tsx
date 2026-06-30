@@ -120,7 +120,6 @@ function ConcertList() {
       isActive = false;
       clearTimeout(id);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, status, search]);
 
   const totalPages = Math.max(meta.totalPages, 1);

@@ -392,6 +392,13 @@ function CarouselItems({
   const [items, setItems] = useState<ConcertCardItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Store onLoaded in a ref so we can call the latest version in the effect
+  // without including it in the dependency array (which would trigger re-renders).
+  const onLoadedRef = useRef(onLoaded);
+  useEffect(() => {
+    onLoadedRef.current = onLoaded;
+  }, [onLoaded]);
+
   useEffect(() => {
     let isActive = true;
     const id = window.setTimeout(() => {
@@ -411,7 +418,7 @@ function CarouselItems({
         } finally {
           if (isActive) {
             setLoading(false);
-            onLoaded?.();
+            onLoadedRef.current?.();
           }
         }
       };

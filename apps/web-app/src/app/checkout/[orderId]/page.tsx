@@ -1,11 +1,9 @@
-import { Suspense } from "react";
-import { Button } from "@/components/common";
-import {
-  CustomerInfoForm,
-  OrderSummaryCard,
-  PaymentMethodPicker,
-  CountdownTimer,
-} from "@/components/screens";
+import { CountdownTimer } from "@/components/screens";
+import { CheckoutForm } from "@/components/CheckoutForm";
+
+export const metadata = {
+  title: "Secure Checkout — TicketBox",
+};
 
 export default async function CheckoutPage({
   params,
@@ -15,45 +13,30 @@ export default async function CheckoutPage({
   const { orderId } = await params;
 
   return (
-    <section className="mx-auto w-full max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+    <section className="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+      {/* ── Page header ──────────────────────────────────────────────── */}
+      <div className="mb-10 flex flex-wrap items-start justify-between gap-6">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary">
-            Secure checkout
-          </p>
-          <h1 className="mt-2 font-display text-4xl font-black tracking-tight text-on-surface">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+            <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
+              Secure Checkout
+            </span>
+          </div>
+          <h1 className="font-display text-4xl font-black tracking-tight text-on-surface sm:text-5xl">
             Complete your order
           </h1>
-          <p className="mt-2 text-sm text-on-surface-variant">
-            Reservation {orderId}
+          <p className="mt-2 text-sm font-mono text-on-surface-variant">
+            Reservation ID:{" "}
+            <span className="text-on-surface/70">{orderId}</span>
           </p>
         </div>
         <CountdownTimer orderId={orderId} />
       </div>
+
+      {/* ── Two-column grid ───────────────────────────────────────────── */}
       <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="space-y-6">
-          <CustomerInfoForm />
-          <PaymentMethodPicker />
-          <div className="flex flex-wrap gap-3">
-            <Button href={`/checkout/${orderId}/processing`}>Pay now</Button>
-            <Button
-              href="/"
-              variant="ghost"
-              className="border border-outline-variant"
-            >
-              Back to Home
-            </Button>
-          </div>
-        </div>
-        <Suspense
-          fallback={
-            <div className="p-6 border rounded-3xl bg-surface shadow">
-              Loading summary...
-            </div>
-          }
-        >
-          <OrderSummaryCard />
-        </Suspense>
+        <CheckoutForm orderId={orderId} />
       </div>
     </section>
   );
