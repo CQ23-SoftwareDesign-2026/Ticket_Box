@@ -86,7 +86,10 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
 
         if (result.qr_code && result.checkout_url) {
           if (typeof window !== "undefined") {
-            window.sessionStorage.setItem("last_checkout_order_id", resolvedOrderId);
+            window.sessionStorage.setItem(
+              "last_checkout_order_id",
+              resolvedOrderId,
+            );
           }
           setPaymentSession({
             qrCode: result.qr_code,
@@ -97,7 +100,10 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
           setLoadingSource(null);
         } else if (result.checkout_url) {
           if (typeof window !== "undefined") {
-            window.sessionStorage.setItem("last_checkout_order_id", resolvedOrderId);
+            window.sessionStorage.setItem(
+              "last_checkout_order_id",
+              resolvedOrderId,
+            );
           }
           window.location.href = result.checkout_url;
         } else {
@@ -156,14 +162,19 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
               ) : (
                 <div className="flex flex-col items-center justify-center space-y-2">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <span className="text-xs text-on-surface-variant">Generating QR...</span>
+                  <span className="text-xs text-on-surface-variant">
+                    Generating QR...
+                  </span>
                 </div>
               )}
             </div>
             <div className="mt-4 text-center space-y-1">
               {paymentSession.accountName && (
                 <p className="text-xs text-on-surface-variant">
-                  Account Name: <span className="font-bold text-on-surface">{paymentSession.accountName}</span>
+                  Account Name:{" "}
+                  <span className="font-bold text-on-surface">
+                    {paymentSession.accountName}
+                  </span>
                 </p>
               )}
               <p className="text-xs text-on-surface-variant flex items-center justify-center gap-1.5 animate-pulse">

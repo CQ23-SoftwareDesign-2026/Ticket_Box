@@ -2,8 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { SiteShell, Button } from "@/components/common";
-import { getOrders, type OrderListItem, type PaginationMeta } from "@/services/order.service";
-import { Calendar, Ticket, ArrowRight, Landmark, Search, AlertCircle, Sparkles, CheckCircle2, Ban } from "lucide-react";
+import {
+  getOrders,
+  type OrderListItem,
+  type PaginationMeta,
+} from "@/services/order.service";
+import {
+  Calendar,
+  Ticket,
+  ArrowRight,
+  Landmark,
+  Search,
+  AlertCircle,
+  Sparkles,
+  CheckCircle2,
+  Ban,
+} from "lucide-react";
 import "@/styles/status-filter.css";
 
 const TABS = [
@@ -130,12 +144,17 @@ export default function MyTicketsPage() {
                 My Ticket Library
               </h1>
               <p className="max-w-xl text-sm leading-relaxed text-white/80">
-                Keep your confirmed entry passes, pending checkout reserves, and transaction logs organized in one centralized hub.
+                Keep your confirmed entry passes, pending checkout reserves, and
+                transaction logs organized in one centralized hub.
               </p>
             </div>
 
             {/* Quick action back to concerts */}
-            <Button href="/concerts" variant="secondary" className="shrink-0 font-bold self-start md:self-auto shadow-md">
+            <Button
+              href="/concerts"
+              variant="secondary"
+              className="shrink-0 font-bold self-start md:self-auto shadow-md"
+            >
               Find New Events
             </Button>
           </div>

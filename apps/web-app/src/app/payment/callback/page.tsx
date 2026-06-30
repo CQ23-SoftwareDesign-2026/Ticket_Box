@@ -3,7 +3,11 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { SiteShell, Button } from "@/components/common";
-import { getOrderById, getOrders, type OrderDetail } from "@/services/order.service";
+import {
+  getOrderById,
+  getOrders,
+  type OrderDetail,
+} from "@/services/order.service";
 import { CheckCircle2, XCircle, AlertCircle, Loader2 } from "lucide-react";
 
 // Hashing function matching backend to map orderCode back to orderId
@@ -11,7 +15,7 @@ function generateOrderCode(uuid: string): number {
   let hash = 0;
   for (let i = 0; i < uuid.length; i++) {
     const char = uuid.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32bit integer
   }
   return Math.abs(hash);
@@ -34,7 +38,9 @@ function CallbackContent() {
 
     async function resolveAndVerifyOrder() {
       try {
-        let resolvedOrderId = window.sessionStorage.getItem("last_checkout_order_id");
+        let resolvedOrderId = window.sessionStorage.getItem(
+          "last_checkout_order_id",
+        );
 
         // Validate sessionStorage orderId against orderCode if orderCode is present
         if (resolvedOrderId && orderCodeParam) {
@@ -68,7 +74,11 @@ function CallbackContent() {
 
         // If transaction is marked success in query parameters but PENDING in backend, poll for webhook completion
         const isQuerySuccess = code === "00" && !cancel;
-        if (orderData.status === "PENDING" && isQuerySuccess && pollingCount < 5) {
+        if (
+          orderData.status === "PENDING" &&
+          isQuerySuccess &&
+          pollingCount < 5
+        ) {
           setTimeout(() => {
             if (active) setPollingCount((prev) => prev + 1);
           }, 2000);
@@ -82,7 +92,9 @@ function CallbackContent() {
       } catch (err) {
         console.error("Error verifying payment callback:", err);
         if (active) {
-          setError("Failed to fetch order status. Please check your internet connection.");
+          setError(
+            "Failed to fetch order status. Please check your internet connection.",
+          );
           setLoading(false);
         }
       }
@@ -103,7 +115,8 @@ function CallbackContent() {
           Verifying your transaction
         </h2>
         <p className="text-sm text-on-surface-variant max-w-sm">
-          Please wait while we establish secure credentials and verify the settlement status with the portal.
+          Please wait while we establish secure credentials and verify the
+          settlement status with the portal.
         </p>
       </div>
     );
@@ -147,7 +160,8 @@ function CallbackContent() {
               Payment Successful!
             </h2>
             <p className="mt-2 text-sm text-on-surface-variant">
-              Your tickets are ready and confirmed. We have successfully processed your settlement.
+              Your tickets are ready and confirmed. We have successfully
+              processed your settlement.
             </p>
           </div>
 
@@ -155,7 +169,8 @@ function CallbackContent() {
             <div className="flex justify-between text-sm">
               <span className="text-on-surface-variant">Booking ID</span>
               <span className="font-mono font-semibold text-on-surface">
-                {order.id.slice(0, 8).toUpperCase()}-{order.id.slice(9, 13).toUpperCase()}
+                {order.id.slice(0, 8).toUpperCase()}-
+                {order.id.slice(9, 13).toUpperCase()}
               </span>
             </div>
             <div className="flex justify-between text-sm">
@@ -173,7 +188,8 @@ function CallbackContent() {
             <div className="flex justify-between text-sm">
               <span className="text-on-surface-variant">Tickets Purchased</span>
               <span className="font-semibold text-on-surface">
-                {order.ticket_count} {order.ticket_count > 1 ? "tickets" : "ticket"}
+                {order.ticket_count}{" "}
+                {order.ticket_count > 1 ? "tickets" : "ticket"}
               </span>
             </div>
           </div>
@@ -203,7 +219,8 @@ function CallbackContent() {
             Payment Cancelled
           </h2>
           <p className="mt-2 text-sm text-on-surface-variant">
-            Your transaction was cancelled or failed to complete. No charges were made.
+            Your transaction was cancelled or failed to complete. No charges
+            were made.
           </p>
         </div>
 

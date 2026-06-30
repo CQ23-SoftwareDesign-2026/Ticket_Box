@@ -2,7 +2,11 @@
 
 import { useEffect, useState, use } from "react";
 import { SiteShell, Button } from "@/components/common";
-import { getOrderById, cancelOrder, type OrderDetail } from "@/services/order.service";
+import {
+  getOrderById,
+  cancelOrder,
+  type OrderDetail,
+} from "@/services/order.service";
 import {
   Calendar,
   Ticket,
@@ -71,7 +75,9 @@ export default function OrderDetailsPage({ params }: PageProps) {
       setOrder(data);
     } catch (err) {
       console.error("Failed to load order details:", err);
-      setError("Unable to retrieve order details. Please verify your order ID.");
+      setError(
+        "Unable to retrieve order details. Please verify your order ID.",
+      );
     } finally {
       setLoading(false);
     }
@@ -90,7 +96,9 @@ export default function OrderDetailsPage({ params }: PageProps) {
       } catch (err) {
         console.error("Failed to load order details:", err);
         if (active) {
-          setError("Unable to retrieve order details. Please verify your order ID.");
+          setError(
+            "Unable to retrieve order details. Please verify your order ID.",
+          );
           setLoading(false);
         }
       }
@@ -104,7 +112,11 @@ export default function OrderDetailsPage({ params }: PageProps) {
   }, [orderId]);
 
   const handleCancelOrder = async () => {
-    if (!window.confirm("Are you sure you want to cancel this pending order? This will release reserved seats.")) {
+    if (
+      !window.confirm(
+        "Are you sure you want to cancel this pending order? This will release reserved seats.",
+      )
+    ) {
       return;
     }
     setCancelLoading(true);
@@ -142,7 +154,9 @@ export default function OrderDetailsPage({ params }: PageProps) {
       <SiteShell active="/my-tickets">
         <div className="flex min-h-[50vh] flex-col items-center justify-center space-y-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-on-surface-variant font-medium">Loading order details...</p>
+          <p className="text-on-surface-variant font-medium">
+            Loading order details...
+          </p>
         </div>
       </SiteShell>
     );
@@ -159,7 +173,8 @@ export default function OrderDetailsPage({ params }: PageProps) {
             Order Not Found
           </h2>
           <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-            {error || "We couldn't find the requested order in your account history."}
+            {error ||
+              "We couldn't find the requested order in your account history."}
           </p>
           <div className="mt-8 flex flex-col gap-3">
             <Button href="/my-tickets" className="w-full">
@@ -182,7 +197,10 @@ export default function OrderDetailsPage({ params }: PageProps) {
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant">
-              <span className="hover:text-primary cursor-pointer" onClick={() => window.history.back()}>
+              <span
+                className="hover:text-primary cursor-pointer"
+                onClick={() => window.history.back()}
+              >
                 Orders
               </span>
               <span>/</span>
@@ -232,9 +250,13 @@ export default function OrderDetailsPage({ params }: PageProps) {
                 <div className="flex gap-3">
                   <AlertTriangle className="shrink-0 text-amber-600" />
                   <div>
-                    <h4 className="font-bold text-amber-900">Payment Pending</h4>
+                    <h4 className="font-bold text-amber-900">
+                      Payment Pending
+                    </h4>
                     <p className="mt-1 text-sm text-amber-800">
-                      This order is reserved, but payment has not been confirmed. Please complete the settlement process before the reservation expires.
+                      This order is reserved, but payment has not been
+                      confirmed. Please complete the settlement process before
+                      the reservation expires.
                     </p>
                   </div>
                 </div>
@@ -246,9 +268,12 @@ export default function OrderDetailsPage({ params }: PageProps) {
                 <div className="flex gap-3">
                   <Ban className="shrink-0 text-slate-500" />
                   <div>
-                    <h4 className="font-bold text-slate-900">Order Cancelled</h4>
+                    <h4 className="font-bold text-slate-900">
+                      Order Cancelled
+                    </h4>
                     <p className="mt-1 text-sm text-slate-700">
-                      This order was cancelled and seat allocations have been released back into the ticket pool inventory.
+                      This order was cancelled and seat allocations have been
+                      released back into the ticket pool inventory.
                     </p>
                   </div>
                 </div>
@@ -264,15 +289,23 @@ export default function OrderDetailsPage({ params }: PageProps) {
                 <div className="flex items-center gap-2.5 rounded-2xl bg-surface-low p-3.5">
                   <Calendar size={18} className="text-primary" />
                   <div>
-                    <p className="text-xs uppercase tracking-wider text-on-surface-variant font-medium">Created Date</p>
-                    <p className="font-semibold text-on-surface">{formatDate(order.created_at)}</p>
+                    <p className="text-xs uppercase tracking-wider text-on-surface-variant font-medium">
+                      Created Date
+                    </p>
+                    <p className="font-semibold text-on-surface">
+                      {formatDate(order.created_at)}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2.5 rounded-2xl bg-surface-low p-3.5">
                   <Ticket size={18} className="text-primary" />
                   <div>
-                    <p className="text-xs uppercase tracking-wider text-on-surface-variant font-medium">Tickets Quantity</p>
-                    <p className="font-semibold text-on-surface">{order.ticket_count} tickets</p>
+                    <p className="text-xs uppercase tracking-wider text-on-surface-variant font-medium">
+                      Tickets Quantity
+                    </p>
+                    <p className="font-semibold text-on-surface">
+                      {order.ticket_count} tickets
+                    </p>
                   </div>
                 </div>
               </div>
@@ -309,21 +342,27 @@ export default function OrderDetailsPage({ params }: PageProps) {
 
                       <div className="space-y-2">
                         <div>
-                          <p className="text-[10px] uppercase text-on-surface-variant font-medium">Category</p>
+                          <p className="text-[10px] uppercase text-on-surface-variant font-medium">
+                            Category
+                          </p>
                           <p className="text-sm font-semibold text-on-surface">
                             {ticket.category_name || "General Admission"}
                           </p>
                         </div>
                         {ticket.gate_number !== null && (
                           <div>
-                            <p className="text-[10px] uppercase text-on-surface-variant font-medium">Gate Number</p>
+                            <p className="text-[10px] uppercase text-on-surface-variant font-medium">
+                              Gate Number
+                            </p>
                             <p className="text-sm font-semibold text-on-surface">
                               Gate {ticket.gate_number}
                             </p>
                           </div>
                         )}
                         <div>
-                          <p className="text-[10px] uppercase text-on-surface-variant font-medium">QR Hash Reference</p>
+                          <p className="text-[10px] uppercase text-on-surface-variant font-medium">
+                            QR Hash Reference
+                          </p>
                           <p className="text-[11px] font-mono text-on-surface-variant truncate">
                             {ticket.qr_code_hash}
                           </p>
@@ -339,7 +378,10 @@ export default function OrderDetailsPage({ params }: PageProps) {
                         </div>
                       ) : (
                         <div className="flex aspect-square w-32 flex-col items-center justify-center rounded-xl border border-dashed border-outline-variant bg-surface-low p-4 text-center">
-                          <AlertTriangle size={20} className="text-on-surface-variant/60 mx-auto" />
+                          <AlertTriangle
+                            size={20}
+                            className="text-on-surface-variant/60 mx-auto"
+                          />
                           <p className="mt-1 text-[9px] font-semibold text-on-surface-variant/80">
                             QR Locked
                           </p>
@@ -418,13 +460,15 @@ export default function OrderDetailsPage({ params }: PageProps) {
                               {tx.payment_method} Sandbox
                             </h4>
                           </div>
-                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold ${
-                            tx.status === "SUCCESS"
-                              ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
-                              : tx.status === "FAILED"
-                                ? "bg-rose-50 border border-rose-200 text-rose-700"
-                                : "bg-amber-50 border border-amber-200 text-amber-700"
-                          }`}>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold ${
+                              tx.status === "SUCCESS"
+                                ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
+                                : tx.status === "FAILED"
+                                  ? "bg-rose-50 border border-rose-200 text-rose-700"
+                                  : "bg-amber-50 border border-amber-200 text-amber-700"
+                            }`}
+                          >
                             {tx.status || "PENDING"}
                           </span>
                         </div>
@@ -432,7 +476,9 @@ export default function OrderDetailsPage({ params }: PageProps) {
                         <div className="space-y-1.5 text-xs border-t border-outline-variant/40 pt-2 text-on-surface-variant">
                           <div className="flex justify-between">
                             <span>Amount:</span>
-                            <span className="font-semibold text-on-surface">{tx.amount}</span>
+                            <span className="font-semibold text-on-surface">
+                              {tx.amount}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Date:</span>
@@ -441,11 +487,15 @@ export default function OrderDetailsPage({ params }: PageProps) {
                           {tx.transaction_id_3rd_party && (
                             <div className="flex justify-between">
                               <span>3rd Party ID:</span>
-                              <span className="font-mono">{tx.transaction_id_3rd_party}</span>
+                              <span className="font-mono">
+                                {tx.transaction_id_3rd_party}
+                              </span>
                             </div>
                           )}
                           <div className="flex flex-col pt-1">
-                            <span className="text-[10px] font-medium">Idempotency Key:</span>
+                            <span className="text-[10px] font-medium">
+                              Idempotency Key:
+                            </span>
                             <span className="font-mono text-[10px] text-on-surface truncate">
                               {tx.idempotency_key}
                             </span>
@@ -463,12 +513,18 @@ export default function OrderDetailsPage({ params }: PageProps) {
                                 <Receipt size={12} />
                                 Raw Telemetry Log
                               </span>
-                              {isOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                              {isOpen ? (
+                                <ChevronUp size={13} />
+                              ) : (
+                                <ChevronDown size={13} />
+                              )}
                             </button>
 
                             {isOpen && (
                               <div className="mt-2 rounded-xl bg-surface-low border border-outline-variant/60 p-3 overflow-x-auto text-[10px] font-mono text-on-surface-variant shadow-inner max-h-48">
-                                <pre>{JSON.stringify(tx.raw_response, null, 2)}</pre>
+                                <pre>
+                                  {JSON.stringify(tx.raw_response, null, 2)}
+                                </pre>
                               </div>
                             )}
                           </div>
