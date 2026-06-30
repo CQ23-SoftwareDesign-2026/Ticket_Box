@@ -24,6 +24,11 @@ import {
   ZoomOut,
   ChevronLeft,
   ChevronRight,
+  Lock,
+  CreditCard,
+  Calendar,
+  MapPin,
+  Ticket,
 } from "lucide-react";
 import {
   formatConcertCurrency,
@@ -1140,10 +1145,10 @@ export function PaymentMethodPicker({
   return (
     <Card className="space-y-5 p-6">
       <div className="flex items-center gap-3">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">
-          1
-        </span>
-        <h2 className="font-display text-2xl font-bold text-on-surface">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary">
+          <CreditCard size={14} className="text-white" />
+        </div>
+        <h2 className="font-display text-xl font-bold text-on-surface">
           Payment method
         </h2>
       </div>
@@ -1157,55 +1162,46 @@ export function PaymentMethodPicker({
           aria-checked={isSelected}
           onClick={() => handleSelect("PAYOS")}
           className={[
-            "w-full rounded-2xl border p-4 text-left transition-all duration-150",
-            "focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+            "w-full rounded-xl border p-4 text-left transition-all duration-200",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
             isSelected
-              ? "border-primary bg-primary/5 shadow-sm"
-              : "border-outline-variant bg-surface hover:border-primary/40 hover:bg-primary/[0.02]",
+              ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+              : "border-outline-variant bg-surface hover:border-primary/40",
           ].join(" ")}
         >
           <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              {/* PayOS logo placeholder */}
-              <div className="flex h-10 w-16 items-center justify-center rounded-lg bg-surface shadow-sm ring-1 ring-outline-variant/60">
-                <span className="text-xs font-black tracking-tight text-blue-600">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-14 items-center justify-center rounded-lg border border-outline-variant/60 bg-white shadow-sm">
+                <span className="text-xs font-black tracking-tight text-[#0070ba]">
                   PayOS
                 </span>
               </div>
               <div>
                 <p className="text-sm font-semibold text-on-surface">PayOS</p>
-                <p className="text-sm text-on-surface-variant">
-                  Secure local payment gateway
+                <p className="text-xs text-on-surface-variant">
+                  Secure payment gateway
                 </p>
               </div>
             </div>
-
-            {/* Radio indicator */}
             <span
               className={[
-                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-200",
                 isSelected
-                  ? "border-primary bg-primary"
+                  ? "border-primary bg-primary scale-110"
                   : "border-outline-variant bg-surface",
               ].join(" ")}
               aria-hidden="true"
             >
               {isSelected && (
-                <span className="block h-2.5 w-2.5 rounded-full bg-white" />
+                <span className="block h-2 w-2 rounded-full bg-white" />
               )}
             </span>
           </div>
         </button>
       </div>
 
-      {/* Security note */}
-      <p className="flex items-center gap-2 text-xs text-on-surface-variant">
-        <span
-          className="material-symbols-outlined text-sm leading-none"
-          aria-hidden="true"
-        >
-          lock
-        </span>
+      <p className="flex items-center gap-1.5 text-xs text-on-surface-variant">
+        <Lock size={12} className="shrink-0" />
         Your payment is encrypted and processed securely.
       </p>
     </Card>
@@ -1287,51 +1283,70 @@ export function OrderSummaryCard({
 
   return (
     <Card className="space-y-5 p-6 lg:sticky lg:top-24">
-      <div className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-on-surface-variant">
+      {/* Title */}
+      <div className="space-y-0.5">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
           Order summary
         </p>
-        <h3 className="font-display text-2xl font-bold text-on-surface">
+        <h3 className="font-display text-xl font-bold text-on-surface leading-snug">
           {title}
         </h3>
       </div>
-      <div className="space-y-4 rounded-2xl bg-surface-low p-4 text-sm text-on-surface-variant">
-        <p>{date}</p>
-        <p>{venue}</p>
-        <p>{seatsText}</p>
-        {checkoutState ? (
-          <p className="text-xs text-on-surface-variant">
-            Reservation expires at{" "}
-            {new Date(checkoutState.expiresAt).toLocaleTimeString([], {
-              hour: "numeric",
-              minute: "2-digit",
-            })}
-          </p>
-        ) : null}
+
+      {/* Event details */}
+      <div className="rounded-xl border border-outline-variant/60 bg-surface-low divide-y divide-outline-variant/40 text-sm">
+        <div className="flex items-start gap-2.5 px-4 py-3 text-on-surface-variant">
+          <Calendar size={14} className="mt-0.5 shrink-0 text-primary/60" />
+          <span>{date}</span>
+        </div>
+        <div className="flex items-start gap-2.5 px-4 py-3 text-on-surface-variant">
+          <MapPin size={14} className="mt-0.5 shrink-0 text-primary/60" />
+          <span>{venue}</span>
+        </div>
+        <div className="flex items-start gap-2.5 px-4 py-3 text-on-surface-variant">
+          <Ticket size={14} className="mt-0.5 shrink-0 text-primary/60" />
+          <span>{seatsText}</span>
+        </div>
+        {checkoutState && (
+          <div className="flex items-start gap-2.5 px-4 py-3 text-xs text-on-surface-variant/70">
+            <Lock size={12} className="mt-0.5 shrink-0" />
+            <span>
+              Reserved until{" "}
+              {new Date(checkoutState.expiresAt).toLocaleTimeString([], {
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+        )}
       </div>
-      <div className="space-y-3 text-sm text-on-surface-variant">
-        <div className="flex items-center justify-between">
+
+      {/* Pricing */}
+      <div className="space-y-2 text-sm">
+        <div className="flex items-center justify-between text-on-surface-variant">
           <span>Subtotal</span>
           <span>{subtotal}</span>
         </div>
-        <div className="flex items-center justify-between border-t border-outline-variant pt-3 text-base font-semibold text-on-surface">
+        <div className="flex items-center justify-between border-t border-outline-variant pt-2.5 text-base font-semibold text-on-surface">
           <span>Total</span>
           <span>{total}</span>
         </div>
       </div>
+
+      {/* Pay button */}
       {onPay ? (
         <button
           type="button"
           onClick={onPay}
           disabled={isAnyLoading}
           className={[
-            "inline-flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-3.5",
-            "text-sm font-semibold tracking-wide text-white transition-all duration-200",
+            "inline-flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3",
+            "text-sm font-semibold text-white transition-all duration-200",
             rightLoading
               ? "cursor-not-allowed bg-primary/60"
               : isAnyLoading
                 ? "cursor-not-allowed bg-primary/40"
-                : "bg-primary shadow-sm hover:bg-primary/90 hover:shadow-md active:scale-[0.98]",
+                : "bg-primary hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20 active:scale-[0.98]",
           ].join(" ")}
           aria-busy={rightLoading}
         >

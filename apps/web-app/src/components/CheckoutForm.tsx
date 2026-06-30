@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from "react";
 import { PaymentMethodPicker, OrderSummaryCard } from "@/components/screens";
-import { Button } from "@/components/common";
+import Link from "next/link";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { processPayment } from "@/services/payment.service";
 import { getCheckoutReservationState } from "@/utils/checkout-state.utils";
 
@@ -12,15 +13,6 @@ interface CheckoutFormProps {
 
 type LoadingSource = "left" | "right" | null;
 
-/**
- * Client Component island that owns:
- *  – selectedPaymentMethod state
- *  – handlePay (shared between "Pay now" button and OrderSummaryCard "Pay {total}" button)
- *
- * Uses `loadingSource` instead of a boolean to track which button is currently
- * in-flight — this prevents the "Pay total" click from making "Pay now" show
- * a spinner or become disabled.
- */
 export function CheckoutForm({ orderId }: CheckoutFormProps) {
   const [selectedMethod] = useState<"PAYOS">("PAYOS");
   const [loadingSource, setLoadingSource] = useState<LoadingSource>(null);
@@ -28,7 +20,7 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
 
   const handlePay = useCallback(
     async (source: LoadingSource) => {
-      if (loadingSource !== null) return; // already in-flight
+      if (loadingSource !== null) return;
       setLoadingSource(source);
       setError(null);
 
@@ -42,10 +34,7 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
         });
 
         if (result.checkout_url) {
-          // Redirect — component may stay mounted (SPA), so reset loading so
-          // the user can retry if they close the gateway tab and come back.
           window.location.href = result.checkout_url;
-          // Don't reset loading here — we want the spinner to stay while redirecting.
         } else {
           setError(
             "Payment gateway did not return a redirect URL. Please try again.",
@@ -55,7 +44,6 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
       } catch (err: unknown) {
         let message = "Unexpected error. Please retry.";
         if (err instanceof Error) {
-          // "Failed to fetch" → friendlier message
           if (
             err.message.toLowerCase().includes("fetch") ||
             err.message.toLowerCase().includes("network")
@@ -79,98 +67,69 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
 
   return (
     <>
-      {/* ── Left column ──────────────────────────────────────────────── */}
-      <div className="space-y-6">
+      {/* Left column */}
+      <div className="space-y-4">
         <PaymentMethodPicker />
 
         <div className="space-y-3">
-          <div className="flex flex-wrap gap-3">
-            {/* Pay now button */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Pay now */}
             <button
               id="pay-now-btn"
               type="button"
               onClick={() => handlePay("left")}
               disabled={isAnyLoading}
+              aria-busy={leftLoading}
+              aria-label="Pay now"
               className={[
-                "inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5",
-                "text-sm font-semibold tracking-wide text-white transition-all duration-200",
+                "inline-flex items-center gap-2 rounded-xl px-6 py-3",
+                "text-sm font-semibold text-white transition-all duration-200",
                 leftLoading
                   ? "cursor-not-allowed bg-primary/60"
                   : isAnyLoading
                     ? "cursor-not-allowed bg-primary/40"
-                    : "bg-primary shadow-sm hover:bg-primary/90 hover:shadow-md active:scale-[0.98]",
+                    : "bg-primary hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20 active:scale-[0.98]",
               ].join(" ")}
-              aria-busy={leftLoading}
-              aria-label="Pay now"
             >
-              {leftLoading ? (
-                <>
-                  <svg
-                    className="h-4 w-4 animate-spin"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
-                  Redirecting…
-                </>
-              ) : (
-                "Pay now"
-              )}
+              {leftLoading && <Loader2 size={15} className="animate-spin" />}
+              {leftLoading ? "Redirecting…" : "Pay now"}
             </button>
 
-            <Button
+            {/* Back */}
+            <Link
               href="/"
-              variant="ghost"
-              className="border border-outline-variant"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-outline-variant px-5 py-3 text-sm font-semibold text-on-surface-variant transition-colors hover:border-primary/30 hover:text-primary"
             >
-              Back to Home
-            </Button>
+              <ArrowLeft size={15} />
+              Back
+            </Link>
           </div>
 
-          {/* Error banner */}
+          {/* Error */}
           {error && (
             <div
               role="alert"
-              className="flex items-start gap-3 rounded-2xl border border-error/30 bg-error/10 px-4 py-3 text-sm text-error"
+              className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
             >
-              <span className="material-symbols-outlined text-base leading-none mt-px shrink-0">
-                error
-              </span>
+              <span className="mt-px shrink-0">⚠</span>
               <div className="flex-1">
                 <p className="font-semibold">Payment failed</p>
-                <p className="mt-0.5 text-error/80">{error}</p>
+                <p className="mt-0.5 text-rose-600/90">{error}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setError(null)}
-                className="shrink-0 text-error/60 hover:text-error transition-colors"
-                aria-label="Dismiss error"
+                aria-label="Dismiss"
+                className="shrink-0 text-rose-400 hover:text-rose-600 transition-colors"
               >
-                <span className="material-symbols-outlined text-base">
-                  close
-                </span>
+                ✕
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Right column — Order summary with wired Pay {total} ──────── */}
+      {/* Right column */}
       <OrderSummaryCard
         onPay={() => handlePay("right")}
         rightLoading={rightLoading}
