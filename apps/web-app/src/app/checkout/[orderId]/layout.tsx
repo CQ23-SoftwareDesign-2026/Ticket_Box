@@ -1,9 +1,9 @@
-import { CheckoutShell } from "@/components/common";
+import { SiteShell } from "@/components/common";
 
 export default function CheckoutLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <CheckoutShell>{children}</CheckoutShell>;
+  return <SiteShell>{children}</SiteShell>;
 }
