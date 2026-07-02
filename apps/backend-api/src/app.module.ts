@@ -10,6 +10,7 @@ import { UploadModule } from './modules/upload/upload.module';
 import { WorkerModule } from './modules/worker/worker.module';
 import { CheckInModule } from './modules/checkin/checkin.module';
 import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.module';
+import { AdminRevenueModule } from './modules/admin-revenue/admin-revenue.module';
 
 @Module({
 	imports: [
@@ -24,6 +25,7 @@ import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.
 		WorkerModule,
 		CheckInModule,
 		AdminDashboardModule,
+		AdminRevenueModule,
 	],
 })
 export class AppModule { }
