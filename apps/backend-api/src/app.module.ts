@@ -9,6 +9,7 @@ import { TicketingModule } from './modules/ticketing/ticketing.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { WorkerModule } from './modules/worker/worker.module';
 import { CheckInModule } from './modules/checkin/checkin.module';
+import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.module';
 
 @Module({
 	imports: [
@@ -22,6 +23,7 @@ import { CheckInModule } from './modules/checkin/checkin.module';
 		UploadModule,
 		WorkerModule,
 		CheckInModule,
+		AdminDashboardModule,
 	],
 })
 export class AppModule { }
