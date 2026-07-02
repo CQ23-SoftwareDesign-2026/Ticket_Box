@@ -9,10 +9,15 @@ function createService() {
             findUnique: fn(),
         },
         ticket: {
+            count: fn(),
             findMany: fn(),
             findUnique: fn(),
             update: fn(),
             updateMany: fn(),
+        },
+        checkerAssignment: {
+            findFirst: fn().mockResolvedValue({ id: 'assignment-1' }),
+            findMany: fn(),
         },
         $executeRaw: fn().mockResolvedValue(1),
         $transaction: fn(async (callback) => {
@@ -45,7 +50,14 @@ test('prefetchTickets returns qr_code_hash list for a valid concert and gate', a
         ]
     });
 
-    const result = await service.prefetchTickets('concert-123', 1);
+    const result = await service.prefetchTickets('checker-123', 'concert-123', 1);
+
+    assert.equal(mockPrisma.checkerAssignment.findFirst.mock.calls.length, 1);
+    assert.deepEqual(mockPrisma.checkerAssignment.findFirst.mock.calls[0][0].where, {
+        checker_id: 'checker-123',
+        concert_id: 'concert-123',
+        gate_number: 1,
+    });
 
     assert.equal(mockPrisma.concert.findUnique.mock.calls.length, 1);
     const findUniqueArgs = mockPrisma.concert.findUnique.mock.calls[0][0];
@@ -62,11 +74,28 @@ test('prefetchTickets throws BadRequestException on empty gateId', async () => {
 
     await assert.rejects(
         async () => {
-            await service.prefetchTickets('concert-123', undefined as any);
+            await service.prefetchTickets('checker-123', 'concert-123', undefined as any);
         },
         (err: any) => {
             assert.equal(err.name, 'BadRequestException');
             assert.match(err.message, /gate_id or gate_number query parameter is required/);
+            return true;
+        }
+    );
+});
+
+test('prefetchTickets throws ForbiddenException when checker is not assigned to the gate', async () => {
+    const { service, mockPrisma } = createService();
+
+    mockPrisma.checkerAssignment.findFirst.mockResolvedValue(null);
+
+    await assert.rejects(
+        async () => {
+            await service.prefetchTickets('checker-123', 'concert-123', 1);
+        },
+        (err: any) => {
+            assert.equal(err.name, 'ForbiddenException');
+            assert.match(err.message, /not assigned/);
             return true;
         }
     );
@@ -79,7 +108,7 @@ test('prefetchTickets throws NotFoundException if concert not found', async () =
 
     await assert.rejects(
         async () => {
-            await service.prefetchTickets('concert-123', 1);
+            await service.prefetchTickets('checker-123', 'concert-123', 1);
         },
         (err: any) => {
             assert.equal(err.name, 'NotFoundException');
@@ -99,7 +128,7 @@ test('prefetchTickets throws BadRequestException if concert status is not PUBLIS
 
     await assert.rejects(
         async () => {
-            await service.prefetchTickets('concert-123', 1);
+            await service.prefetchTickets('checker-123', 'concert-123', 1);
         },
         (err: any) => {
             assert.equal(err.name, 'BadRequestException');
@@ -109,10 +138,50 @@ test('prefetchTickets throws BadRequestException if concert status is not PUBLIS
     );
 });
 
+test('getMyAssignments returns published gate assignments for authenticated checker', async () => {
+    const { service, mockPrisma } = createService();
+
+    const startTime = new Date('2026-07-10T12:00:00.000Z');
+    mockPrisma.checkerAssignment.findMany.mockResolvedValue([
+        {
+            concert_id: 'concert-123',
+            gate_number: 2,
+            concert: {
+                name: 'Concert A',
+                location: 'Venue A',
+                start_time: startTime,
+            },
+        },
+    ]);
+    mockPrisma.ticket.count.mockResolvedValue(1500);
+
+    const result = await service.getMyAssignments('checker-123');
+
+    assert.equal(mockPrisma.checkerAssignment.findMany.mock.calls.length, 1);
+    assert.deepEqual(mockPrisma.checkerAssignment.findMany.mock.calls[0][0].where, {
+        checker_id: 'checker-123',
+        concert: {
+            status: 'PUBLISHED',
+        },
+    });
+    assert.equal(mockPrisma.ticket.count.mock.calls.length, 1);
+    assert.deepEqual(result, [
+        {
+            concert_id: 'concert-123',
+            concert_name: 'Concert A',
+            location: 'Venue A',
+            start_time: startTime,
+            gate_number: 2,
+            gate_label: 'Gate 2',
+            ticket_count: 1500,
+        },
+    ]);
+});
+
 test('syncTickets handles empty updates gracefully', async () => {
     const { service } = createService();
 
-    const result = await service.syncTickets([]);
+    const result = await service.syncTickets('checker-uuid', [], 'concert-uuid', 1);
     assert.deepEqual(result, {
         success: true,
         processed: 0,
@@ -137,17 +206,22 @@ test('syncTickets updates unscanned ticket', async () => {
             scanned_by: null,
         }
     ]);
+    mockPrisma.ticket.updateMany.mockResolvedValue({ count: 1 });
 
-    const result = await service.syncTickets([
-        { qr_code_hash: 'hash-vip-1', scanned_at: testTime, scanned_by: checkerId },
-    ]);
+    const result = await service.syncTickets(
+        checkerId,
+        [{ qr_code_hash: 'hash-vip-1', scanned_at: testTime }],
+        'concert-uuid',
+        1
+    );
 
     assert.equal(mockPrisma.ticket.findMany.mock.calls.length, 1);
-    assert.equal(mockPrisma.$executeRaw.mock.calls.length, 1);
-    
-    // Ensure raw update contains the query fields
-    const executeRawArgs = mockPrisma.$executeRaw.mock.calls[0][0];
-    assert.ok(executeRawArgs);
+    assert.equal(mockPrisma.ticket.updateMany.mock.calls.length, 1);
+    assert.deepEqual(mockPrisma.ticket.updateMany.mock.calls[0][0].where, {
+        id: 'ticket-1',
+        is_scanned: false,
+    });
+    assert.equal(mockPrisma.ticket.updateMany.mock.calls[0][0].data.scanned_by, checkerId);
 
     assert.deepEqual(result, {
         success: true,
@@ -158,7 +232,7 @@ test('syncTickets updates unscanned ticket', async () => {
     });
 });
 
-test('syncTickets overwrites earlier offline scan if ticket is already scanned', async () => {
+test('syncTickets rejects already scanned ticket even when offline scan timestamp is earlier', async () => {
     const { service, mockPrisma } = createService();
 
     const testTimeEarlier = '2026-06-16T11:00:00.000Z';
@@ -174,19 +248,23 @@ test('syncTickets overwrites earlier offline scan if ticket is already scanned',
             scanned_by: 'old-checker',
         }
     ]);
+    mockPrisma.ticket.updateMany.mockResolvedValue({ count: 1 });
 
-    const result = await service.syncTickets([
-        { qr_code_hash: 'hash-vip-1', scanned_at: testTimeEarlier, scanned_by: checkerId },
-    ]);
+    const result = await service.syncTickets(
+        checkerId,
+        [{ qr_code_hash: 'hash-vip-1', scanned_at: testTimeEarlier }],
+        'concert-uuid',
+        1
+    );
 
     assert.equal(mockPrisma.ticket.findMany.mock.calls.length, 1);
-    assert.equal(mockPrisma.$executeRaw.mock.calls.length, 1);
+    assert.equal(mockPrisma.ticket.updateMany.mock.calls.length, 0);
 
     assert.deepEqual(result, {
         success: true,
         processed: 1,
-        updated: 1,
-        conflicts: 0,
+        updated: 0,
+        conflicts: 1,
         errors: 0,
     });
 });
@@ -208,13 +286,16 @@ test('syncTickets rejects later offline scan if ticket is already scanned', asyn
         }
     ]);
 
-    const result = await service.syncTickets([
-        { qr_code_hash: 'hash-vip-1', scanned_at: testTimeLater, scanned_by: checkerId },
-    ]);
+    const result = await service.syncTickets(
+        checkerId,
+        [{ qr_code_hash: 'hash-vip-1', scanned_at: testTimeLater }],
+        'concert-uuid',
+        1
+    );
 
     assert.equal(mockPrisma.ticket.findMany.mock.calls.length, 1);
     // No update should be performed because it's a conflict
-    assert.equal(mockPrisma.$executeRaw.mock.calls.length, 0);
+    assert.equal(mockPrisma.ticket.updateMany.mock.calls.length, 0);
 
     assert.deepEqual(result, {
         success: true,
@@ -251,13 +332,19 @@ test('syncTickets sorts and deduplicates hashes to prevent deadlocks and multipl
             scanned_by: null,
         }
     ]);
+    mockPrisma.ticket.updateMany.mockResolvedValue({ count: 1 });
 
-    await service.syncTickets([
-        { qr_code_hash: 'zebra', scanned_at: '2026-06-16T12:00:00.000Z', scanned_by: 'chk' },
-        { qr_code_hash: 'apple', scanned_at: '2026-06-16T12:00:00.000Z', scanned_by: 'chk' },
-        { qr_code_hash: 'mango', scanned_at: '2026-06-16T12:00:00.000Z', scanned_by: 'chk' },
-        { qr_code_hash: 'apple', scanned_at: '2026-06-16T11:00:00.000Z', scanned_by: 'chk' }, // duplicate with earlier time
-    ]);
+    await service.syncTickets(
+        'checker-uuid',
+        [
+            { qr_code_hash: 'zebra', scanned_at: '2026-06-16T12:00:00.000Z' },
+            { qr_code_hash: 'apple', scanned_at: '2026-06-16T12:00:00.000Z' },
+            { qr_code_hash: 'mango', scanned_at: '2026-06-16T12:00:00.000Z' },
+            { qr_code_hash: 'apple', scanned_at: '2026-06-16T11:00:00.000Z' }, // duplicate with earlier time
+        ],
+        'concert-uuid',
+        1
+    );
 
     assert.equal(mockPrisma.ticket.findMany.mock.calls.length, 1);
     const findManyWhere = mockPrisma.ticket.findMany.mock.calls[0][0].where;
@@ -266,13 +353,14 @@ test('syncTickets sorts and deduplicates hashes to prevent deadlocks and multipl
     assert.deepEqual(findManyWhere.qr_code_hash.in, ['apple', 'mango', 'zebra']);
 });
 
-test('syncTickets applies optional concertId and gateId scoping filters to queries', async () => {
+test('syncTickets applies required concertId and gateId scoping filters to queries', async () => {
     const { service, mockPrisma } = createService();
 
     mockPrisma.ticket.findMany.mockResolvedValue([]);
 
     await service.syncTickets(
-        [{ qr_code_hash: 'hash-vip-1', scanned_at: '2026-06-16T12:00:00.000Z', scanned_by: 'checker' }],
+        'checker-uuid',
+        [{ qr_code_hash: 'hash-vip-1', scanned_at: '2026-06-16T12:00:00.000Z' }],
         'concert-uuid',
         5
     );
@@ -282,6 +370,27 @@ test('syncTickets applies optional concertId and gateId scoping filters to queri
     assert.deepEqual(findManyWhere.qr_code_hash, { in: ['hash-vip-1'] });
     assert.deepEqual(findManyWhere.order, { concert_id: 'concert-uuid' });
     assert.deepEqual(findManyWhere.category, { gate_number: 5 });
+});
+
+test('syncTickets throws ForbiddenException when checker is not assigned to sync gate', async () => {
+    const { service, mockPrisma } = createService();
+
+    mockPrisma.checkerAssignment.findFirst.mockResolvedValue(null);
+
+    await assert.rejects(
+        async () => {
+            await service.syncTickets(
+                'checker-uuid',
+                [{ qr_code_hash: 'hash-vip-1', scanned_at: '2026-06-16T12:00:00.000Z' }],
+                'concert-uuid',
+                1
+            );
+        },
+        (err: any) => {
+            assert.equal(err.name, 'ForbiddenException');
+            return true;
+        }
+    );
 });
 
 test('scanTicket returns ACCEPTED on a valid unscanned ticket', async () => {
@@ -315,6 +424,28 @@ test('scanTicket returns ACCEPTED on a valid unscanned ticket', async () => {
     assert.equal(result.status, 'ACCEPTED');
     assert.deepEqual(result.scanned_at, new Date('2026-06-17T10:00:00.000Z'));
     assert.equal(mockPrisma.ticket.updateMany.mock.calls.length, 1);
+});
+
+test('scanTicket throws ForbiddenException when checker is not assigned to scan gate', async () => {
+    const { service, mockPrisma } = createService();
+
+    mockPrisma.checkerAssignment.findFirst.mockResolvedValue(null);
+
+    await assert.rejects(
+        async () => {
+            await service.scanTicket('user-1', {
+                concert_id: 'concert-123',
+                gate_id: 1,
+                qr_code_hash: 'hash-vip-1',
+            });
+        },
+        (err: any) => {
+            assert.equal(err.name, 'ForbiddenException');
+            return true;
+        }
+    );
+
+    assert.equal(mockPrisma.ticket.findUnique.mock.calls.length, 0);
 });
 
 test('scanTicket returns DUPLICATE on a concurrent double scan update (updateMany returning count 0)', async () => {

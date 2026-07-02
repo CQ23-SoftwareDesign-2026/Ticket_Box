@@ -38,6 +38,7 @@ async function runPerformanceCheck() {
             price: 1000000,
             total_quantity: 1000,
             max_per_user: 10,
+            gate_number: 1,
         }
     });
 
@@ -69,6 +70,14 @@ async function runPerformanceCheck() {
         }
     });
 
+    await prisma.checkerAssignment.create({
+        data: {
+            checker_id: userId,
+            concert_id: concertId,
+            gate_number: 1,
+        },
+    });
+
     for (let i = 0; i < ticketCount; i++) {
         const hash = `perf-hash-${randomUUID()}`;
         ticketHashes.push(hash);
@@ -89,8 +98,8 @@ async function runPerformanceCheck() {
     // 2. Simulate concurrent bulk synchronizations using the real CheckInService
     console.log('Simulating 10 concurrent bulk sync operations with overlapping tickets...');
 
-    async function simulateSync(batch: { qr_code_hash: string; scanned_at: string; scanned_by: string }[]) {
-        return checkInService.syncTickets(batch);
+    async function simulateSync(batch: { qr_code_hash: string; scanned_at: string }[]) {
+        return checkInService.syncTickets(userId, batch, concertId, 1);
     }
 
     const concurrentBatches: any[] = [];
@@ -105,7 +114,6 @@ async function runPerformanceCheck() {
         const updates = selectedHashes.map(hash => ({
             qr_code_hash: hash,
             scanned_at: new Date(Date.now() - Math.floor(Math.random() * 10000)).toISOString(),
-            scanned_by: userId,
         }));
         concurrentBatches.push(updates);
     }
@@ -154,6 +162,7 @@ async function runPerformanceCheck() {
 
     // 3. Clean up
     console.log('\nCleaning up temporary test records...');
+    await prisma.checkerAssignment.deleteMany({ where: { checker_id: userId, concert_id: concertId } });
     await prisma.ticket.deleteMany({ where: { order_id: orderId } });
     await prisma.order.delete({ where: { id: orderId } });
     await prisma.ticketCategory.delete({ where: { id: categoryId } });
