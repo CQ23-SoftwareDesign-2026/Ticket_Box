@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsDateString, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsDateString, IsInt, IsNotEmpty, IsString, IsUUID, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SyncTicketItemDto {
@@ -12,28 +12,23 @@ export class SyncTicketItemDto {
     @IsDateString()
     @IsNotEmpty()
     scanned_at!: string;
-
-    @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000', description: 'ID of the checker who scanned the ticket' })
-    @IsUUID()
-    @IsNotEmpty()
-    scanned_by!: string;
 }
 
 export class BulkSyncDto {
     @ApiProperty({ type: [SyncTicketItemDto], description: 'List of offline scanned tickets to synchronize' })
     @IsArray()
+    @ArrayMaxSize(1000)
     @ValidateNested({ each: true })
     @Type(() => SyncTicketItemDto)
     updates!: SyncTicketItemDto[];
 
-    @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000', required: false, description: 'Optional concert ID to scope the synchronization' })
+    @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000', description: 'Concert ID to scope the synchronization' })
     @IsUUID()
-    @IsOptional()
-    concert_id?: string;
+    @IsNotEmpty()
+    concert_id!: string;
 
-    @ApiProperty({ example: 1, required: false, description: 'Optional gate ID/number to scope the synchronization' })
+    @ApiProperty({ example: 1, description: 'Gate ID/number to scope the synchronization' })
     @IsInt()
-    @IsOptional()
-    gate_id?: number;
+    @IsNotEmpty()
+    gate_id!: number;
 }
-

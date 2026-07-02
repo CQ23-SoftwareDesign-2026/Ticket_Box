@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   activityTimeline,
@@ -17,7 +17,19 @@ import {
   tickets,
 } from "@/lib/mock-data";
 import { Badge, Button, Card, SectionHeading, Tabs } from "@/components/common";
-import { ArrowRight, X, ZoomIn, ZoomOut } from "lucide-react";
+import {
+  ArrowRight,
+  X,
+  ZoomIn,
+  ZoomOut,
+  ChevronLeft,
+  ChevronRight,
+  Lock,
+  CreditCard,
+  Calendar,
+  MapPin,
+  Ticket,
+} from "lucide-react";
 import {
   formatConcertCurrency,
   formatConcertDateTime,
@@ -35,62 +47,89 @@ import {
 import { Search } from "lucide-react";
 
 export function HeroCarousel() {
-  const [featuredConcert, setFeaturedConcert] =
-    useState<ConcertDetailItem | null>(null);
+  const [concerts, setConcerts] = useState<ConcertDetailItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [prevIndex, setPrevIndex] = useState<number | null>(null);
+  const transitionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let isActive = true;
 
-    const loadFeaturedConcert = async () => {
+    const loadFeaturedConcerts = async () => {
       try {
-        const response = await getConcerts({ page: 1, limit: 1 });
+        const response = await getConcerts({ page: 1, limit: 4 });
 
-        if (!isActive) {
-          return;
-        }
+        if (!isActive) return;
 
-        const firstConcert = response.items[0];
+        const details = await Promise.all(
+          response.items.map((item) => getConcertById(item.id)),
+        );
 
-        if (!firstConcert) {
-          setFeaturedConcert(null);
-          return;
-        }
+        if (!isActive) return;
 
-        const detail = await getConcertById(firstConcert.id);
-
-        if (!isActive) {
-          return;
-        }
-
-        setFeaturedConcert(detail);
+        setConcerts(details.filter(Boolean) as ConcertDetailItem[]);
       } catch {
-        if (!isActive) {
-          return;
-        }
-
-        setFeaturedConcert(null);
+        if (!isActive) return;
+        setConcerts([]);
       } finally {
-        if (isActive) {
-          setLoading(false);
-        }
+        if (isActive) setLoading(false);
       }
     };
 
-    void loadFeaturedConcert();
+    void loadFeaturedConcerts();
 
     return () => {
       isActive = false;
     };
   }, []);
+  const changeSlide = useCallback((nextIndex: number) => {
+    setActiveIndex((current) => {
+      if (current === nextIndex) return current;
+      setPrevIndex(current);
+
+      if (transitionTimeout.current) {
+        clearTimeout(transitionTimeout.current);
+      }
+      transitionTimeout.current = setTimeout(() => {
+        setPrevIndex(null);
+      }, 600);
+
+      return nextIndex;
+    });
+  }, []);
+
+  const goPrev = useCallback(() => {
+    if (concerts.length === 0) return;
+    changeSlide((activeIndex - 1 + concerts.length) % concerts.length);
+  }, [concerts.length, activeIndex, changeSlide]);
+
+  const goNext = useCallback(() => {
+    if (concerts.length === 0) return;
+    changeSlide((activeIndex + 1) % concerts.length);
+  }, [concerts.length, activeIndex, changeSlide]);
+
+  useEffect(() => {
+    return () => {
+      if (transitionTimeout.current) clearTimeout(transitionTimeout.current);
+    };
+  }, []);
+
+  const featuredConcert = concerts[activeIndex] ?? null;
+  const previousConcert =
+    prevIndex !== null ? (concerts[prevIndex] ?? null) : null;
+
+  const getImageSrc = (concert: ConcertDetailItem | null) =>
+    concert?.posterUrl &&
+    concert.posterUrl !==
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih"
+      ? concert.posterUrl
+      : "/Mockimg.webp";
 
   const title = loading
     ? "Loading featured concert..."
     : (featuredConcert?.title ?? "No featured concert available");
   const badge = featuredConcert?.status ?? "Featured event";
-  const dateTime = featuredConcert
-    ? formatConcertDateTime(featuredConcert.startTime)
-    : { date: "TBA", time: "" };
   const description = loading
     ? "We are loading the latest concert from the database."
     : featuredConcert?.aiBio ||
@@ -104,46 +143,78 @@ export function HeroCarousel() {
       : "Loading...";
 
   return (
-    <section className="group relative overflow-hidden bg-[#111318] text-white min-h-[600px] flex items-end pb-20">
-      {featuredConcert && (
+    <section className="group relative overflow-hidden bg-[#111318] text-white min-h-[600px] flex items-end pb-16">
+      {previousConcert && (
+        /* eslint-disable-next-line @next/next/no-img-element */
         <img
-          src={
-            featuredConcert.posterUrl &&
-            featuredConcert.posterUrl !==
-              "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih"
-              ? featuredConcert.posterUrl
-              : "/Mockimg.webp"
-          }
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-2000 ease-out group-hover:scale-105"
-          alt="Hero background"
+          key={`prev-${previousConcert.id}`}
+          src={getImageSrc(previousConcert)}
+          className="absolute inset-0 w-full h-full object-cover"
+          alt=""
         />
       )}
-      <div className="absolute inset-0 bg-linear-to-t from-bg-[#111318]/90 via-bg-[#111318]/20 to-transparent transition-opacity duration-700 opacity-80 group-hover:opacity-100" />
-      <div className="absolute inset-0 bg-linear-to-r from-bg-[#111318]/90 via-bg-[#111318]/50 to-transparent transition-opacity duration-700 opacity-0 group-hover:opacity-100" />
+
+      {featuredConcert && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          key={`current-${featuredConcert.id}`}
+          src={getImageSrc(featuredConcert)}
+          className="absolute inset-0 w-full h-full object-cover opacity-0 animate-fade-in-quick"
+          alt={featuredConcert.title}
+        />
+      )}
+
+      <div className="absolute inset-0 bg-linear-to-t from-[#111318]/90 via-[#111318]/20 to-transparent transition-opacity duration-700 opacity-90 group-hover:opacity-100" />
+      <div className="absolute inset-0 bg-linear-to-r from-[#111318]/80 via-[#111318]/30 to-transparent transition-opacity duration-700 opacity-0 group-hover:opacity-100" />
       <div className="hero-shimmer absolute inset-0 opacity-20 mix-blend-overlay transition-opacity duration-700 group-hover:opacity-40" />
 
+      {concerts.length > 1 && (
+        <button
+          type="button"
+          onClick={goPrev}
+          aria-label="Concert trước"
+          className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-all duration-200 hover:bg-black/60 hover:scale-105 active:scale-95 sm:left-5 sm:h-12 sm:w-12 cursor-pointer"
+        >
+          <ChevronLeft size={22} />
+        </button>
+      )}
+
+      {concerts.length > 1 && (
+        <button
+          type="button"
+          onClick={goNext}
+          aria-label="Concert tiếp theo"
+          className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-all duration-200 hover:bg-black/60 hover:scale-105 active:scale-95 sm:right-5 sm:h-12 sm:w-12 cursor-pointer"
+        >
+          <ChevronRight size={22} />
+        </button>
+      )}
+
       <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 z-10">
-        <div className="max-w-3xl">
-          <div className="space-y-4 transform transition-transform duration-700 ease-out group-hover:-translate-y-2">
-            <Badge className="border border-white/20 bg-surface/20 backdrop-blur-md text-white shadow-xl px-4 py-1.5 rounded-full uppercase tracking-wider text-xs font-bold inline-flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
+        <div
+          key={featuredConcert?.id ?? "empty"}
+          className="max-w-2xl animate-[fadeSlideUp_0.5s_ease-out_forwards]"
+        >
+          <div className="space-y-3 transform transition-transform duration-700 ease-out group-hover:-translate-y-2">
+            <Badge className="border border-white/20 bg-surface/20 backdrop-blur-md text-white shadow-xl px-3.5 py-1 rounded-full uppercase tracking-wider text-[11px] font-bold inline-flex items-center gap-2">
+              <span className="relative flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-secondary"></span>
               </span>
               {badge}
             </Badge>
-            <h1 className="font-display text-4xl font-black tracking-tight sm:text-5xl lg:text-7xl drop-shadow-xl text-white">
+            <h1 className="font-display text-2xl font-black tracking-tight sm:text-3xl lg:text-4xl drop-shadow-xl text-white line-clamp-2">
               {title}
             </h1>
           </div>
 
           <div className="grid grid-rows-[0fr] opacity-0 transition-all duration-700 ease-in-out group-hover:grid-rows-[1fr] group-hover:opacity-100">
             <div className="overflow-hidden">
-              <div className="pt-6">
-                <p className="max-w-2xl text-base leading-relaxed text-white/90 sm:text-lg drop-shadow-lg mb-8 line-clamp-3">
+              <div className="pt-4">
+                <p className="max-w-xl text-sm leading-relaxed text-white/90 sm:text-base drop-shadow-lg mb-6 line-clamp-2">
                   {description}
                 </p>
-                <div className="flex flex-wrap gap-4">
+                <div className="flex flex-wrap items-center gap-4">
                   <Button
                     href={
                       featuredConcert
@@ -151,20 +222,43 @@ export function HeroCarousel() {
                         : "/catalog"
                     }
                     variant="secondary"
-                    className="group/btn bg-primary hover:bg-primary-container text-white border-0 shadow-[0_0_40px_rgba(var(--color-primary),0.3)] hover:shadow-[0_0_60px_rgba(var(--color-primary),0.5)] px-8 py-4 text-base transition-all duration-300"
+                    className="group/btn bg-primary hover:bg-primary-container text-white border-0 shadow-[0_0_30px_rgba(var(--color-primary),0.3)] hover:shadow-[0_0_50px_rgba(var(--color-primary),0.5)] px-6 py-3 text-sm transition-all duration-300"
                   >
-                    {loading ? "Loading..." : "Buy Tickets"}
+                    {loading ? "Loading..." : "Xem chi tiết"}
                     <ArrowRight
-                      size={18}
+                      size={16}
                       className="ml-2 transform transition-transform duration-300 group-hover/btn:translate-x-1"
                     />
                   </Button>
+                  {ticketTier && (
+                    <span className="text-xs font-semibold text-white/70">
+                      {priceLabel}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {concerts.length > 1 && (
+        <div className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
+          {concerts.map((concert, index) => (
+            <button
+              key={concert.id}
+              type="button"
+              onClick={() => changeSlide(index)}
+              aria-label={`Xem concert ${index + 1}`}
+              className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                index === activeIndex
+                  ? "w-6 bg-white"
+                  : "w-2 bg-white/40 hover:bg-white/60"
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -183,6 +277,7 @@ export function ConcertCard({
       <div
         className={`relative overflow-hidden ${featured ? "w-full sm:w-5/12 min-h-[280px] sm:min-h-full" : "w-full h-64"}`}
       >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={
             (concert as Record<string, unknown>).posterUrl &&
@@ -454,9 +549,6 @@ export function InteractiveTicketSelector({
         quantity,
         remaining: response.items[0]?.remaining ?? 0,
         reservedAt: new Date().toISOString(),
-        // The backend does not return expires_at, so we derive the 10-minute
-        // ceiling here, at reservation time. This anchor is written once to
-        // localStorage and is NEVER regenerated on subsequent page mounts.
         expiresAt:
           response.expires_at ??
           new Date(Date.now() + 10 * 60 * 1000).toISOString(),
@@ -1036,42 +1128,95 @@ export function useReservationTimer(orderId?: string) {
   return { formattedTime: formatTime(timeLeft), isExpired };
 }
 
-export function PaymentMethodPicker() {
+export function PaymentMethodPicker({
+  onMethodChange,
+}: {
+  onMethodChange?: (method: "PAYOS") => void;
+}) {
+  const [selected, setSelected] = useState<"PAYOS">("PAYOS");
+
+  const handleSelect = (method: "PAYOS") => {
+    setSelected(method);
+    onMethodChange?.(method);
+  };
+
+  const isSelected = selected === "PAYOS";
+
   return (
     <Card className="space-y-5 p-6">
       <div className="flex items-center gap-3">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">
-          2
-        </span>
-        <h2 className="font-display text-2xl font-bold text-on-surface">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary">
+          <CreditCard size={14} className="text-white" />
+        </div>
+        <h2 className="font-display text-xl font-bold text-on-surface">
           Payment method
         </h2>
       </div>
-      <div className="space-y-4">
-        <div className="rounded-2xl border border-primary bg-primary/5 p-4">
+
+      <div className="space-y-3">
+        {/* PayOS radio card */}
+        <button
+          id="payment-method-payos"
+          type="button"
+          role="radio"
+          aria-checked={isSelected}
+          onClick={() => handleSelect("PAYOS")}
+          className={[
+            "w-full rounded-xl border p-4 text-left transition-all duration-200",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+            isSelected
+              ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+              : "border-outline-variant bg-surface hover:border-primary/40",
+          ].join(" ")}
+        >
           <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex h-10 w-16 items-center justify-center rounded-lg bg-surface shadow-sm">
-                <span className="font-bold text-blue-600">PayOS</span>
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-14 items-center justify-center rounded-lg border border-outline-variant/60 bg-white shadow-sm">
+                <span className="text-xs font-black tracking-tight text-[#0070ba]">
+                  PayOS
+                </span>
               </div>
               <div>
                 <p className="text-sm font-semibold text-on-surface">PayOS</p>
-                <p className="text-sm text-on-surface-variant">
-                  Secure local payment gateway
+                <p className="text-xs text-on-surface-variant">
+                  Secure payment gateway
                 </p>
               </div>
             </div>
-            <span className="h-5 w-5 rounded-full border-2 border-primary bg-primary">
-              <span className="mx-auto mt-[3px] block h-2.5 w-2.5 rounded-full bg-surface" />
+            <span
+              className={[
+                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-200",
+                isSelected
+                  ? "border-primary bg-primary scale-110"
+                  : "border-outline-variant bg-surface",
+              ].join(" ")}
+              aria-hidden="true"
+            >
+              {isSelected && (
+                <span className="block h-2 w-2 rounded-full bg-white" />
+              )}
             </span>
           </div>
-        </div>
+        </button>
       </div>
+
+      <p className="flex items-center gap-1.5 text-xs text-on-surface-variant">
+        <Lock size={12} className="shrink-0" />
+        Your payment is encrypted and processed securely.
+      </p>
     </Card>
   );
 }
 
-export function OrderSummaryCard() {
+export function OrderSummaryCard({
+  onPay,
+  rightLoading = false,
+  isAnyLoading = false,
+}: {
+  onPay?: () => void;
+  rightLoading?: boolean;
+  isAnyLoading?: boolean;
+}) {
   const searchParams = useSearchParams();
   const [checkoutState] = useState<CheckoutReservationState | null>(() => {
     const storedState = getCheckoutReservationState();
@@ -1121,7 +1266,6 @@ export function OrderSummaryCard() {
 
   let subtotal: string = orderSummary.subtotal;
   let total: string = orderSummary.total;
-  let fees: string = orderSummary.fees;
   let seatsText: string = orderSummary.seats;
   const payHref = checkoutState
     ? `/checkout/${checkoutState.orderId}/processing`
@@ -1131,56 +1275,115 @@ export function OrderSummaryCard() {
     const qtyVal = parseInt(qty, 10) || 1;
     const priceVal = parseFloat(price) || 0;
     const subtotalVal = priceVal * qtyVal;
-    const feesVal = subtotalVal * 0.05;
-    const totalVal = subtotalVal + feesVal;
 
     subtotal = formatConcertCurrency(subtotalVal);
-    fees = formatConcertCurrency(feesVal);
-    total = formatConcertCurrency(totalVal);
+    total = formatConcertCurrency(subtotalVal);
     seatsText = `${qtyVal}x ${tierName} Ticket${qtyVal > 1 ? "s" : ""}`;
   }
 
   return (
     <Card className="space-y-5 p-6 lg:sticky lg:top-24">
-      <div className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-on-surface-variant">
+      {/* Title */}
+      <div className="space-y-0.5">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
           Order summary
         </p>
-        <h3 className="font-display text-2xl font-bold text-on-surface">
+        <h3 className="font-display text-xl font-bold text-on-surface leading-snug">
           {title}
         </h3>
       </div>
-      <div className="space-y-4 rounded-2xl bg-surface-low p-4 text-sm text-on-surface-variant">
-        <p>{date}</p>
-        <p>{venue}</p>
-        <p>{seatsText}</p>
-        {checkoutState ? (
-          <p className="text-xs text-on-surface-variant">
-            Reservation expires at{" "}
-            {new Date(checkoutState.expiresAt).toLocaleTimeString([], {
-              hour: "numeric",
-              minute: "2-digit",
-            })}
-          </p>
-        ) : null}
+
+      {/* Event details */}
+      <div className="rounded-xl border border-outline-variant/60 bg-surface-low divide-y divide-outline-variant/40 text-sm">
+        <div className="flex items-start gap-2.5 px-4 py-3 text-on-surface-variant">
+          <Calendar size={14} className="mt-0.5 shrink-0 text-primary/60" />
+          <span>{date}</span>
+        </div>
+        <div className="flex items-start gap-2.5 px-4 py-3 text-on-surface-variant">
+          <MapPin size={14} className="mt-0.5 shrink-0 text-primary/60" />
+          <span>{venue}</span>
+        </div>
+        <div className="flex items-start gap-2.5 px-4 py-3 text-on-surface-variant">
+          <Ticket size={14} className="mt-0.5 shrink-0 text-primary/60" />
+          <span>{seatsText}</span>
+        </div>
+        {checkoutState && (
+          <div className="flex items-start gap-2.5 px-4 py-3 text-xs text-on-surface-variant/70">
+            <Lock size={12} className="mt-0.5 shrink-0" />
+            <span>
+              Reserved until{" "}
+              {new Date(checkoutState.expiresAt).toLocaleTimeString([], {
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+        )}
       </div>
-      <div className="space-y-3 text-sm text-on-surface-variant">
-        <div className="flex items-center justify-between">
+
+      {/* Pricing */}
+      <div className="space-y-2 text-sm">
+        <div className="flex items-center justify-between text-on-surface-variant">
           <span>Subtotal</span>
           <span>{subtotal}</span>
         </div>
-        <div className="flex items-center justify-between">
-          <span>Fees (5% Booking Fee)</span>
-          <span>{fees}</span>
-        </div>
-        <div className="flex items-center justify-between border-t border-outline-variant pt-3 text-base font-semibold text-on-surface">
+        <div className="flex items-center justify-between border-t border-outline-variant pt-2.5 text-base font-semibold text-on-surface">
           <span>Total</span>
           <span>{total}</span>
         </div>
       </div>
-      <Button href={payHref} className="w-full justify-center">
-        Pay {total}
-      </Button>
+
+      {/* Pay button */}
+      {onPay ? (
+        <button
+          type="button"
+          onClick={onPay}
+          disabled={isAnyLoading}
+          className={[
+            "inline-flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3",
+            "text-sm font-semibold text-white transition-all duration-200",
+            rightLoading
+              ? "cursor-not-allowed bg-primary/60"
+              : isAnyLoading
+                ? "cursor-not-allowed bg-primary/40"
+                : "bg-primary hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20 active:scale-[0.98]",
+          ].join(" ")}
+          aria-busy={rightLoading}
+        >
+          {rightLoading ? (
+            <>
+              <svg
+                className="h-4 w-4 animate-spin"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
+              </svg>
+              Redirecting…
+            </>
+          ) : (
+            <>Pay {total}</>
+          )}
+        </button>
+      ) : (
+        <Button href={payHref} className="w-full justify-center">
+          Pay {total}
+        </Button>
+      )}
       <TimerFootnote orderId={checkoutState?.orderId} />
     </Card>
   );
@@ -1219,7 +1422,6 @@ function TimerFootnote({ orderId }: { orderId?: string }) {
 
 export function CountdownTimer({ orderId }: { orderId?: string }) {
   const { formattedTime, isExpired } = useReservationTimer(orderId);
-  const router = useRouter();
 
   return (
     <>
@@ -1238,7 +1440,7 @@ export function CountdownTimer({ orderId }: { orderId?: string }) {
               Thời gian giữ chỗ của bạn đã kết thúc. Các vé đã được phân bổ lại
               phục hồi pool.
             </p>
-            <Button className="w-full justify-center" href="/catalog">
+            <Button className="w-full justify-center" href="/">
               Xác nhận
             </Button>
           </Card>
@@ -1772,5 +1974,3 @@ export function RevealItem({
     </div>
   );
 }
-
-// Force HMR rebuild
