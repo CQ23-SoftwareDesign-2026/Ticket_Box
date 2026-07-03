@@ -10,16 +10,21 @@ import { SurfaceCard } from '@/components/ui/surface-card';
 import { StatusPill } from '@/components/ui/status-pill';
 import { colors, radii, spacing } from '@/constants/theme';
 import { checkinApi } from '@/features/checkin/api/checkin-api';
+import { concertApi } from '@/features/checkin/api/concert-api';
 import { useCurrentScanSession } from '@/features/checkin/hooks/use-current-scan-session';
 import type { CheckinAssignment } from '@/features/checkin/types/checkin.types';
 import { getErrorMessage } from '@/lib/errors';
 import { routes } from '@/lib/routes';
 import { prefetchStorage, scanSessionStorage } from '@/lib/storage';
 
+type AssignmentWithTicketTypes = CheckinAssignment & {
+  ticketTypeLabels: string[];
+};
+
 export function SessionSetupScreen() {
   const router = useRouter();
   const { session: currentSession } = useCurrentScanSession();
-  const [assignments, setAssignments] = useState<CheckinAssignment[]>([]);
+  const [assignments, setAssignments] = useState<AssignmentWithTicketTypes[]>([]);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
   const [assignmentsError, setAssignmentsError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -33,10 +38,11 @@ export function SessionSetupScreen() {
 
       try {
         const response = await checkinApi.getMyAssignments();
-        setAssignments(response);
+        const enrichedAssignments = await enrichAssignmentsWithTicketTypes(response);
+        setAssignments(enrichedAssignments);
 
-        if (response.length > 0) {
-          setSelectedAssignmentId((current) => current ?? buildAssignmentId(response[0]));
+        if (enrichedAssignments.length > 0) {
+          setSelectedAssignmentId((current) => current ?? buildAssignmentId(enrichedAssignments[0]));
         }
       } catch (error) {
         setAssignmentsError(getErrorMessage(error, 'Unable to load assignments right now.'));
@@ -74,10 +80,11 @@ export function SessionSetupScreen() {
 
     try {
       const response = await checkinApi.getMyAssignments();
-      setAssignments(response);
+      const enrichedAssignments = await enrichAssignmentsWithTicketTypes(response);
+      setAssignments(enrichedAssignments);
 
-      if (response.length > 0) {
-        setSelectedAssignmentId(buildAssignmentId(response[0]));
+      if (enrichedAssignments.length > 0) {
+        setSelectedAssignmentId(buildAssignmentId(enrichedAssignments[0]));
       }
     } catch (error) {
       setAssignmentsError(getErrorMessage(error, 'Unable to load assignments right now.'));
@@ -111,6 +118,7 @@ export function SessionSetupScreen() {
         concertVenue: selectedAssignment.location,
         gateNumber: selectedAssignment.gate_number,
         gateLabel: selectedAssignment.gate_label,
+        ticketTypeLabels: selectedAssignment.ticketTypeLabels,
         prefetchedHashCount: hashes.length,
         prefetchedAt,
       });
@@ -156,6 +164,11 @@ export function SessionSetupScreen() {
                 <AppText tone="muted">
                   {currentSession.gateLabel} - {currentSession.concertVenue}
                 </AppText>
+                {currentSession.ticketTypeLabels?.length ? (
+                  <AppText tone="muted">
+                    Ticket types: {formatTicketTypes(currentSession.ticketTypeLabels)}
+                  </AppText>
+                ) : null}
               </View>
               <StatusPill label={`${currentSession.prefetchedHashCount} hashes`} tone="success" />
             </View>
@@ -244,6 +257,9 @@ export function SessionSetupScreen() {
                       </View>
                       <AppText variant="title">{assignment.concert_name}</AppText>
                       <AppText tone="muted">{assignment.location}</AppText>
+                      <AppText tone="muted">
+                        Ticket types: {formatTicketTypes(assignment.ticketTypeLabels)}
+                      </AppText>
                     </View>
 
                     <View style={styles.concertFoot}>
@@ -283,6 +299,9 @@ export function SessionSetupScreen() {
                               <AppText variant="subtitle">{assignment.gate_label}</AppText>
                               <AppText tone="muted">
                                 {assignment.concert_name} - {assignment.ticket_count.toLocaleString()} tickets remaining
+                              </AppText>
+                              <AppText tone="muted">
+                                Ticket types: {formatTicketTypes(assignment.ticketTypeLabels)}
                               </AppText>
                             </View>
                             <View style={styles.gateConfirmationIcon}>
@@ -342,6 +361,11 @@ export function SessionSetupScreen() {
               <AppText tone="muted">
                 {selectedAssignment ? `${selectedAssignment.gate_label} - ${selectedAssignment.location}` : 'Select an assignment to continue'}
               </AppText>
+              {selectedAssignment ? (
+                <AppText tone="muted">
+                  Ticket types: {formatTicketTypes(selectedAssignment.ticketTypeLabels)}
+                </AppText>
+              ) : null}
             </View>
             <View style={styles.summaryBadge}>
               <MaterialCommunityIcons color={colors.primary} name="qrcode-scan" size={24} />
@@ -410,6 +434,51 @@ function formatSchedule(value: string) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+async function enrichAssignmentsWithTicketTypes(assignments: CheckinAssignment[]): Promise<AssignmentWithTicketTypes[]> {
+  const concertCache = new Map<string, string[]>();
+
+  return Promise.all(
+    assignments.map(async (assignment) => {
+      const cacheKey = `${assignment.concert_id}:${assignment.gate_number}`;
+      const cachedLabels = concertCache.get(cacheKey);
+
+      if (cachedLabels) {
+        return {
+          ...assignment,
+          ticketTypeLabels: cachedLabels,
+        };
+      }
+
+      try {
+        const concert = await concertApi.getConcert(assignment.concert_id);
+        const ticketTypeLabels = concert.ticketTiers
+          .filter((tier) => tier.gate_number === assignment.gate_number)
+          .map((tier) => tier.name);
+
+        concertCache.set(cacheKey, ticketTypeLabels);
+
+        return {
+          ...assignment,
+          ticketTypeLabels,
+        };
+      } catch {
+        return {
+          ...assignment,
+          ticketTypeLabels: [],
+        };
+      }
+    }),
+  );
+}
+
+function formatTicketTypes(labels: string[]) {
+  if (labels.length === 0) {
+    return 'Not configured';
+  }
+
+  return labels.join(', ');
 }
 
 const styles = StyleSheet.create({

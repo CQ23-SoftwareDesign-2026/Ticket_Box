@@ -628,6 +628,11 @@ export function ScannerPlaceholderScreen() {
               <AppText variant="label">
                 {session.concertTitle} - {session.gateLabel}
               </AppText>
+              {session.ticketTypeLabels?.length ? (
+                <AppText tone="muted">
+                  Ticket types: {formatTicketTypes(session.ticketTypeLabels)}
+                </AppText>
+              ) : null}
             </View>
           </View>
           <StatusPill label={topStatus.label} tone={topStatus.tone} />
@@ -916,6 +921,10 @@ function formatScanTime(value: string) {
     minute: '2-digit',
     second: '2-digit',
   });
+}
+
+function formatTicketTypes(labels: string[]) {
+  return labels.join(', ');
 }
 
 const styles = StyleSheet.create({

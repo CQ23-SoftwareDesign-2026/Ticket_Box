@@ -14,6 +14,7 @@ export type CurrentScanSession = {
   concertVenue: string;
   gateNumber: number;
   gateLabel: string;
+  ticketTypeLabels?: string[];
   prefetchedHashCount: number;
   prefetchedAt: string;
 };

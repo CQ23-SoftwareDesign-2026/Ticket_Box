@@ -98,6 +98,11 @@ export function StaffHomeScreen() {
                     Current scan session
                   </AppText>
                   <AppText variant="subtitle">{session.concertTitle}</AppText>
+                  {session.ticketTypeLabels?.length ? (
+                    <AppText tone="muted">
+                      Ticket types: {formatTicketTypes(session.ticketTypeLabels)}
+                    </AppText>
+                  ) : null}
                 </View>
                 <StatusPill label={session.gateLabel} tone="info" />
               </View>
@@ -358,4 +363,8 @@ function formatSessionDate(value: string) {
     month: 'short',
     day: 'numeric',
   });
+}
+
+function formatTicketTypes(labels: string[]) {
+  return labels.join(', ');
 }
