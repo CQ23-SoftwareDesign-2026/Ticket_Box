@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../shared/prisma.service';
 import { SyncTicketItemDto } from '../dtos/sync-tickets.dto';
@@ -10,10 +10,92 @@ export class CheckInService {
 
     constructor(private readonly prisma: PrismaService) { }
 
-    async prefetchTickets(concertId: string, gateId: number): Promise<string[]> {
+    private async assertCheckerAssigned(
+        checkerId: string,
+        concertId: string,
+        gateId: number,
+    ): Promise<void> {
+        const assignment = await this.prisma.checkerAssignment.findFirst({
+            where: {
+                checker_id: checkerId,
+                concert_id: concertId,
+                gate_number: gateId,
+            },
+            select: {
+                id: true,
+            },
+        });
+
+        if (!assignment) {
+            throw new ForbiddenException('Checker is not assigned to this concert gate');
+        }
+    }
+
+    async getMyAssignments(checkerId: string): Promise<Array<{
+        concert_id: string;
+        concert_name: string;
+        location: string;
+        start_time: Date;
+        gate_number: number;
+        gate_label: string;
+        ticket_count: number;
+    }>> {
+        const assignments = await this.prisma.checkerAssignment.findMany({
+            where: {
+                checker_id: checkerId,
+                concert: {
+                    status: 'PUBLISHED',
+                },
+            },
+            select: {
+                concert_id: true,
+                gate_number: true,
+                concert: {
+                    select: {
+                        name: true,
+                        location: true,
+                        start_time: true,
+                    },
+                },
+            },
+            orderBy: {
+                created_at: 'desc',
+            },
+        });
+
+        return Promise.all(assignments.map(async (assignment) => {
+            const ticketCount = await this.prisma.ticket.count({
+                where: {
+                    category: {
+                        concert_id: assignment.concert_id,
+                        gate_number: assignment.gate_number,
+                    },
+                    order: {
+                        concert_id: assignment.concert_id,
+                        status: 'PAID',
+                    },
+                    is_scanned: false,
+                },
+            });
+
+            return {
+                concert_id: assignment.concert_id,
+                concert_name: assignment.concert.name,
+                location: assignment.concert.location,
+                start_time: assignment.concert.start_time,
+                gate_number: assignment.gate_number,
+                gate_label: `Gate ${assignment.gate_number}`,
+                ticket_count: ticketCount,
+            };
+        }));
+    }
+
+    async prefetchTickets(checkerId: string, concertId: string, gateId: number): Promise<string[]> {
         if (gateId === undefined || gateId === null) {
             throw new BadRequestException('gate_id or gate_number query parameter is required');
         }
+
+        await this.assertCheckerAssigned(checkerId, concertId, gateId);
 
         const concert = await this.prisma.concert.findUnique({
             where: { id: concertId },
@@ -54,9 +136,10 @@ export class CheckInService {
     }
 
     async syncTickets(
+        checkerId: string,
         updates: SyncTicketItemDto[],
-        concertId?: string,
-        gateId?: number,
+        concertId: string,
+        gateId: number,
     ): Promise<{
         success: boolean;
         processed: number;
@@ -64,6 +147,8 @@ export class CheckInService {
         conflicts: number;
         errors: number;
     }> {
+        await this.assertCheckerAssigned(checkerId, concertId, gateId);
+
         if (!updates || updates.length === 0) {
             return {
                 success: true,
@@ -98,19 +183,13 @@ export class CheckInService {
                 
                 const whereClause: Prisma.TicketWhereInput = {
                     qr_code_hash: { in: hashes },
-                };
-
-                if (concertId) {
-                    whereClause.order = {
+                    order: {
                         concert_id: concertId,
-                    };
-                }
-
-                if (gateId !== undefined && gateId !== null) {
-                    whereClause.category = {
+                    },
+                    category: {
                         gate_number: gateId,
-                    };
-                }
+                    },
+                };
 
                 const tickets = await tx.ticket.findMany({
                     where: whereClause,
@@ -141,55 +220,38 @@ export class CheckInService {
                         toUpdate.push({
                             id: ticket.id,
                             scanned_at: incomingScanTime,
-                            scanned_by: item.scanned_by,
+                            scanned_by: checkerId,
                         });
-                        updated++;
                     } else {
-                        // Ticket was already scanned. Resolve conflict based on earliest timestamp.
                         const existingScanTime = ticket.scanned_at ? new Date(ticket.scanned_at) : new Date();
-
-                        if (incomingScanTime < existingScanTime) {
-                            // Offline scan was earlier, override the DB scan details
-                            toUpdate.push({
-                                id: ticket.id,
-                                scanned_at: incomingScanTime,
-                                scanned_by: item.scanned_by,
-                            });
-                            this.logger.warn(
-                                `[Checkin Sync Conflict] Ticket ${item.qr_code_hash} scan overwritten. ` +
-                                `Previous scan at ${existingScanTime.toISOString()} by ${ticket.scanned_by} ` +
-                                `replaced by earlier offline scan at ${incomingScanTime.toISOString()} by ${item.scanned_by}.`
-                            );
-                            updated++;
-                        } else {
-                            // Offline scan is later, reject it
-                            this.logger.warn(
-                                `[Checkin Sync Conflict] Ticket ${item.qr_code_hash} already scanned at ` +
-                                `${existingScanTime.toISOString()} by ${ticket.scanned_by}. ` +
-                                `Offline scan at ${incomingScanTime.toISOString()} by ${item.scanned_by} was rejected.`
-                            );
-                            conflicts++;
-                        }
+                        this.logger.warn(
+                            `[Checkin Sync Conflict] Ticket ${item.qr_code_hash} already scanned at ` +
+                            `${existingScanTime.toISOString()} by ${ticket.scanned_by}. ` +
+                            `Offline scan at ${incomingScanTime.toISOString()} by ${checkerId} was rejected.`
+                        );
+                        conflicts++;
                     }
                 }
 
-                // If there are records to update, execute a single raw bulk UPDATE statement
-                if (toUpdate.length > 0) {
-                    const valuesList = toUpdate.map(
-                        t => Prisma.sql`(${t.id}::uuid, ${t.scanned_at}::timestamp, ${t.scanned_by}::uuid)`
-                    );
-                    
-                    await tx.$executeRaw`
-                        UPDATE tickets AS t
-                        SET 
-                          is_scanned = true,
-                          scanned_at = u.scanned_at,
-                          scanned_by = u.scanned_by
-                        FROM (
-                          VALUES ${Prisma.join(valuesList)}
-                        ) AS u(id, scanned_at, scanned_by)
-                        WHERE t.id = u.id;
-                    `;
+                // Use atomic per-ticket updates so concurrent sync batches cannot overwrite each other.
+                for (const item of toUpdate) {
+                    const result = await tx.ticket.updateMany({
+                        where: {
+                            id: item.id,
+                            is_scanned: false,
+                        },
+                        data: {
+                            is_scanned: true,
+                            scanned_at: item.scanned_at,
+                            scanned_by: item.scanned_by,
+                        },
+                    });
+
+                    if (result.count === 1) {
+                        updated++;
+                    } else {
+                        conflicts++;
+                    }
                 }
             }, {
                 timeout: 15000 // tolerating higher connection contention
@@ -225,6 +287,8 @@ export class CheckInService {
         scanned_at?: Date;
         scanned_by?: string;
     }> {
+        await this.assertCheckerAssigned(userId, dto.concert_id, dto.gate_id);
+
         // Query the ticket by QR code hash, including order and category for verification
         const ticket = await this.prisma.ticket.findUnique({
             where: { qr_code_hash: dto.qr_code_hash },

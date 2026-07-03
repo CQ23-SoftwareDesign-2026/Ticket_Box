@@ -21,6 +21,7 @@ model User {
   tickets_scanned   Ticket[]          @relation("TicketScannedBy")
   notification_logs NotificationLog[]
   background_jobs   BackgroundJob[]   @relation("BackgroundJobTriggeredBy")
+  checker_assignments CheckerAssignment[] @relation("CheckerAssignments")
 
   refresh_token     String?          @db.Text
 
@@ -85,6 +86,7 @@ model Concert {
   orders            Order[]
   guest_lists       GuestList[]
   background_jobs   BackgroundJob[] @relation("BackgroundJobConcert")
+  checker_assignments CheckerAssignment[] @relation("ConcertCheckerAssignments")
 
   @@map("concerts")
 }
@@ -215,4 +217,21 @@ model NotificationLog {
   template NotificationTemplate @relation(fields: [template_id], references: [id])
 
   @@map("notification_logs")
+}
+
+model CheckerAssignment {
+  id          String   @id @default(uuid()) @db.Uuid
+  checker_id  String   @db.Uuid
+  concert_id  String   @db.Uuid
+  gate_number Int
+
+  checker     User     @relation("CheckerAssignments", fields: [checker_id], references: [id], onDelete: Cascade)
+  concert     Concert  @relation("ConcertCheckerAssignments", fields: [concert_id], references: [id], onDelete: Cascade)
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@unique([checker_id, concert_id])
+  @@unique([concert_id, gate_number])
+  @@map("checker_assignments")
 }
