@@ -73,8 +73,18 @@ export async function fetchClient<T>(
       if (response.status === 401) {
         const isRefreshRequest = endpoint.includes("/auth/refresh");
         const isLoginRequest = endpoint.includes("/auth/login");
+        const isPublicAuthRequest =
+          isLoginRequest ||
+          endpoint.includes("/auth/register") ||
+          endpoint.includes("/auth/forgot-password") ||
+          endpoint.includes("/auth/reset-password") ||
+          endpoint.includes("/auth/resend-verification");
 
-        if (isRefreshRequest || isLoginRequest || _retry) {
+        if (isPublicAuthRequest) {
+          throw new FetchError("Unauthorized", response, errorData);
+        }
+
+        if (isRefreshRequest || _retry) {
           tokenStorage.clearTokens();
           if (typeof window !== "undefined") {
             window.location.href = "/login";
