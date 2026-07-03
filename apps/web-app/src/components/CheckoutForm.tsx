@@ -2,11 +2,10 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { PaymentMethodPicker, OrderSummaryCard } from "@/components/screens";
-import Link from "next/link";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, Ban } from "lucide-react";
 import { processPayment } from "@/services/payment.service";
 import { getCheckoutReservationState } from "@/utils/checkout-state.utils";
-import { getOrderById } from "@/services/order.service";
+import { getOrderById, cancelOrder } from "@/services/order.service";
 
 import QRCode from "qrcode";
 
@@ -27,6 +26,28 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
     resolvedOrderId: string;
   } | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
+
+  const handleCancelOrder = useCallback(async () => {
+    if (
+      !window.confirm(
+        "Bạn có chắc chắn muốn hủy lượt giữ chỗ này? Hành động này sẽ hoàn lại các vé đã chọn.",
+      )
+    ) {
+      return;
+    }
+    setLoadingSource("left");
+    try {
+      const state = getCheckoutReservationState();
+      const resolvedOrderId = state?.orderId ?? orderId;
+      await cancelOrder(resolvedOrderId);
+      window.location.href = "/";
+    } catch (err) {
+      console.error("Failed to cancel order:", err);
+      alert("Hủy giữ chỗ thất bại. Vui lòng thử lại.");
+    } finally {
+      setLoadingSource(null);
+    }
+  }, [orderId]);
 
   useEffect(() => {
     let active = true;
@@ -97,15 +118,21 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
       const state = getCheckoutReservationState();
       const resolvedOrderId = state?.orderId ?? orderId;
 
-      const savedKey = typeof window !== "undefined"
-        ? window.sessionStorage.getItem(`idempotency_key_${resolvedOrderId}`) || undefined
-        : undefined;
+      const savedKey =
+        typeof window !== "undefined"
+          ? window.sessionStorage.getItem(
+              `idempotency_key_${resolvedOrderId}`,
+            ) || undefined
+          : undefined;
 
       try {
-        const result = await processPayment({
-          order_id: resolvedOrderId,
-          payment_method: selectedMethod,
-        }, savedKey);
+        const result = await processPayment(
+          {
+            order_id: resolvedOrderId,
+            payment_method: selectedMethod,
+          },
+          savedKey,
+        );
 
         if (result.idempotency_key && typeof window !== "undefined") {
           window.sessionStorage.setItem(
@@ -232,6 +259,7 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
           onPay={() => {}}
           rightLoading={false}
           isAnyLoading={true}
+          orderId={orderId}
         />
       </>
     );
@@ -267,14 +295,20 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
               {leftLoading ? "Redirecting…" : "Pay now"}
             </button>
 
-            {/* Back */}
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-outline-variant px-5 py-3 text-sm font-semibold text-on-surface-variant transition-colors hover:border-primary/30 hover:text-primary"
+            {/* Cancel Order */}
+            <button
+              type="button"
+              onClick={handleCancelOrder}
+              disabled={isAnyLoading}
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98] cursor-pointer border border-rose-200 bg-rose-50/50 text-rose-700 hover:bg-rose-600 hover:text-white hover:border-rose-600 hover:shadow-md hover:shadow-rose-100 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <ArrowLeft size={15} />
-              Back
-            </Link>
+              {loadingSource === "left" ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <Ban size={14} />
+              )}
+              {loadingSource === "left" ? "Cancelling..." : "Cancel Order"}
+            </button>
           </div>
 
           {/* Error */}
@@ -306,6 +340,7 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
         onPay={() => handlePay("right")}
         rightLoading={rightLoading}
         isAnyLoading={isAnyLoading}
+        orderId={orderId}
       />
     </>
   );

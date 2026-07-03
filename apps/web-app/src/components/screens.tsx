@@ -30,7 +30,6 @@ import {
   MapPin,
   Ticket,
   TimerOff,
-  AlertCircle,
 } from "lucide-react";
 import {
   formatConcertCurrency,
@@ -41,7 +40,11 @@ import {
   type ConcertCardItem,
 } from "@/services/concert.service";
 import { reserveTickets } from "@/services/ticketing.service";
-import { getOrderById, cancelOrder, type OrderDetail } from "@/services/order.service";
+import {
+  getOrderById,
+  cancelOrder,
+  type OrderDetail,
+} from "@/services/order.service";
 import {
   getCheckoutReservationState,
   saveCheckoutReservationState,
@@ -1099,7 +1102,10 @@ export function useReservationTimer(orderId?: string) {
     let active = true;
 
     const syncWithServer = async () => {
-      const fetchOrderWithRetry = async (retries = 5, delay = 1000): Promise<OrderDetail> => {
+      const fetchOrderWithRetry = async (
+        retries = 5,
+        delay = 1000,
+      ): Promise<OrderDetail> => {
         try {
           return await getOrderById(orderId);
         } catch (err) {
@@ -1129,7 +1135,7 @@ export function useReservationTimer(orderId?: string) {
 
         // Calculate expiresAt from created_at + 10 minutes
         const calculatedExpiresAt = new Date(
-          new Date(order.created_at).getTime() + 10 * 60 * 1000
+          new Date(order.created_at).getTime() + 10 * 60 * 1000,
         ).toISOString();
 
         // Update localStorage
@@ -1307,10 +1313,12 @@ export function OrderSummaryCard({
   onPay,
   rightLoading = false,
   isAnyLoading = false,
+  orderId,
 }: {
   onPay?: () => void;
   rightLoading?: boolean;
   isAnyLoading?: boolean;
+  orderId?: string;
 }) {
   const searchParams = useSearchParams();
   const [checkoutState] = useState<CheckoutReservationState | null>(() => {
@@ -1479,7 +1487,10 @@ export function OrderSummaryCard({
           Pay {total}
         </Button>
       )}
-      <TimerFootnote orderId={checkoutState?.orderId} />
+      <TimerFootnote
+        key={orderId || checkoutState?.orderId || "loading"}
+        orderId={orderId || checkoutState?.orderId}
+      />
     </Card>
   );
 }
@@ -1526,13 +1537,18 @@ export function CountdownTimer({ orderId }: { orderId?: string }) {
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 via-rose-500 to-red-500" />
             <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-red-500/10 text-red-500 border border-red-500/15 relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-b from-red-500/10 to-transparent opacity-50" />
-              <TimerOff size={36} className="relative z-10 animate-bounce" style={{ animationDuration: '3s' }} />
+              <TimerOff
+                size={36}
+                className="relative z-10 animate-bounce"
+                style={{ animationDuration: "3s" }}
+              />
             </div>
             <h2 className="font-display text-2xl font-black tracking-tight text-on-surface mb-3">
               Đã Hết Thời Gian Giữ Chỗ
             </h2>
             <p className="text-sm text-on-surface-variant leading-relaxed mb-8 max-w-sm mx-auto">
-              Rất tiếc, thời hạn đặt vé của bạn đã kết thúc. Các vé của bạn đã được giải phóng để trả lại hệ thống cho những người mua khác.
+              Rất tiếc, thời hạn đặt vé của bạn đã kết thúc. Các vé của bạn đã
+              được giải phóng để trả lại hệ thống cho những người mua khác.
             </p>
             <Link
               href="/"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
+import Link from "next/link";
 import { SiteShell, Button } from "@/components/common";
 import {
   getOrderById,
@@ -224,16 +225,23 @@ export default function OrderDetailsPage({ params }: PageProps) {
             </button>
             {isPending && (
               <>
-                <Button href={`/checkout/${order.id}`} className="font-bold">
+                <Link
+                  href={`/checkout/${order.id}`}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition-all duration-200 bg-primary hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20 active:scale-[0.98] whitespace-nowrap"
+                >
                   Pay Now
-                </Button>
+                </Link>
                 <button
                   onClick={handleCancelOrder}
                   disabled={cancelLoading}
-                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50/50 px-4 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50 transition-all"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98] cursor-pointer border border-rose-200 bg-rose-50/50 text-rose-700 hover:bg-rose-600 hover:text-white hover:border-rose-600 hover:shadow-md hover:shadow-rose-100 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                 >
-                  <Ban size={15} />
-                  Cancel Order
+                  {cancelLoading ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  ) : (
+                    <Ban size={14} />
+                  )}
+                  {cancelLoading ? "Cancelling..." : "Cancel Order"}
                 </button>
               </>
             )}

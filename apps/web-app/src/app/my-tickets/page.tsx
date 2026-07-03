@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { SiteShell, Button } from "@/components/common";
 import {
   getOrders,
+  cancelOrder,
   type OrderListItem,
   type PaginationMeta,
 } from "@/services/order.service";
@@ -37,6 +39,7 @@ export default function MyTicketsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cancelLoadingId, setCancelLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -73,6 +76,28 @@ export default function MyTicketsPage() {
   const handleTabChange = (key: TabKey) => {
     setActiveTab(key);
     setCurrentPage(1);
+  };
+
+  const handleCancelOrder = async (orderId: string) => {
+    if (
+      !window.confirm(
+        "Bạn có chắc chắn muốn hủy lượt giữ chỗ này? Hành động này sẽ hoàn lại các vé đã chọn.",
+      )
+    ) {
+      return;
+    }
+    setCancelLoadingId(orderId);
+    try {
+      await cancelOrder(orderId);
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: "CANCELLED" } : o)),
+      );
+    } catch (err) {
+      console.error("Failed to cancel order:", err);
+      alert("Hủy giữ chỗ thất bại. Vui lòng thử lại.");
+    } finally {
+      setCancelLoadingId(null);
+    }
   };
 
   // Client-side search filtration matching concert name or order id
@@ -291,12 +316,29 @@ export default function MyTicketsPage() {
 
                           {/* PENDING orders show Pay Now */}
                           {isPending && (
-                            <Button
-                              href={`/checkout/${order.id}`}
-                              className="font-bold whitespace-nowrap"
-                            >
-                              Pay Now
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Link
+                                href={`/checkout/${order.id}`}
+                                className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition-all duration-200 bg-primary hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20 active:scale-[0.98] whitespace-nowrap"
+                              >
+                                Pay Now
+                              </Link>
+                              <button
+                                type="button"
+                                disabled={cancelLoadingId !== null}
+                                onClick={() => handleCancelOrder(order.id)}
+                                className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98] cursor-pointer border border-rose-200 bg-rose-50/50 text-rose-700 hover:bg-rose-600 hover:text-white hover:border-rose-600 hover:shadow-md hover:shadow-rose-100 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                              >
+                                {cancelLoadingId === order.id ? (
+                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                ) : (
+                                  <Ban size={14} />
+                                )}
+                                {cancelLoadingId === order.id
+                                  ? "Cancelling..."
+                                  : "Cancel Order"}
+                              </button>
+                            </div>
                           )}
 
                           {/* Detail button for other states */}
