@@ -29,6 +29,8 @@ import {
   Calendar,
   MapPin,
   Ticket,
+  TimerOff,
+  AlertCircle,
 } from "lucide-react";
 import {
   formatConcertCurrency,
@@ -39,6 +41,7 @@ import {
   type ConcertCardItem,
 } from "@/services/concert.service";
 import { reserveTickets } from "@/services/ticketing.service";
+import { getOrderById, cancelOrder, type OrderDetail } from "@/services/order.service";
 import {
   getCheckoutReservationState,
   saveCheckoutReservationState,
@@ -1082,17 +1085,105 @@ export function CustomerInfoForm() {
 export function useReservationTimer(orderId?: string) {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [isExpired, setIsExpired] = useState(false);
+  const [expiresAtState, setExpiresAtState] = useState<string | null>(() => {
+    const state = getCheckoutReservationState();
+    if (state && (!orderId || state.orderId === orderId) && state.expiresAt) {
+      return state.expiresAt;
+    }
+    return null;
+  });
 
   useEffect(() => {
-    const state = getCheckoutReservationState();
+    if (!orderId) return;
 
-    // If an orderId is supplied, it must match what is stored; otherwise we
-    // would be running the wrong timer for the wrong order.
-    if (!state?.expiresAt) return;
-    if (orderId && state.orderId !== orderId) return;
+    let active = true;
 
-    const expiresAtTime = new Date(state.expiresAt).getTime();
-    // Guard against a corrupted / unparseable date string.
+    const syncWithServer = async () => {
+      const fetchOrderWithRetry = async (retries = 5, delay = 1000): Promise<OrderDetail> => {
+        try {
+          return await getOrderById(orderId);
+        } catch (err) {
+          if (retries > 0 && active) {
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            return fetchOrderWithRetry(retries - 1, delay);
+          }
+          throw err;
+        }
+      };
+
+      try {
+        const order = await fetchOrderWithRetry();
+        if (!active) return;
+
+        if (order.status === "PAID") {
+          setTimeLeft(null);
+          setIsExpired(false);
+          return;
+        }
+
+        if (order.status === "CANCELLED") {
+          setTimeLeft(0);
+          setIsExpired(true);
+          return;
+        }
+
+        // Calculate expiresAt from created_at + 10 minutes
+        const calculatedExpiresAt = new Date(
+          new Date(order.created_at).getTime() + 10 * 60 * 1000
+        ).toISOString();
+
+        // Update localStorage
+        const currentState = getCheckoutReservationState();
+        if (currentState && currentState.orderId === orderId) {
+          currentState.expiresAt = calculatedExpiresAt;
+          saveCheckoutReservationState(currentState);
+        } else {
+          const metadata = order.ticket_metadata as {
+            category_id?: string;
+            category_name?: string;
+            quantity?: number;
+            unit_price?: number;
+            ticket_breakdown?: Array<{
+              category_id?: string;
+              category_name?: string;
+              quantity?: number;
+              unit_price?: number;
+            }>;
+          } | null;
+          const breakdown = metadata?.ticket_breakdown?.[0] || metadata;
+          saveCheckoutReservationState({
+            orderId: order.id,
+            concertId: "",
+            concertTitle: order.concert_name,
+            venue: "",
+            date: "",
+            tierId: breakdown?.category_id || "",
+            tierName: breakdown?.category_name || "",
+            price: parseFloat(order.total_amount) / (breakdown?.quantity || 1),
+            quantity: breakdown?.quantity || 1,
+            remaining: 0,
+            reservedAt: order.created_at,
+            expiresAt: calculatedExpiresAt,
+          });
+        }
+
+        setExpiresAtState(calculatedExpiresAt);
+      } catch (err) {
+        console.error("Failed to sync timer with server:", err);
+      }
+    };
+
+    void syncWithServer();
+
+    return () => {
+      active = false;
+    };
+  }, [orderId]);
+
+  useEffect(() => {
+    if (!expiresAtState) return;
+
+    const expiresAtTime = new Date(expiresAtState).getTime();
     if (isNaN(expiresAtTime)) return;
 
     const updateTimer = () => {
@@ -1100,6 +1191,11 @@ export function useReservationTimer(orderId?: string) {
       if (remaining <= 0) {
         setTimeLeft(0);
         setIsExpired(true);
+        if (orderId) {
+          void cancelOrder(orderId).catch((err) => {
+            console.error("Failed to cancel order upon timer expiration:", err);
+          });
+        }
         return true; // signals the caller to stop the interval
       }
       setTimeLeft(remaining);
@@ -1114,8 +1210,7 @@ export function useReservationTimer(orderId?: string) {
     }, 1000);
 
     return () => clearInterval(interval);
-    // orderId is stable for the lifetime of the checkout page, so this is safe.
-  }, [orderId]);
+  }, [expiresAtState, orderId]);
 
   const formatTime = (ms: number | null) => {
     if (ms === null) return "--:--";
@@ -1426,24 +1521,26 @@ export function CountdownTimer({ orderId }: { orderId?: string }) {
   return (
     <>
       {isExpired && (
-        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-md">
-          <Card className="w-full max-w-md p-8 text-center shadow-2xl mx-4">
-            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-error/10 text-error">
-              <span className="material-symbols-outlined text-[32px]">
-                timer_off
-              </span>
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-background/40 backdrop-blur-xl p-4 animate-in fade-in duration-300">
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-outline-variant bg-surface p-8 text-center shadow-[0_20px_50px_rgba(0,0,0,0.15)] animate-in zoom-in-95 duration-300">
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 via-rose-500 to-red-500" />
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-red-500/10 text-red-500 border border-red-500/15 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-red-500/10 to-transparent opacity-50" />
+              <TimerOff size={36} className="relative z-10 animate-bounce" style={{ animationDuration: '3s' }} />
             </div>
-            <h2 className="font-display text-2xl font-bold text-on-surface mb-2">
-              Đã Hết Thời Gian
+            <h2 className="font-display text-2xl font-black tracking-tight text-on-surface mb-3">
+              Đã Hết Thời Gian Giữ Chỗ
             </h2>
-            <p className="text-sm text-on-surface-variant leading-relaxed mb-8">
-              Thời gian giữ chỗ của bạn đã kết thúc. Các vé đã được phân bổ lại
-              phục hồi pool.
+            <p className="text-sm text-on-surface-variant leading-relaxed mb-8 max-w-sm mx-auto">
+              Rất tiếc, thời hạn đặt vé của bạn đã kết thúc. Các vé của bạn đã được giải phóng để trả lại hệ thống cho những người mua khác.
             </p>
-            <Button className="w-full justify-center" href="/">
-              Xác nhận
-            </Button>
-          </Card>
+            <Link
+              href="/"
+              className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white text-sm font-bold hover:shadow-lg hover:shadow-red-500/20 active:scale-[0.98] transition-all"
+            >
+              Quay lại Trang chủ
+            </Link>
+          </div>
         </div>
       )}
       <Card className="hero-shimmer p-5 text-white">

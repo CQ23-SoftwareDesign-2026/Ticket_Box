@@ -75,8 +75,23 @@ export async function getOrders(
   return apiClient.get<OrderListResponse>(`/orders?${params.toString()}`);
 }
 
+const orderRequests = new Map<string, Promise<OrderDetail>>();
+
 export async function getOrderById(orderId: string): Promise<OrderDetail> {
-  return apiClient.get<OrderDetail>(`/orders/${orderId}`);
+  let promise = orderRequests.get(orderId);
+  if (!promise) {
+    promise = apiClient.get<OrderDetail>(`/orders/${orderId}`);
+    orderRequests.set(orderId, promise);
+    void promise.then(
+      () => {
+        orderRequests.delete(orderId);
+      },
+      () => {
+        orderRequests.delete(orderId);
+      },
+    );
+  }
+  return promise;
 }
 
 export async function cancelOrder(orderId: string): Promise<OrderDetail> {

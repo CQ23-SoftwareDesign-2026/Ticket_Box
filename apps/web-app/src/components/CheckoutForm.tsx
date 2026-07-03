@@ -29,6 +29,25 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
   useEffect(() => {
+    let active = true;
+    const checkInitialStatus = async () => {
+      try {
+        const orderData = await getOrderById(orderId);
+        if (!active) return;
+        if (orderData.status === "PAID") {
+          window.location.href = `/payment/callback?code=00&cancel=false`;
+        }
+      } catch (err) {
+        console.error("Failed to check initial order status:", err);
+      }
+    };
+    void checkInitialStatus();
+    return () => {
+      active = false;
+    };
+  }, [orderId]);
+
+  useEffect(() => {
     if (!paymentSession?.qrCode) {
       return;
     }
@@ -78,11 +97,22 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
       const state = getCheckoutReservationState();
       const resolvedOrderId = state?.orderId ?? orderId;
 
+      const savedKey = typeof window !== "undefined"
+        ? window.sessionStorage.getItem(`idempotency_key_${resolvedOrderId}`) || undefined
+        : undefined;
+
       try {
         const result = await processPayment({
           order_id: resolvedOrderId,
           payment_method: selectedMethod,
-        });
+        }, savedKey);
+
+        if (result.idempotency_key && typeof window !== "undefined") {
+          window.sessionStorage.setItem(
+            `idempotency_key_${resolvedOrderId}`,
+            result.idempotency_key,
+          );
+        }
 
         if (result.qr_code && result.checkout_url) {
           if (typeof window !== "undefined") {
@@ -185,14 +215,6 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
           </div>
 
           <div className="flex flex-col gap-3">
-            <a
-              href={paymentSession.checkoutUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-primary text-sm font-semibold text-white transition-all hover:bg-primary/90 hover:shadow-md active:scale-[0.98]"
-            >
-              Open PayOS Payment Page
-            </a>
             <button
               onClick={() => {
                 setPaymentSession(null);

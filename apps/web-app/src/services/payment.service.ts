@@ -50,13 +50,14 @@ function generateUUID(): string {
  */
 export async function processPayment(
   input: ProcessPaymentInput,
+  idempotencyKey?: string,
 ): Promise<ProcessPaymentResponse> {
-  const idempotencyKey = generateUUID();
+  const key = idempotencyKey || generateUUID();
 
   return fetchClient<ProcessPaymentResponse>("/payments/process", {
     method: "POST",
     headers: {
-      "Idempotency-Key": idempotencyKey,
+      "Idempotency-Key": key,
     },
     body: JSON.stringify(input),
   });
