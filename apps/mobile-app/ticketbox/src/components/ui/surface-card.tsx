@@ -17,11 +17,13 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     padding: spacing.lg,
     gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
     shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 18 },
-    shadowOpacity: 0.22,
-    shadowRadius: 32,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 18,
+    elevation: 3,
   },
 });
 
@@ -33,7 +35,8 @@ const variantStyles = StyleSheet.create({
     backgroundColor: colors.surfaceElevated,
   },
   hero: {
-    backgroundColor: colors.backgroundPanel,
+    backgroundColor: '#10233d',
+    borderColor: colors.borderStrong,
     borderRadius: radii.xl,
   },
   danger: {

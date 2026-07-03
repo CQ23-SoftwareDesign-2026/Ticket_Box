@@ -25,9 +25,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    borderRadius: radii.pill,
+    borderRadius: radii.md,
     paddingHorizontal: spacing.sm,
     paddingVertical: 8,
+    borderWidth: 1,
   },
   dot: {
     width: 8,
@@ -39,18 +40,23 @@ const styles = StyleSheet.create({
 const toneStyles = StyleSheet.create({
   info: {
     backgroundColor: colors.infoSoft,
+    borderColor: 'rgba(94, 161, 255, 0.24)',
   },
   success: {
     backgroundColor: colors.successSoft,
+    borderColor: 'rgba(52, 199, 138, 0.24)',
   },
   warning: {
     backgroundColor: colors.warningSoft,
+    borderColor: 'rgba(255, 178, 76, 0.24)',
   },
   danger: {
     backgroundColor: colors.dangerSoft,
+    borderColor: 'rgba(255, 107, 125, 0.22)',
   },
   neutral: {
     backgroundColor: colors.surfaceOverlay,
+    borderColor: colors.border,
   },
 });
 

@@ -41,6 +41,16 @@ export type ConcertDetail = {
   ticketTiers: TicketTier[];
 };
 
+export type CheckinAssignment = {
+  concert_id: string;
+  concert_name: string;
+  location: string;
+  start_time: string;
+  gate_number: number;
+  gate_label: string;
+  ticket_count: number;
+};
+
 export type ScanTicketPayload = {
   concert_id: string;
   gate_id: number;
@@ -59,18 +69,18 @@ export type ScanTicketResponse = {
 export type SyncTicketItemPayload = {
   qr_code_hash: string;
   scanned_at: string;
-  scanned_by: string;
 };
 
 export type SyncTicketsPayload = {
   updates: SyncTicketItemPayload[];
-  concert_id?: string;
-  gate_id?: number;
+  concert_id: string;
+  gate_id: number;
 };
 
 export type SyncTicketsResponse = {
-  total: number;
-  synced: number;
-  skipped: number;
-  failed: number;
+  success: boolean;
+  processed: number;
+  updated: number;
+  conflicts: number;
+  errors: number;
 };

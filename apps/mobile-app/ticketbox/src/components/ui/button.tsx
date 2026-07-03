@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   label: {
-    color: colors.background,
+    color: '#ffffff',
   },
   pressed: {
     opacity: 0.94,
@@ -77,35 +77,39 @@ const variantStyles = StyleSheet.create({
   primary: {
     backgroundColor: colors.primary,
     shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.26,
-    shadowRadius: 22,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 3,
   },
   secondary: {
     backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
     shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 2,
   },
   ghost: {
     backgroundColor: colors.surfaceOverlay,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   danger: {
     backgroundColor: colors.danger,
     shadowColor: colors.danger,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.22,
-    shadowRadius: 22,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 3,
   },
 });
 
 const labelStyles = StyleSheet.create({
   primary: {
-    color: colors.background,
+    color: '#07111f',
   },
   secondary: {
     color: colors.text,
@@ -114,15 +118,15 @@ const labelStyles = StyleSheet.create({
     color: colors.textMuted,
   },
   danger: {
-    color: colors.background,
+    color: '#ffffff',
   },
 });
 
 const iconColor = {
-  primary: colors.background,
+  primary: '#07111f',
   secondary: colors.text,
   ghost: colors.textMuted,
-  danger: colors.background,
+  danger: '#ffffff',
 } as const;
 
 const spinnerColor = iconColor;

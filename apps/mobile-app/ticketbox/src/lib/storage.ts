@@ -40,7 +40,7 @@ export type RecentScanHistoryItem = {
   gateNumber: number;
   qrCodeHash: string;
   scannedAt: string;
-  status: ScanTicketStatus | 'OFFLINE_ACCEPTED' | 'SYNCED';
+  status: ScanTicketStatus | 'OFFLINE_ACCEPTED' | 'SYNCED' | 'SYNC_CONFLICT' | 'SYNC_ERROR';
   title: string;
   detail: string;
 };
