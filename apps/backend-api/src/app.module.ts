@@ -11,6 +11,7 @@ import { WorkerModule } from './modules/worker/worker.module';
 import { CheckInModule } from './modules/checkin/checkin.module';
 import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.module';
 import { AdminRevenueModule } from './modules/admin-revenue/admin-revenue.module';
+import { AdminUsersModule } from './modules/admin-users/admin-users.module';
 
 @Module({
 	imports: [
@@ -26,6 +27,7 @@ import { AdminRevenueModule } from './modules/admin-revenue/admin-revenue.module
 		CheckInModule,
 		AdminDashboardModule,
 		AdminRevenueModule,
+		AdminUsersModule,
 	],
 })
 export class AppModule { }
