@@ -1,4 +1,4 @@
-import { IsDateString, IsOptional, IsString, IsEnum, MaxLength, IsArray, ValidateNested } from 'class-validator';
+import { IsDateString, IsOptional, IsString, IsEnum, MaxLength, IsArray, ValidateNested, IsUrl } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsFutureDate } from '../../../shared/validators/is-future-date.decorator';
@@ -36,11 +36,13 @@ export class UpdateConcertDto {
   @ApiPropertyOptional({ example: 'https://cdn.ticketbox.local/maps/anh-trai-say-hi.svg' })
   @IsOptional()
   @IsString()
+  @IsUrl()
   svg_map_url?: string;
 
   @ApiPropertyOptional({ example: 'https://cdn.ticketbox.local/posters/anh-trai-say-hi.png' })
   @IsOptional()
   @IsString()
+  @IsUrl()
   poster_url?: string;
 
   @ApiPropertyOptional({ enum: ConcertStatus, example: ConcertStatus.PUBLISHED })

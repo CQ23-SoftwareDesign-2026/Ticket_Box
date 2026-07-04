@@ -120,7 +120,7 @@ export class ConcertRepository {
             max_per_user: category.max_per_user,
             gate_number: category.gate_number ?? null,
             position: category.position ?? 0,
-            status: category.status ?? 'available',
+            status: category.status ?? 'book_now',
           })),
         },
       },
@@ -165,7 +165,7 @@ export class ConcertRepository {
                 max_per_user: tier.max_per_user,
                 gate_number: tier.gate_number ?? null,
                 position: tier.position ?? 0,
-                status: tier.status ?? 'available',
+                status: tier.status ?? 'book_now',
               },
             });
           } else {
@@ -179,7 +179,7 @@ export class ConcertRepository {
                 max_per_user: tier.max_per_user,
                 gate_number: tier.gate_number ?? null,
                 position: tier.position ?? 0,
-                status: tier.status ?? 'available',
+                status: tier.status ?? 'book_now',
               },
             });
           }
@@ -227,7 +227,7 @@ export class ConcertRepository {
         max_per_user: tc.max_per_user,
         gate_number: tc.gate_number ?? null,
         position: tc.position ?? 0,
-        status: tc.status ?? 'available',
+        status: tc.status ?? 'book_now',
       }),
     );
 

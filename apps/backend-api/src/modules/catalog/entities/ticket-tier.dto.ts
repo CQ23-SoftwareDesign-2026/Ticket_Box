@@ -25,7 +25,7 @@ export class TicketTierDto {
   @ApiProperty({ example: 0, required: false })
   position?: number | null;
 
-  @ApiProperty({ example: 'available', required: false })
+  @ApiProperty({ example: 'book_now', required: false })
   status?: string | null;
 
   constructor(partial: Partial<TicketTierDto> = {}) {
