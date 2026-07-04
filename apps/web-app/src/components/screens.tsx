@@ -562,11 +562,16 @@ export function InteractiveTicketSelector({
 
       router.push(`/checkout/${response.order_id}`);
     } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to reserve tickets right now.",
-      );
+      const msg = error instanceof Error ? error.message : "";
+      if (msg.includes("ERR_NO_TICKET")) {
+        setError("Hết vé hoặc không đủ số lượng yêu cầu.");
+      } else if (msg.includes("ERR_LIMIT_EXCEEDED")) {
+        setError("Vượt quá giới hạn mua vé cho phép.");
+      } else if (msg.includes("ERR_NOT_INITIALIZED")) {
+        setError("Hạng vé chưa được kích hoạt hoặc không tồn tại.");
+      } else {
+        setError(msg || "Có lỗi xảy ra khi đặt vé. Vui lòng thử lại.");
+      }
     } finally {
       setIsReserving(false);
     }
@@ -693,7 +698,11 @@ export function InteractiveTicketSelector({
             >
               {isReserving ? "Reserving seats..." : "Confirm and Checkout"}
             </button>
-            {error ? <p className="text-xs text-rose-600">{error}</p> : null}
+            {error ? (
+              <div className="mt-4 text-xs text-red-500 font-medium text-center bg-red-500/10 border border-red-500/20 py-2.5 px-4 rounded-xl">
+                {error}
+              </div>
+            ) : null}
           </div>
         )}
       </div>

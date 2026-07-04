@@ -23,12 +23,17 @@ export default function AdminEventsPage() {
   const [concerts, setConcerts] = useState<ConcertCardItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-  const fetchConcerts = async (search = "") => {
+  const fetchConcerts = async (search = "", status = "All") => {
     setIsLoading(true);
     try {
-      const { items } = await getConcerts({ limit: 50, search });
+      const { items } = await getConcerts({
+        limit: 50,
+        search,
+        status: status === "All" ? undefined : status,
+      });
       setConcerts(items);
     } catch (error) {
       console.error("Failed to load concerts", error);
@@ -38,12 +43,12 @@ export default function AdminEventsPage() {
   };
 
   useEffect(() => {
-    // Debounce search
+    // Debounce search and status filter
     const timer = setTimeout(() => {
-      fetchConcerts(searchQuery);
+      fetchConcerts(searchQuery, statusFilter);
     }, 500);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, statusFilter]);
 
   const handleDelete = async (id: string, name: string) => {
     if (
@@ -144,13 +149,25 @@ export default function AdminEventsPage() {
           />
         </div>
         <div className="flex items-center gap-2 w-full md:w-auto">
-          <select className="flex-1 md:w-40 px-3 py-2.5 bg-background border border-border rounded-lg text-sm font-semibold cursor-pointer focus:ring-2 focus:ring-primary/20 focus:border-primary">
-            <option>All Statuses</option>
-            <option>PUBLISHED</option>
-            <option>COMING_SOON</option>
-            <option>COMPLETED</option>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="flex-1 md:w-40 px-3 py-2.5 bg-background border border-border rounded-lg text-sm font-semibold cursor-pointer focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
+          >
+            <option value="All">All Statuses</option>
+            <option value="DRAFT">DRAFT</option>
+            <option value="PUBLISHED">PUBLISHED</option>
+            <option value="COMPLETED">COMPLETED</option>
+            <option value="CANCELLED">CANCELLED</option>
           </select>
-          <button className="p-2.5 bg-background border border-border hover:bg-surface-high text-muted-foreground rounded-lg transition-all flex items-center justify-center">
+          <button
+            onClick={() => {
+              setSearchQuery("");
+              setStatusFilter("All");
+            }}
+            className="p-2.5 bg-background border border-border hover:bg-surface-high hover:border-primary text-muted-foreground hover:text-primary rounded-lg transition-all flex items-center justify-center cursor-pointer active:scale-95 duration-200"
+            title="Reset Filters"
+          >
             <SlidersHorizontal className="w-5 h-5" />
           </button>
         </div>
@@ -243,16 +260,19 @@ export default function AdminEventsPage() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span
-                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold ${
-                          concert.status === "PUBLISHED"
-                            ? "bg-primary/10 text-primary"
+                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${concert.status === "PUBLISHED"
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                             : concert.status === "COMING_SOON"
-                              ? "bg-secondary/10 text-secondary"
-                              : "bg-surface-highest text-foreground"
-                        }`}
+                              ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                              : concert.status === "COMPLETED"
+                                ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                                : concert.status === "CANCELLED"
+                                  ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                                  : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                          }`}
                       >
                         {concert.status === "PUBLISHED" && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                         )}
                         {concert.status.replace("_", " ")}
                       </span>

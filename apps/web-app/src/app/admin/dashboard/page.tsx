@@ -2,7 +2,7 @@
 
 import { Building2, Ticket, DollarSign, Users, Search } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { formatConcertCurrency } from "@/services/concert.service";
 import {
   getDashboardSummary,
@@ -22,10 +22,20 @@ export default function AdminDashboardPage() {
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [revenueData, setRevenueData] = useState<RevenueItem[]>([]);
   const [groupBy, setGroupBy] = useState<"day" | "week" | "month">("day");
+  const [fromDate, setFromDate] = useState<string>("2026-03-01");
+  const [toDate, setToDate] = useState<string>("2026-07-04");
+  const [status, setStatus] = useState<string>("All");
 
-  // Date Filters for Revenue
-  const [fromDate, setFromDate] = useState<string>("");
-  const [toDate, setToDate] = useState<string>("");
+  // Temporary UI filter values before clicking "Apply"
+  const [tempFromDate, setTempFromDate] = useState<string>("2026-03-01");
+  const [tempToDate, setTempToDate] = useState<string>("2026-07-04");
+  const [tempGroupBy, setTempGroupBy] = useState<"day" | "week" | "month">(
+    "day",
+  );
+  const [tempStatus, setTempStatus] = useState<string>("All");
+
+  const fromDateRef = useRef<HTMLInputElement>(null);
+  const toDateRef = useRef<HTMLInputElement>(null);
 
   const [isLoadingSummary, setIsLoadingSummary] = useState(true);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
@@ -78,6 +88,7 @@ export default function AdminDashboardPage() {
           group_by: groupBy,
           from: fromDate || undefined,
           to: toDate || undefined,
+          status: status || undefined,
         });
         setRevenueData(data);
       } catch (err) {
@@ -88,7 +99,26 @@ export default function AdminDashboardPage() {
     }
 
     loadRevenue();
-  }, [groupBy, fromDate, toDate]);
+  }, [groupBy, fromDate, toDate, status]);
+
+  const handleApply = () => {
+    setFromDate(tempFromDate);
+    setToDate(tempToDate);
+    setGroupBy(tempGroupBy);
+    setStatus(tempStatus);
+  };
+
+  const handleReset = () => {
+    setTempFromDate("2026-03-01");
+    setTempToDate("2026-07-04");
+    setTempGroupBy("day");
+    setTempStatus("All");
+
+    setFromDate("2026-03-01");
+    setToDate("2026-07-04");
+    setGroupBy("day");
+    setStatus("All");
+  };
 
   // Fetch all orders for modal
   useEffect(() => {
@@ -172,7 +202,7 @@ export default function AdminDashboardPage() {
       return `${parts[1]}/${parts[0].slice(2)}`; // e.g. "07/26"
     }
     if (parts.length >= 3) {
-      return `${parts[1]}/${parts[2]}`; // e.g. "07/15"
+      return `${parts[2]}/${parts[1]}`; // dd/mm format
     }
     return period;
   };
@@ -186,18 +216,14 @@ export default function AdminDashboardPage() {
         Number(parts[1]) - 1,
         Number(parts[2]),
       );
-      return date.toLocaleDateString("en-US", {
+      return date.toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
         year: "numeric",
-        month: "short",
-        day: "numeric",
       });
     }
     if (parts.length === 2) {
-      const date = new Date(Number(parts[0]), Number(parts[1]) - 1, 1);
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-      });
+      return `Tháng ${parts[1]}/${parts[0]}`;
     }
     return period;
   };
@@ -455,57 +481,98 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Date Picker and Group By Filtering Controls Row */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-6 border-b border-border/50">
+          {/* Filtering Controls Row */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end mb-6 pb-6 border-b border-border/50">
             {/* Date Range Picker */}
-            <div className="flex flex-col gap-1">
-              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+            <div className="md:col-span-4 flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                 Date range
               </span>
-              <div className="flex items-center gap-2 bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground hover:border-primary/50 transition-colors">
+              <div
+                onClick={() => fromDateRef.current?.showPicker()}
+                className="flex items-center gap-1.5 bg-background border border-border rounded-xl px-2.5 py-2 text-sm text-foreground hover:border-primary/50 transition-all cursor-pointer"
+              >
                 <input
+                  ref={fromDateRef}
                   type="date"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="bg-transparent text-foreground focus:outline-none w-[115px] font-body text-xs cursor-pointer text-center"
+                  value={tempFromDate}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fromDateRef.current?.showPicker();
+                  }}
+                  onChange={(e) => setTempFromDate(e.target.value)}
+                  style={{ colorScheme: "dark" }}
+                  className="bg-transparent text-foreground focus:outline-none w-[110px] min-w-0 font-body text-xs cursor-pointer text-center px-1"
                 />
-                <span className="text-muted-foreground font-semibold">→</span>
+                <span className="text-muted-foreground font-bold text-xs select-none">
+                  →
+                </span>
                 <input
+                  ref={toDateRef}
                   type="date"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="bg-transparent text-foreground focus:outline-none w-[115px] font-body text-xs cursor-pointer text-center"
+                  value={tempToDate}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toDateRef.current?.showPicker();
+                  }}
+                  onChange={(e) => setTempToDate(e.target.value)}
+                  style={{ colorScheme: "dark" }}
+                  className="bg-transparent text-foreground focus:outline-none w-[110px] min-w-0 font-body text-xs cursor-pointer text-center px-1"
                 />
-                {(fromDate || toDate) && (
-                  <button
-                    onClick={() => {
-                      setFromDate("");
-                      setToDate("");
-                    }}
-                    className="text-xs text-rose-500 hover:text-rose-600 font-semibold pl-2 border-l border-border hover:underline"
-                  >
-                    Clear
-                  </button>
-                )}
               </div>
             </div>
 
             {/* Group By Filter */}
-            <div className="flex flex-col gap-1 w-full sm:w-auto">
-              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+            <div className="md:col-span-2 flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                 Group by
               </span>
               <select
-                value={groupBy}
+                value={tempGroupBy}
                 onChange={(e) =>
-                  setGroupBy(e.target.value as "day" | "week" | "month")
+                  setTempGroupBy(e.target.value as "day" | "week" | "month")
                 }
-                className="bg-background border border-border rounded-xl px-4 py-2 text-xs font-semibold text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full sm:w-36 transition-all cursor-pointer"
+                className="bg-background border border-border rounded-xl px-4 py-2.5 text-xs font-semibold text-foreground focus:outline-none focus:border-primary w-full transition-all cursor-pointer"
               >
                 <option value="day">Day</option>
                 <option value="week">Week</option>
                 <option value="month">Month</option>
               </select>
+            </div>
+
+            {/* Concert Status Filter */}
+            <div className="md:col-span-2 flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Concert Status
+              </span>
+              <select
+                value={tempStatus}
+                onChange={(e) => setTempStatus(e.target.value)}
+                className="bg-background border border-border rounded-xl px-4 py-2.5 text-xs font-semibold text-foreground focus:outline-none focus:border-primary w-full transition-all cursor-pointer"
+              >
+                <option value="All">All</option>
+                <option value="DRAFT">DRAFT</option>
+                <option value="PUBLISHED">PUBLISHED</option>
+                <option value="COMING_SOON">COMING SOON</option>
+                <option value="COMPLETED">COMPLETED</option>
+                <option value="CANCELLED">CANCELLED</option>
+              </select>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="md:col-span-4 flex items-center gap-3">
+              <button
+                onClick={handleReset}
+                className="flex-1 bg-surface-high hover:bg-surface-high/80 text-foreground font-body text-xs font-bold py-2.5 px-4 rounded-xl border border-border transition-all active:scale-95 duration-150"
+              >
+                Reset
+              </button>
+              <button
+                onClick={handleApply}
+                className="flex-1 bg-primary hover:bg-primary-hover text-primary-foreground font-body text-xs font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:-translate-y-0.5 active:scale-95 duration-150"
+              >
+                Apply
+              </button>
             </div>
           </div>
 

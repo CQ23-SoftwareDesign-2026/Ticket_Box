@@ -109,14 +109,15 @@ function formatDateTime(value: string) {
   }
 
   return {
-    date: new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
+    date: new Intl.DateTimeFormat("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
       year: "numeric",
     }).format(date),
-    time: new Intl.DateTimeFormat("en-US", {
-      hour: "numeric",
+    time: new Intl.DateTimeFormat("vi-VN", {
+      hour: "2-digit",
       minute: "2-digit",
+      hour12: false,
     }).format(date),
   };
 }

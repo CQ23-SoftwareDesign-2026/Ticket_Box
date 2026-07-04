@@ -11,12 +11,12 @@ import {
   Users,
   Settings,
   Plus,
-  HelpCircle,
   Menu,
   Bell,
   LogOut,
   User as UserIcon,
 } from "lucide-react";
+import { BrandMark } from "@/components/common";
 
 const navItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -36,23 +36,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
       {/* Desktop Sidebar */}
       <nav className="hidden md:flex flex-col h-screen p-4 gap-4 w-64 bg-surface border-r border-border shrink-0 sticky top-0 z-40">
         <div className="mb-8 px-2 mt-2">
-          <Link href="/">
-            <h1 className="font-display text-2xl text-primary font-black italic">
-              TicketBox Admin
-            </h1>
-            <p className="font-body text-xs font-semibold text-muted-foreground">
-              Management Suite
-            </p>
+          <Link href="/admin">
+            <BrandMark compact />
           </Link>
         </div>
-        <Link
-          href="/admin/create-event"
-          className="bg-primary hover:bg-primary-hover text-primary-foreground font-body text-xs font-semibold py-3 px-4 rounded-lg w-full flex items-center justify-center gap-2 transition-colors active:scale-[0.98] shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          Create Event
-        </Link>
-        <ul className="flex flex-col gap-1 mt-6 grow">
+        <ul className="flex flex-col gap-1 mt-2 grow">
           {navItems.map((item) => {
             const isActive = pathname?.startsWith(item.href);
             return (
@@ -71,17 +59,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
               </li>
             );
           })}
-        </ul>
-        <ul className="flex flex-col gap-1 mt-auto border-t border-border pt-4">
-          <li>
-            <Link
-              href="/support"
-              className="flex items-center gap-3 px-4 py-3 text-muted-foreground hover:bg-surface-high rounded-lg font-body text-sm font-semibold transition-all hover:text-primary"
-            >
-              <HelpCircle className="w-5 h-5" />
-              Help Center
-            </Link>
-          </li>
         </ul>
       </nav>
 
