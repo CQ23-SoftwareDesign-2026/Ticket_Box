@@ -18,6 +18,7 @@ type ButtonProps = {
   href?: string;
   variant?: "primary" | "secondary" | "ghost" | "soft";
   className?: string;
+  onClick?: () => void;
 };
 
 const buttonStyles = {
@@ -32,6 +33,7 @@ export function Button({
   href,
   variant = "primary",
   className = "",
+  onClick,
 }: ButtonProps) {
   const classes = [
     "inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98] cursor-pointer",
@@ -49,7 +51,11 @@ export function Button({
     );
   }
 
-  return <button className={classes}>{children}</button>;
+  return (
+    <button onClick={onClick} className={classes}>
+      {children}
+    </button>
+  );
 }
 
 export function Badge({
