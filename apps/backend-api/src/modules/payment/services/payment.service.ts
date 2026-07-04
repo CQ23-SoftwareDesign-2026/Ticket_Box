@@ -127,6 +127,30 @@ export class PaymentService {
             throw new BadRequestException(`Order is already ${order.status.toLowerCase()}`);
         }
 
+        // Check for an active transaction (not failed) before requesting a new session from the gateway
+        const activeTransaction = order.payment_transactions.find(
+            (tx) => tx.status !== 'FAILED' && tx.payment_method === dto.payment_method
+        );
+
+        if (activeTransaction) {
+            const raw = activeTransaction.raw_response as any;
+            const processData = raw?.process;
+
+            if (processData?.checkoutUrl) {
+                const response = this.mapProcessTransaction(
+                    activeTransaction,
+                    activeTransaction.idempotency_key,
+                    this.paymentGatewayClient.getCircuitState(dto.payment_method),
+                    processData.checkoutUrl,
+                    processData.qrCode ?? null,
+                    processData.accountName ?? null,
+                    processData.status ?? 'PENDING',
+                );
+                await this.persistIdempotencyCompletion(cacheKey, response);
+                return response;
+            }
+        }
+
         const existingTransaction = await this.prisma.paymentTransaction.findUnique({
             where: { idempotency_key: normalizedKey },
         });
