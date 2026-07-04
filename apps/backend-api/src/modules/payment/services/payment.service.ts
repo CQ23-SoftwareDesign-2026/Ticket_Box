@@ -182,6 +182,7 @@ export class PaymentService {
                 amount: Number(order.total_amount),
                 userId,
                 idempotencyKey: normalizedKey,
+                expiredAt: Math.floor(order.expires_at.getTime() / 1000),
             });
 
             const payload = this.mapProcessTransaction(
