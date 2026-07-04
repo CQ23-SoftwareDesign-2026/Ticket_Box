@@ -14,6 +14,7 @@ export type CurrentScanSession = {
   concertVenue: string;
   gateNumber: number;
   gateLabel: string;
+  ticketTypeLabels?: string[];
   prefetchedHashCount: number;
   prefetchedAt: string;
 };
@@ -40,7 +41,7 @@ export type RecentScanHistoryItem = {
   gateNumber: number;
   qrCodeHash: string;
   scannedAt: string;
-  status: ScanTicketStatus | 'OFFLINE_ACCEPTED' | 'SYNCED';
+  status: ScanTicketStatus | 'OFFLINE_ACCEPTED' | 'SYNCED' | 'SYNC_CONFLICT' | 'SYNC_ERROR';
   title: string;
   detail: string;
 };

@@ -24,9 +24,8 @@ export function AppScreen({ children, contentBottomPadding = spacing.xxl + 92, s
   return (
     <SafeAreaView style={styles.safeArea}>
       <View pointerEvents="none" style={styles.atmosphere}>
-        <View style={styles.glowPrimary} />
-        <View style={styles.glowSecondary} />
-        <View style={styles.panelGlow} />
+        <View style={styles.topWash} />
+        <View style={styles.bottomWash} />
       </View>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -46,35 +45,23 @@ const styles = StyleSheet.create({
   atmosphere: {
     ...StyleSheet.absoluteFillObject,
   },
-  glowPrimary: {
+  topWash: {
     position: 'absolute',
-    top: -120,
-    right: -90,
-    width: 300,
-    height: 300,
-    borderRadius: 999,
-    backgroundColor: colors.primaryGlow,
-    opacity: 0.65,
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 220,
+    backgroundColor: '#12335e',
+    opacity: 0.42,
   },
-  glowSecondary: {
+  bottomWash: {
     position: 'absolute',
-    bottom: 140,
-    left: -120,
-    width: 260,
+    bottom: 0,
+    left: 0,
+    right: 0,
     height: 260,
-    borderRadius: 999,
-    backgroundColor: colors.infoSoft,
-    opacity: 0.28,
-  },
-  panelGlow: {
-    position: 'absolute',
-    top: 180,
-    left: 24,
-    right: 24,
-    height: 200,
-    borderRadius: 40,
-    backgroundColor: colors.surfaceOverlay,
-    opacity: 0.28,
+    backgroundColor: '#0a1629',
+    opacity: 0.88,
   },
   keyboardContainer: {
     flex: 1,

@@ -10,178 +10,91 @@ import { SurfaceCard } from '@/components/ui/surface-card';
 import { StatusPill } from '@/components/ui/status-pill';
 import { colors, radii, spacing } from '@/constants/theme';
 import { checkinApi } from '@/features/checkin/api/checkin-api';
-import { useCurrentScanSession } from '@/features/checkin/hooks/use-current-scan-session';
 import { concertApi } from '@/features/checkin/api/concert-api';
-import type { ConcertDetail, ConcertListItem } from '@/features/checkin/types/checkin.types';
+import { useCurrentScanSession } from '@/features/checkin/hooks/use-current-scan-session';
+import type { CheckinAssignment } from '@/features/checkin/types/checkin.types';
 import { getErrorMessage } from '@/lib/errors';
 import { routes } from '@/lib/routes';
 import { prefetchStorage, scanSessionStorage } from '@/lib/storage';
 
-type GateOption = {
-  gateNumber: number;
-  label: string;
-  lane: string;
-  status: string;
-  tone: 'info' | 'warning' | 'neutral';
+type AssignmentWithTicketTypes = CheckinAssignment & {
+  ticketTypeLabels: string[];
 };
 
 export function SessionSetupScreen() {
   const router = useRouter();
   const { session: currentSession } = useCurrentScanSession();
-  const [concerts, setConcerts] = useState<ConcertListItem[]>([]);
-  const [selectedConcertId, setSelectedConcertId] = useState<string | null>(null);
-  const [selectedGateNumber, setSelectedGateNumber] = useState<number | null>(null);
-  const [isGateConfirmationVisible, setIsGateConfirmationVisible] = useState(false);
-  const [concertDetail, setConcertDetail] = useState<ConcertDetail | null>(null);
-  const [concertsError, setConcertsError] = useState<string | null>(null);
-  const [detailError, setDetailError] = useState<string | null>(null);
+  const [assignments, setAssignments] = useState<AssignmentWithTicketTypes[]>([]);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const [assignmentsError, setAssignmentsError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isConcertsLoading, setIsConcertsLoading] = useState(true);
-  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [isAssignmentsLoading, setIsAssignmentsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    async function loadConcerts() {
-      setIsConcertsLoading(true);
-      setConcertsError(null);
+    async function loadAssignments() {
+      setIsAssignmentsLoading(true);
+      setAssignmentsError(null);
 
       try {
-        const response = await concertApi.listPublishedConcerts();
-        setConcerts(response.data);
+        const response = await checkinApi.getMyAssignments();
+        const enrichedAssignments = await enrichAssignmentsWithTicketTypes(response);
+        setAssignments(enrichedAssignments);
 
-        if (response.data.length > 0) {
-          setSelectedConcertId((current) => current ?? response.data[0].id);
+        if (enrichedAssignments.length > 0) {
+          setSelectedAssignmentId((current) => current ?? buildAssignmentId(enrichedAssignments[0]));
         }
       } catch (error) {
-        setConcertsError(getErrorMessage(error, 'Unable to load concerts right now.'));
+        setAssignmentsError(getErrorMessage(error, 'Unable to load assignments right now.'));
       } finally {
-        setIsConcertsLoading(false);
+        setIsAssignmentsLoading(false);
       }
     }
 
-    void loadConcerts();
+    void loadAssignments();
   }, []);
 
-  useEffect(() => {
-    if (!selectedConcertId) {
-      setConcertDetail(null);
-      setSelectedGateNumber(null);
-      setIsGateConfirmationVisible(false);
-      return;
-    }
-
-    const concertId = selectedConcertId;
-
-    async function loadConcertDetail() {
-      setIsDetailLoading(true);
-      setDetailError(null);
-
-      try {
-        const response = await concertApi.getConcert(concertId);
-        setConcertDetail(response);
-      } catch (error) {
-        setConcertDetail(null);
-        setDetailError(getErrorMessage(error, 'Unable to load gate configuration for this concert.'));
-      } finally {
-        setIsDetailLoading(false);
-      }
-    }
-
-    void loadConcertDetail();
-  }, [selectedConcertId]);
-
-  const selectedConcert = useMemo(
-    () => concerts.find((concert) => concert.id === selectedConcertId) ?? null,
-    [concerts, selectedConcertId],
+  const selectedAssignment = useMemo(
+    () => assignments.find((assignment) => buildAssignmentId(assignment) === selectedAssignmentId) ?? null,
+    [assignments, selectedAssignmentId],
   );
 
-  const gateOptions = useMemo<GateOption[]>(() => {
-    if (!concertDetail) {
-      return [];
-    }
-
-    const gateMap = new Map<number, string[]>();
-
-    for (const tier of concertDetail.ticketTiers) {
-      if (typeof tier.gate_number !== 'number') {
-        continue;
-      }
-
-      const existing = gateMap.get(tier.gate_number) ?? [];
-      existing.push(tier.name);
-      gateMap.set(tier.gate_number, existing);
-    }
-
-    const gateNumbers = Array.from(gateMap.keys()).sort((a, b) => a - b);
-
-    return gateNumbers.map((gateNumber, index) => {
-      const tierNames = gateMap.get(gateNumber) ?? [];
-      const tierCount = tierNames.length;
-
-      return {
-        gateNumber,
-        label: `Gate ${gateNumber}`,
-        lane: tierCount === 1 ? tierNames[0] : `${tierCount} ticket tiers`,
-        status: index === 0 ? 'Recommended' : `${tierCount} tier${tierCount > 1 ? 's' : ''}`,
-        tone: index === 0 ? 'info' : gateNumber >= 10 ? 'warning' : 'neutral',
-      };
-    });
-  }, [concertDetail]);
-
   useEffect(() => {
-    if (gateOptions.length === 0) {
-      setSelectedGateNumber(null);
-      setIsGateConfirmationVisible(false);
+    if (assignments.length === 0) {
+      setSelectedAssignmentId(null);
       return;
     }
 
-    setSelectedGateNumber((current) => {
-      if (current && gateOptions.some((gate) => gate.gateNumber === current)) {
+    setSelectedAssignmentId((current) => {
+      if (current && assignments.some((assignment) => buildAssignmentId(assignment) === current)) {
         return current;
       }
 
-      return gateOptions[0].gateNumber;
+      return buildAssignmentId(assignments[0]);
     });
-    setIsGateConfirmationVisible(true);
-  }, [gateOptions]);
+  }, [assignments]);
 
-  const selectedGateOption = useMemo(
-    () => gateOptions.find((gate) => gate.gateNumber === selectedGateNumber) ?? null,
-    [gateOptions, selectedGateNumber],
-  );
-
-  const handleRetryConcerts = async () => {
-    setIsConcertsLoading(true);
-    setConcertsError(null);
+  const handleRetryAssignments = async () => {
+    setIsAssignmentsLoading(true);
+    setAssignmentsError(null);
 
     try {
-      const response = await concertApi.listPublishedConcerts();
-      setConcerts(response.data);
+      const response = await checkinApi.getMyAssignments();
+      const enrichedAssignments = await enrichAssignmentsWithTicketTypes(response);
+      setAssignments(enrichedAssignments);
 
-      if (response.data.length > 0) {
-        setSelectedConcertId(response.data[0].id);
+      if (enrichedAssignments.length > 0) {
+        setSelectedAssignmentId(buildAssignmentId(enrichedAssignments[0]));
       }
     } catch (error) {
-      setConcertsError(getErrorMessage(error, 'Unable to load concerts right now.'));
+      setAssignmentsError(getErrorMessage(error, 'Unable to load assignments right now.'));
     } finally {
-      setIsConcertsLoading(false);
+      setIsAssignmentsLoading(false);
     }
-  };
-
-  const handleGatePress = (gateNumber: number) => {
-    setSubmitError(null);
-
-    if (selectedGateNumber === gateNumber) {
-      setIsGateConfirmationVisible((current) => !current);
-      return;
-    }
-
-    setSelectedGateNumber(gateNumber);
-    setIsGateConfirmationVisible(true);
   };
 
   const handleStartScanning = async () => {
-    if (!selectedConcert || !selectedGateOption) {
+    if (!selectedAssignment) {
       return;
     }
 
@@ -189,22 +102,23 @@ export function SessionSetupScreen() {
     setSubmitError(null);
 
     try {
-      const hashes = await checkinApi.prefetchTickets(selectedConcert.id, selectedGateOption.gateNumber);
+      const hashes = await checkinApi.prefetchTickets(selectedAssignment.concert_id, selectedAssignment.gate_number);
       const prefetchedAt = new Date().toISOString();
 
       await prefetchStorage.setPrefetchedTicketSet({
-        concertId: selectedConcert.id,
-        gateNumber: selectedGateOption.gateNumber,
+        concertId: selectedAssignment.concert_id,
+        gateNumber: selectedAssignment.gate_number,
         hashes,
         prefetchedAt,
       });
 
       await scanSessionStorage.setCurrentSession({
-        concertId: selectedConcert.id,
-        concertTitle: selectedConcert.name,
-        concertVenue: selectedConcert.location,
-        gateNumber: selectedGateOption.gateNumber,
-        gateLabel: selectedGateOption.label,
+        concertId: selectedAssignment.concert_id,
+        concertTitle: selectedAssignment.concert_name,
+        concertVenue: selectedAssignment.location,
+        gateNumber: selectedAssignment.gate_number,
+        gateLabel: selectedAssignment.gate_label,
+        ticketTypeLabels: selectedAssignment.ticketTypeLabels,
         prefetchedHashCount: hashes.length,
         prefetchedAt,
       });
@@ -233,7 +147,7 @@ export function SessionSetupScreen() {
             </AppText>
             <AppText variant="hero">Prepare the scanner.</AppText>
             <AppText tone="muted">
-              Pick a concert and gate, then start scanning.
+              Choose one assigned gate, then start scanning.
             </AppText>
           </View>
           <Button icon="arrow-left" label="Back" onPress={() => router.back()} variant="ghost" />
@@ -250,6 +164,11 @@ export function SessionSetupScreen() {
                 <AppText tone="muted">
                   {currentSession.gateLabel} - {currentSession.concertVenue}
                 </AppText>
+                {currentSession.ticketTypeLabels?.length ? (
+                  <AppText tone="muted">
+                    Ticket types: {formatTicketTypes(currentSession.ticketTypeLabels)}
+                  </AppText>
+                ) : null}
               </View>
               <StatusPill label={`${currentSession.prefetchedHashCount} hashes`} tone="success" />
             </View>
@@ -266,21 +185,21 @@ export function SessionSetupScreen() {
                 1
               </AppText>
             </View>
-            <AppText variant="label">Concert</AppText>
+            <AppText variant="label">Assign</AppText>
           </View>
           <View style={styles.progressLine} />
           <View style={styles.progressStep}>
-            <View style={[styles.progressBadge, selectedGateOption ? styles.progressBadgeActive : null]}>
-              <AppText variant="eyebrow" style={selectedGateOption ? styles.progressTextActive : undefined} tone={selectedGateOption ? undefined : 'muted'}>
+            <View style={[styles.progressBadge, selectedAssignment ? styles.progressBadgeActive : null]}>
+              <AppText variant="eyebrow" style={selectedAssignment ? styles.progressTextActive : undefined} tone={selectedAssignment ? undefined : 'muted'}>
                 2
               </AppText>
             </View>
-            <AppText variant="label">Gate</AppText>
+            <AppText variant="label">Prefetch</AppText>
           </View>
           <View style={styles.progressLine} />
           <View style={styles.progressStep}>
-            <View style={[styles.progressBadge, selectedGateOption ? styles.progressBadgeActive : null]}>
-              <AppText variant="eyebrow" style={selectedGateOption ? styles.progressTextActive : undefined} tone={selectedGateOption ? undefined : 'muted'}>
+            <View style={[styles.progressBadge, selectedAssignment ? styles.progressBadgeActive : null]}>
+              <AppText variant="eyebrow" style={selectedAssignment ? styles.progressTextActive : undefined} tone={selectedAssignment ? undefined : 'muted'}>
                 3
               </AppText>
             </View>
@@ -290,42 +209,42 @@ export function SessionSetupScreen() {
 
         <View style={styles.sectionHeader}>
           <AppText variant="eyebrow" tone="muted">
-            Select concert
+            Your assignments
           </AppText>
-          <AppText tone="primary">{concerts.length} live</AppText>
+          <AppText tone="primary">{assignments.length} active</AppText>
         </View>
 
-        {isConcertsLoading ? (
+        {isAssignmentsLoading ? (
           <SurfaceCard variant="default" style={styles.centerStateCard}>
             <ActivityIndicator color={colors.primary} />
-            <AppText tone="muted">Loading published concerts...</AppText>
+            <AppText tone="muted">Loading assigned gates...</AppText>
           </SurfaceCard>
-        ) : concertsError ? (
+        ) : assignmentsError ? (
           <SurfaceCard variant="danger" style={styles.centerStateCard}>
             <MaterialCommunityIcons color={colors.danger} name="alert-circle-outline" size={24} />
-            <AppText variant="subtitle">Concert feed unavailable</AppText>
-            <AppText tone="muted">{concertsError}</AppText>
-            <Button icon="refresh" label="Retry" onPress={handleRetryConcerts} />
+            <AppText variant="subtitle">Assignments unavailable</AppText>
+            <AppText tone="muted">{assignmentsError}</AppText>
+            <Button icon="refresh" label="Retry" onPress={handleRetryAssignments} />
           </SurfaceCard>
-        ) : concerts.length === 0 ? (
+        ) : assignments.length === 0 ? (
           <SurfaceCard variant="default" style={styles.centerStateCard}>
-            <MaterialCommunityIcons color={colors.warning} name="calendar-remove-outline" size={24} />
-            <AppText variant="subtitle">No published concerts</AppText>
-            <AppText tone="muted">The backend did not return any concert that can be used for check-in.</AppText>
+            <MaterialCommunityIcons color={colors.warning} name="clipboard-account-outline" size={24} />
+            <AppText variant="subtitle">No gate assignments</AppText>
+            <AppText tone="muted">This account has not been assigned to any concert gate yet.</AppText>
           </SurfaceCard>
         ) : (
           <View style={styles.concertStack}>
-            {concerts.map((concert) => {
-              const isSelected = concert.id === selectedConcertId;
-              const showInlineSessions = isSelected && !isDetailLoading && !detailError && gateOptions.length > 0;
-              const showInlineLoading = isSelected && isDetailLoading;
-              const showInlineError = isSelected && Boolean(detailError);
-              const showInlineEmpty = isSelected && !isDetailLoading && !detailError && gateOptions.length === 0;
+            {assignments.map((assignment) => {
+              const assignmentId = buildAssignmentId(assignment);
+              const isSelected = assignmentId === selectedAssignmentId;
 
               return (
                 <Pressable
-                  key={concert.id}
-                  onPress={() => setSelectedConcertId(concert.id)}
+                  key={assignmentId}
+                  onPress={() => {
+                    setSelectedAssignmentId(assignmentId);
+                    setSubmitError(null);
+                  }}
                   style={[styles.concertCard, isSelected ? styles.concertCardActive : null]}
                 >
                   <View style={styles.concertGlow} />
@@ -333,26 +252,29 @@ export function SessionSetupScreen() {
                   <View style={styles.concertContent}>
                     <View style={styles.concertMeta}>
                       <View style={styles.concertTopline}>
-                        <StatusPill label={concert.status} tone="info" />
-                        <AppText tone="muted">{formatSchedule(concert.start_time)}</AppText>
+                        <StatusPill label={assignment.gate_label} tone="info" />
+                        <AppText tone="muted">{formatSchedule(assignment.start_time)}</AppText>
                       </View>
-                      <AppText variant="title">{concert.name}</AppText>
-                      <AppText tone="muted">{concert.location}</AppText>
+                      <AppText variant="title">{assignment.concert_name}</AppText>
+                      <AppText tone="muted">{assignment.location}</AppText>
+                      <AppText tone="muted">
+                        Ticket types: {formatTicketTypes(assignment.ticketTypeLabels)}
+                      </AppText>
                     </View>
 
                     <View style={styles.concertFoot}>
                       <View style={styles.concertFacts}>
                         <View style={styles.factColumn}>
                           <AppText variant="eyebrow" tone="muted">
-                            Availability
+                            Gate
                           </AppText>
-                          <AppText variant="label">Published</AppText>
+                          <AppText variant="label">{assignment.gate_label}</AppText>
                         </View>
                         <View style={styles.factColumn}>
                           <AppText variant="eyebrow" tone="muted">
-                            Setup
+                            Remaining
                           </AppText>
-                          <AppText variant="label">{concert.id === selectedConcertId && isDetailLoading ? 'Loading gates...' : 'Ready'}</AppText>
+                          <AppText variant="label">{assignment.ticket_count.toLocaleString()} tickets</AppText>
                         </View>
                       </View>
 
@@ -366,121 +288,42 @@ export function SessionSetupScreen() {
                     </View>
 
                     {isSelected ? <View style={styles.inlineDivider} /> : null}
-
-                    {showInlineLoading ? (
-                      <View style={styles.inlineStateRow}>
-                        <ActivityIndicator color={colors.primary} />
-                        <AppText tone="muted">Loading available gate sessions...</AppText>
-                      </View>
-                    ) : null}
-
-                    {showInlineError ? (
-                      <View style={styles.inlineStateCard}>
-                        <View style={styles.inlineStateHeader}>
-                          <MaterialCommunityIcons color={colors.danger} name="map-marker-alert-outline" size={18} />
-                          <AppText variant="label">Gate sessions unavailable</AppText>
-                        </View>
-                        <AppText tone="muted">{detailError}</AppText>
-                      </View>
-                    ) : null}
-
-                    {showInlineEmpty ? (
-                      <View style={styles.inlineStateCard}>
-                        <View style={styles.inlineStateHeader}>
-                          <MaterialCommunityIcons color={colors.warning} name="gate-alert" size={18} />
-                          <AppText variant="label">No gate sessions configured</AppText>
-                        </View>
-                        <AppText tone="muted">
-                          This concert does not have any `gate_number` configured in its ticket tiers yet.
-                        </AppText>
-                      </View>
-                    ) : null}
-
-                    {showInlineSessions ? (
+                    {isSelected ? (
                       <View style={styles.inlineSessionsBlock}>
-                        <View style={styles.inlineSessionsHeader}>
-                          <AppText variant="eyebrow" tone="primary">
-                            Gates
-                          </AppText>
-                          <AppText tone="muted">{gateOptions.length} gates</AppText>
-                        </View>
-                        <View style={styles.inlineSessionGrid}>
-                          {gateOptions.map((gate) => {
-                            const isGateSelected = gate.gateNumber === selectedGateNumber;
-
-                            return (
-                              <Pressable
-                                key={`${concert.id}-${gate.gateNumber}`}
-                                onPress={() => handleGatePress(gate.gateNumber)}
-                                style={[styles.inlineSessionChip, isGateSelected ? styles.inlineSessionChipActive : null]}
-                              >
-                                <View style={styles.inlineSessionTop}>
-                                  <AppText
-                                    variant="label"
-                                    style={isGateSelected ? styles.inlineSessionPrimaryTextActive : styles.inlineSessionPrimaryText}
-                                  >
-                                    {gate.label}
-                                  </AppText>
-                                  {isGateSelected ? (
-                                    <MaterialCommunityIcons color={colors.background} name="check-circle" size={16} />
-                                  ) : null}
-                                </View>
-                                <AppText
-                                  variant="caption"
-                                  style={isGateSelected ? styles.inlineSessionSecondaryTextActive : styles.inlineSessionSecondaryText}
-                                >
-                                  {gate.lane}
-                                </AppText>
-                                <AppText
-                                  variant="caption"
-                                  style={isGateSelected ? styles.inlineSessionSecondaryTextActive : styles.inlineSessionStatusText}
-                                >
-                                  {gate.status}
-                                </AppText>
-                              </Pressable>
-                            );
-                          })}
-                        </View>
-
-                        {isGateConfirmationVisible && selectedGateOption ? (
-                          <SurfaceCard variant="elevated" style={styles.gateConfirmationCard}>
-                            <View style={styles.gateConfirmationHeader}>
-                              <View style={styles.gateConfirmationCopy}>
-                                <AppText variant="eyebrow" tone="primary">
-                                  Ready to scan
-                                </AppText>
-                                <AppText variant="subtitle">{selectedGateOption.label}</AppText>
-                                <AppText tone="muted">
-                                  {selectedConcert?.name} - {selectedGateOption.lane}
-                                </AppText>
-                              </View>
-                              <View style={styles.gateConfirmationIcon}>
-                                <MaterialCommunityIcons color={colors.primary} name="qrcode-scan" size={22} />
-                              </View>
+                        <SurfaceCard variant="elevated" style={styles.gateConfirmationCard}>
+                          <View style={styles.gateConfirmationHeader}>
+                            <View style={styles.gateConfirmationCopy}>
+                              <AppText variant="eyebrow" tone="primary">
+                                Ready to scan
+                              </AppText>
+                              <AppText variant="subtitle">{assignment.gate_label}</AppText>
+                              <AppText tone="muted">
+                                {assignment.concert_name} - {assignment.ticket_count.toLocaleString()} tickets remaining
+                              </AppText>
+                              <AppText tone="muted">
+                                Ticket types: {formatTicketTypes(assignment.ticketTypeLabels)}
+                              </AppText>
                             </View>
-                            {submitError ? (
-                              <View style={styles.submitErrorRow}>
-                                <MaterialCommunityIcons color={colors.danger} name="alert-circle" size={18} />
-                                <AppText tone="danger">{submitError}</AppText>
-                              </View>
-                            ) : null}
-                            <View style={styles.gateConfirmationActions}>
-                              <Button
-                                icon="qrcode-scan"
-                                label="Start scanning with this gate"
-                                onPress={handleStartScanning}
-                                disabled={isConcertsLoading || isDetailLoading}
-                                loading={isSubmitting}
-                              />
-                              <Button
-                                icon="chevron-up"
-                                label="Hide"
-                                onPress={() => setIsGateConfirmationVisible(false)}
-                                variant="ghost"
-                              />
+                            <View style={styles.gateConfirmationIcon}>
+                              <MaterialCommunityIcons color={colors.primary} name="qrcode-scan" size={22} />
                             </View>
-                          </SurfaceCard>
-                        ) : null}
+                          </View>
+                          {submitError ? (
+                            <View style={styles.submitErrorRow}>
+                              <MaterialCommunityIcons color={colors.danger} name="alert-circle" size={18} />
+                              <AppText tone="danger">{submitError}</AppText>
+                            </View>
+                          ) : null}
+                          <View style={styles.gateConfirmationActions}>
+                            <Button
+                              icon="qrcode-scan"
+                              label="Start scanning with this gate"
+                              onPress={handleStartScanning}
+                              disabled={isAssignmentsLoading}
+                              loading={isSubmitting}
+                            />
+                          </View>
+                        </SurfaceCard>
                       </View>
                     ) : null}
                   </View>
@@ -498,13 +341,13 @@ export function SessionSetupScreen() {
             <View style={styles.syncText}>
               <AppText variant="subtitle">Offline prefetch</AppText>
               <AppText tone="muted">
-                Ticket hashes are saved before scanning.
+                Hashes are downloaded only for the selected assignment.
               </AppText>
             </View>
           </View>
           <View style={styles.syncMetaRow}>
-            <StatusPill label={selectedGateOption ? 'Ready to prefetch' : 'Choose a gate'} tone={selectedGateOption ? 'success' : 'warning'} />
-            <AppText tone="muted">{concertDetail?.ticketTiers.length ?? 0} configured ticket tiers</AppText>
+            <StatusPill label={selectedAssignment ? 'Ready to prefetch' : 'Choose an assignment'} tone={selectedAssignment ? 'success' : 'warning'} />
+            <AppText tone="muted">{selectedAssignment ? `${selectedAssignment.ticket_count.toLocaleString()} tickets ready` : 'No assignment selected'}</AppText>
           </View>
         </SurfaceCard>
 
@@ -514,10 +357,15 @@ export function SessionSetupScreen() {
               <AppText variant="eyebrow" tone="primary">
                 Launch
               </AppText>
-              <AppText variant="subtitle">{selectedConcert?.name ?? 'No concert selected'}</AppText>
+              <AppText variant="subtitle">{selectedAssignment?.concert_name ?? 'No assignment selected'}</AppText>
               <AppText tone="muted">
-                {selectedGateOption ? `${selectedGateOption.label} - ${selectedConcert?.location ?? ''}` : 'Select a gate to continue'}
+                {selectedAssignment ? `${selectedAssignment.gate_label} - ${selectedAssignment.location}` : 'Select an assignment to continue'}
               </AppText>
+              {selectedAssignment ? (
+                <AppText tone="muted">
+                  Ticket types: {formatTicketTypes(selectedAssignment.ticketTypeLabels)}
+                </AppText>
+              ) : null}
             </View>
             <View style={styles.summaryBadge}>
               <MaterialCommunityIcons color={colors.primary} name="qrcode-scan" size={24} />
@@ -543,7 +391,7 @@ export function SessionSetupScreen() {
               <AppText variant="eyebrow" tone="muted">
                 Lane
               </AppText>
-              <AppText variant="label">{selectedGateOption?.lane ?? 'Pending'}</AppText>
+              <AppText variant="label">{selectedAssignment ? `${selectedAssignment.ticket_count.toLocaleString()} tickets` : 'Pending'}</AppText>
             </View>
           </View>
 
@@ -558,7 +406,7 @@ export function SessionSetupScreen() {
             icon="qrcode-scan"
             label="Start scanning"
             onPress={handleStartScanning}
-            disabled={!selectedConcert || !selectedGateOption || isConcertsLoading || isDetailLoading}
+            disabled={!selectedAssignment || isAssignmentsLoading}
             loading={isSubmitting}
           />
         </SurfaceCard>
@@ -567,6 +415,10 @@ export function SessionSetupScreen() {
       </View>
     </AppScreen>
   );
+}
+
+function buildAssignmentId(assignment: CheckinAssignment) {
+  return `${assignment.concert_id}:${assignment.gate_number}`;
 }
 
 function formatSchedule(value: string) {
@@ -582,6 +434,51 @@ function formatSchedule(value: string) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+async function enrichAssignmentsWithTicketTypes(assignments: CheckinAssignment[]): Promise<AssignmentWithTicketTypes[]> {
+  const concertCache = new Map<string, string[]>();
+
+  return Promise.all(
+    assignments.map(async (assignment) => {
+      const cacheKey = `${assignment.concert_id}:${assignment.gate_number}`;
+      const cachedLabels = concertCache.get(cacheKey);
+
+      if (cachedLabels) {
+        return {
+          ...assignment,
+          ticketTypeLabels: cachedLabels,
+        };
+      }
+
+      try {
+        const concert = await concertApi.getConcert(assignment.concert_id);
+        const ticketTypeLabels = concert.ticketTiers
+          .filter((tier) => tier.gate_number === assignment.gate_number)
+          .map((tier) => tier.name);
+
+        concertCache.set(cacheKey, ticketTypeLabels);
+
+        return {
+          ...assignment,
+          ticketTypeLabels,
+        };
+      } catch {
+        return {
+          ...assignment,
+          ticketTypeLabels: [],
+        };
+      }
+    }),
+  );
+}
+
+function formatTicketTypes(labels: string[]) {
+  if (labels.length === 0) {
+    return 'Not configured';
+  }
+
+  return labels.join(', ');
 }
 
 const styles = StyleSheet.create({
@@ -606,6 +503,8 @@ const styles = StyleSheet.create({
   },
   resumeCard: {
     gap: spacing.md,
+    backgroundColor: '#10261f',
+    borderColor: 'rgba(52, 199, 138, 0.18)',
   },
   resumeHeader: {
     flexDirection: 'row',
@@ -626,7 +525,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radii.lg,
-    backgroundColor: colors.surface,
+    backgroundColor: '#101d33',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   progressStep: {
     alignItems: 'center',
@@ -668,7 +569,7 @@ const styles = StyleSheet.create({
   concertCard: {
     minHeight: 204,
     borderRadius: radii.lg,
-    backgroundColor: colors.backgroundPanel,
+    backgroundColor: '#0f1c31',
     overflow: 'hidden',
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 18 },
@@ -679,10 +580,11 @@ const styles = StyleSheet.create({
   concertCardActive: {
     shadowColor: colors.primary,
     shadowOpacity: 0.18,
+    backgroundColor: '#132846',
   },
   concertGlow: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.surfaceOverlay,
+    backgroundColor: 'rgba(94, 161, 255, 0.10)',
   },
   concertAccent: {
     position: 'absolute',
@@ -729,7 +631,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     padding: spacing.md,
     borderRadius: radii.md,
-    backgroundColor: colors.surfaceOverlay,
+    backgroundColor: '#132846',
   },
   inlineStateHeader: {
     flexDirection: 'row',
@@ -742,7 +644,8 @@ const styles = StyleSheet.create({
   gateConfirmationCard: {
     gap: spacing.md,
     borderWidth: 1,
-    borderColor: colors.borderStrong,
+    borderColor: 'rgba(94, 161, 255, 0.2)',
+    backgroundColor: '#132846',
   },
   gateConfirmationHeader: {
     flexDirection: 'row',
@@ -804,7 +707,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   inlineSessionSecondaryTextActive: {
-    color: 'rgba(6, 16, 29, 0.84)',
+    color: '#d9e8ff',
   },
   inlineSessionStatusText: {
     color: colors.primary,
@@ -831,6 +734,8 @@ const styles = StyleSheet.create({
   },
   syncCard: {
     gap: spacing.md,
+    backgroundColor: '#10261f',
+    borderColor: 'rgba(52, 199, 138, 0.16)',
   },
   syncRow: {
     flexDirection: 'row',
@@ -857,6 +762,8 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     gap: spacing.md,
+    backgroundColor: '#10233d',
+    borderColor: 'rgba(94, 161, 255, 0.18)',
   },
   summaryRow: {
     flexDirection: 'row',
@@ -887,7 +794,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 18,
-    backgroundColor: colors.surfaceOverlay,
+    backgroundColor: '#17355f',
     alignItems: 'center',
     justifyContent: 'center',
   },

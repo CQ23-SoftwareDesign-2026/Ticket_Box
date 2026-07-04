@@ -1,4 +1,5 @@
 import type {
+  CheckinAssignment,
   ScanTicketPayload,
   ScanTicketResponse,
   SyncTicketsPayload,
@@ -7,6 +8,11 @@ import type {
 import { apiClient } from '@/lib/api';
 
 export const checkinApi = {
+  async getMyAssignments() {
+    const response = await apiClient.get<CheckinAssignment[]>('/checkin/my-assignments');
+    return response.data;
+  },
+
   async prefetchTickets(concertId: string, gateNumber: number) {
     const response = await apiClient.get<string[]>(`/checkin/prefetch/${concertId}`, {
       params: {

@@ -98,6 +98,11 @@ export function StaffHomeScreen() {
                     Current scan session
                   </AppText>
                   <AppText variant="subtitle">{session.concertTitle}</AppText>
+                  {session.ticketTypeLabels?.length ? (
+                    <AppText tone="muted">
+                      Ticket types: {formatTicketTypes(session.ticketTypeLabels)}
+                    </AppText>
+                  ) : null}
                 </View>
                 <StatusPill label={session.gateLabel} tone="info" />
               </View>
@@ -164,29 +169,6 @@ export function StaffHomeScreen() {
           </View>
         </SurfaceCard>
 
-        <View style={styles.metricsBoard}>
-          <View style={styles.metricColumn}>
-            <AppText variant="eyebrow" tone="muted">
-              Session
-            </AppText>
-            <AppText variant="subtitle">{session ? session.gateLabel : 'Not set'}</AppText>
-          </View>
-          <View style={styles.metricDivider} />
-          <View style={styles.metricColumn}>
-            <AppText variant="eyebrow" tone="muted">
-              Network
-            </AppText>
-            <AppText variant="subtitle">{isOnline ? 'Online' : 'Offline'}</AppText>
-          </View>
-          <View style={styles.metricDivider} />
-          <View style={styles.metricColumn}>
-            <AppText variant="eyebrow" tone="muted">
-              Pending sync
-            </AppText>
-            <AppText variant="subtitle">{pendingSyncCount} tickets</AppText>
-          </View>
-        </View>
-
         <View style={styles.quickGrid}>
           <SurfaceCard variant="elevated" style={styles.actionCard}>
             <View style={styles.actionHeader}>
@@ -252,6 +234,8 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     gap: spacing.lg,
+    backgroundColor: '#10233d',
+    borderColor: 'rgba(94, 161, 255, 0.18)',
   },
   heroStatusRow: {
     flexDirection: 'row',
@@ -272,7 +256,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 18,
-    backgroundColor: colors.surfaceOverlay,
+    backgroundColor: '#17355f',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -280,13 +264,17 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     padding: spacing.md,
     borderRadius: radii.lg,
-    backgroundColor: colors.surfaceOverlay,
+    backgroundColor: '#0d1a2d',
+    borderWidth: 1,
+    borderColor: 'rgba(94, 161, 255, 0.16)',
   },
   emptySessionPanel: {
     gap: spacing.md,
     padding: spacing.md,
     borderRadius: radii.lg,
-    backgroundColor: colors.surfaceOverlay,
+    backgroundColor: '#2f2414',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 178, 76, 0.18)',
   },
   emptySessionCopy: {
     gap: spacing.xs,
@@ -327,35 +315,14 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     padding: spacing.md,
     borderRadius: radii.md,
-    backgroundColor: colors.surfaceOverlay,
-  },
-  metricsBoard: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radii.lg,
-    backgroundColor: colors.surface,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.18,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  metricColumn: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  metricDivider: {
-    width: 1,
-    marginHorizontal: spacing.md,
-    backgroundColor: colors.border,
+    backgroundColor: '#17355f',
   },
   quickGrid: {
     gap: spacing.md,
   },
   actionCard: {
     gap: spacing.md,
+    backgroundColor: '#101d33',
   },
   actionHeader: {
     flexDirection: 'row',
@@ -366,7 +333,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: colors.surfaceOverlay,
+    backgroundColor: '#162b48',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -396,4 +363,8 @@ function formatSessionDate(value: string) {
     month: 'short',
     day: 'numeric',
   });
+}
+
+function formatTicketTypes(labels: string[]) {
+  return labels.join(', ');
 }

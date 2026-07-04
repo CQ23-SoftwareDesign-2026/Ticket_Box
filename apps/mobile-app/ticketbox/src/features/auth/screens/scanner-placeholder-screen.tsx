@@ -40,6 +40,7 @@ type LiveResultState = {
 };
 
 const SCAN_COOLDOWN_MS = 1800;
+const SCANNER_BOTTOM_INSET = 118;
 
 export function ScannerPlaceholderScreen() {
   const router = useRouter();
@@ -129,22 +130,31 @@ export function ScannerPlaceholderScreen() {
       setIsSyncingPending(true);
 
       try {
-        await checkinApi.syncTickets({
+        const response = await checkinApi.syncTickets({
           concert_id: session.concertId,
           gate_id: session.gateNumber,
           updates: queue.map((item) => ({
             qr_code_hash: item.qrCodeHash,
             scanned_at: item.scannedAt,
-            scanned_by: item.scannedBy,
           })),
         });
 
-        await pendingSyncStorage.removeMany(queue.map((item) => item.id));
-        setPendingCount(0);
-        setSyncedCount((count) => count + queue.length);
+        const updatedCount = Math.min(response.updated, queue.length);
+        const conflictCount = Math.min(response.conflicts, Math.max(queue.length - updatedCount, 0));
+        const processedCount = Math.min(response.processed, queue.length);
+        const successItems = queue.slice(0, updatedCount);
+        const conflictItems = queue.slice(updatedCount, updatedCount + conflictCount);
+        const processedItems = queue.slice(0, processedCount);
 
-        const syncedHistoryItems = await Promise.all(
-          queue.map((item) =>
+        if (processedItems.length > 0) {
+          await pendingSyncStorage.removeMany(processedItems.map((item) => item.id));
+        }
+
+        setSyncedCount((count) => count + successItems.length);
+        setDuplicateCount((count) => count + conflictItems.length);
+
+        const historyBatches = await Promise.all([
+          ...successItems.map((item) =>
             recentScanHistoryStorage.push({
               id: `${item.id}:synced`,
               concertId: item.concertId,
@@ -156,9 +166,23 @@ export function ScannerPlaceholderScreen() {
               detail: `${shortenQrValue(item.qrCodeHash)} was uploaded to server successfully.`,
             }),
           ),
-        );
+          ...conflictItems.map((item) =>
+            recentScanHistoryStorage.push({
+              id: `${item.id}:conflict`,
+              concertId: item.concertId,
+              gateNumber: item.gateNumber,
+              qrCodeHash: item.qrCodeHash,
+              scannedAt: new Date().toISOString(),
+              status: 'SYNC_CONFLICT',
+              title: 'Sync conflict',
+              detail: `${shortenQrValue(item.qrCodeHash)} was already scanned before this device synced.`,
+            }),
+          ),
+        ]);
 
-        setRecentHistory(syncedHistoryItems[0] ?? []);
+        const remainingQueue = await pendingSyncStorage.getQueueForSession(session.concertId, session.gateNumber);
+        setPendingCount(remainingQueue.length);
+        setRecentHistory(historyBatches.at(-1) ?? []);
       } catch {
         const remainingQueue = await pendingSyncStorage.getQueueForSession(session.concertId, session.gateNumber);
         setPendingCount(remainingQueue.length);
@@ -222,6 +246,9 @@ export function ScannerPlaceholderScreen() {
       case 'ACCEPTED':
         setAcceptedCount((count) => count + 1);
         setSyncedCount((count) => count + 1);
+        if (session) {
+          await localScanStorage.addHash(session.concertId, session.gateNumber, qrValue);
+        }
         setResultState({
           status: 'ACCEPTED',
           tone: 'success',
@@ -581,7 +608,7 @@ export function ScannerPlaceholderScreen() {
   }
 
   return (
-    <AppScreen contentBottomPadding={20} scroll={false}>
+    <AppScreen contentBottomPadding={0} scroll={false}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -601,6 +628,11 @@ export function ScannerPlaceholderScreen() {
               <AppText variant="label">
                 {session.concertTitle} - {session.gateLabel}
               </AppText>
+              {session.ticketTypeLabels?.length ? (
+                <AppText tone="muted">
+                  Ticket types: {formatTicketTypes(session.ticketTypeLabels)}
+                </AppText>
+              ) : null}
             </View>
           </View>
           <StatusPill label={topStatus.label} tone={topStatus.tone} />
@@ -724,7 +756,19 @@ export function ScannerPlaceholderScreen() {
           </View>
         </View>
 
-        <SurfaceCard variant={resultState.panelVariant} style={styles.resultCard}>
+        <SurfaceCard
+          variant={resultState.panelVariant}
+          style={[
+            styles.resultCard,
+            resultState.tone === 'success'
+              ? styles.resultCardSuccess
+              : resultState.tone === 'warning'
+                ? styles.resultCardWarning
+                : resultState.tone === 'danger'
+                  ? styles.resultCardDanger
+                  : styles.resultCardInfo,
+          ]}
+        >
           <View style={styles.resultTop}>
             <View
               style={[
@@ -811,7 +855,7 @@ export function ScannerPlaceholderScreen() {
                       styles.historyToneBar,
                       item.status === 'ACCEPTED' || item.status === 'OFFLINE_ACCEPTED' || item.status === 'SYNCED'
                         ? styles.historyToneSuccess
-                        : item.status === 'DUPLICATE' || item.status === 'UNPAID'
+                        : item.status === 'DUPLICATE' || item.status === 'UNPAID' || item.status === 'SYNC_CONFLICT'
                           ? styles.historyToneWarning
                           : styles.historyToneDanger,
                     ]}
@@ -879,10 +923,14 @@ function formatScanTime(value: string) {
   });
 }
 
+function formatTicketTypes(labels: string[]) {
+  return labels.join(', ');
+}
+
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 20,
+    paddingBottom: SCANNER_BOTTOM_INSET,
   },
   container: {
     minHeight: '100%',
@@ -940,8 +988,15 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderRadius: radii.lg,
-    backgroundColor: colors.surface,
+    backgroundColor: '#101d33',
+    borderWidth: 1,
+    borderColor: colors.border,
     gap: spacing.md,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 2,
   },
   sessionBoardBlock: {
     flex: 1,
@@ -965,6 +1020,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: radii.md,
     backgroundColor: colors.surfaceOverlay,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   placeholder: {
     height: 392,
@@ -973,6 +1030,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 22 },
     shadowOpacity: 0.28,
@@ -1069,7 +1128,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: radii.md,
-    backgroundColor: colors.surface,
+    backgroundColor: '#101d33',
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 72,
@@ -1084,10 +1145,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     borderRadius: radii.md,
-    backgroundColor: colors.surfaceOverlay,
+    backgroundColor: colors.surfaceSoft,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   resultCard: {
     gap: spacing.md,
+    borderWidth: 1,
+    shadowOpacity: 0.16,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 12 },
+    shadowRadius: 22,
+    elevation: 5,
+  },
+  resultCardInfo: {
+    backgroundColor: '#11294a',
+    borderColor: 'rgba(94, 161, 255, 0.24)',
+  },
+  resultCardSuccess: {
+    backgroundColor: '#10281d',
+    borderColor: 'rgba(52, 199, 138, 0.24)',
+  },
+  resultCardWarning: {
+    backgroundColor: '#33260f',
+    borderColor: 'rgba(255, 178, 76, 0.24)',
+  },
+  resultCardDanger: {
+    backgroundColor: '#34141d',
+    borderColor: 'rgba(255, 107, 125, 0.24)',
   },
   resultTop: {
     flexDirection: 'row',
@@ -1121,7 +1206,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    paddingVertical: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    backgroundColor: 'rgba(7, 17, 31, 0.34)',
+    borderWidth: 1,
+    borderColor: 'rgba(127, 147, 178, 0.22)',
   },
   resultMetaItem: {
     flex: 1,
@@ -1133,10 +1222,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
   resultActions: {
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   historyCard: {
     gap: spacing.md,
+    backgroundColor: '#101d33',
+    borderColor: colors.border,
   },
   historyHeader: {
     flexDirection: 'row',
@@ -1149,12 +1240,17 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   historyList: {
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   historyRow: {
     flexDirection: 'row',
     gap: spacing.md,
     alignItems: 'stretch',
+    padding: spacing.md,
+    borderRadius: radii.md,
+    backgroundColor: '#0d1728',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   historyToneBar: {
     width: 4,
@@ -1172,9 +1268,6 @@ const styles = StyleSheet.create({
   historyContent: {
     flex: 1,
     gap: spacing.xs,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   historyRowTop: {
     flexDirection: 'row',
