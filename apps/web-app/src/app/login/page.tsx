@@ -66,14 +66,20 @@ function LoginForm() {
         {reset ? (
           <div className="flex items-center gap-3 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
             <CheckCircle2 className="h-5 w-5 shrink-0" />
-            <p>Your password has been updated. Please sign in with your new password.</p>
+            <p>
+              Your password has been updated. Please sign in with your new
+              password.
+            </p>
           </div>
         ) : null}
 
         {registered ? (
           <div className="flex items-center gap-3 rounded-xl bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-950/50 dark:text-blue-200">
             <CheckCircle2 className="h-5 w-5 shrink-0" />
-            <p>Your account has been created. Check your email to verify it before signing in.</p>
+            <p>
+              Your account has been created. Check your email to verify it
+              before signing in.
+            </p>
           </div>
         ) : null}
 

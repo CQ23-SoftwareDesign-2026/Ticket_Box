@@ -17,7 +17,9 @@ export default function VerifyClient() {
     token ? "loading" : "error",
   );
   const [message, setMessage] = useState<string | null>(
-    token ? null : "Missing verification token. Please request a new verification email.",
+    token
+      ? null
+      : "Missing verification token. Please request a new verification email.",
   );
 
   useEffect(() => {

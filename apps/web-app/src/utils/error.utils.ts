@@ -21,7 +21,9 @@ type AuthErrorContext =
 
 const INVALID_CREDENTIALS_MESSAGE = "Invalid email or password";
 
-function normalizeMessage(message: string | string[] | undefined): string | null {
+function normalizeMessage(
+  message: string | string[] | undefined,
+): string | null {
   if (Array.isArray(message)) {
     return message.filter(Boolean).join(" ");
   }

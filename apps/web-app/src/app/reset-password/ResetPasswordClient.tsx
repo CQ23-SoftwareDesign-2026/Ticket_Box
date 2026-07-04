@@ -103,7 +103,10 @@ export default function ResetPasswordClient() {
           <p className="text-sm text-muted-foreground">
             Please request a new password reset email and try again.
           </p>
-          <Link href="/forgot-password" className="ticketbox-button-primary w-full">
+          <Link
+            href="/forgot-password"
+            className="ticketbox-button-primary w-full"
+          >
             Request a new reset link
           </Link>
         </div>
