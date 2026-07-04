@@ -77,17 +77,24 @@ export async function getOrders(
 
 const orderRequests = new Map<string, Promise<OrderDetail>>();
 
-export async function getOrderById(orderId: string): Promise<OrderDetail> {
-  let promise = orderRequests.get(orderId);
+export async function getOrderById(
+  orderId: string,
+  isAdmin = false,
+): Promise<OrderDetail> {
+  const cacheKey = `${orderId}-${isAdmin}`;
+  let promise = orderRequests.get(cacheKey);
   if (!promise) {
-    promise = apiClient.get<OrderDetail>(`/orders/${orderId}`);
-    orderRequests.set(orderId, promise);
+    const endpoint = isAdmin
+      ? `/orders/admin/${orderId}`
+      : `/orders/${orderId}`;
+    promise = apiClient.get<OrderDetail>(endpoint);
+    orderRequests.set(cacheKey, promise);
     void promise.then(
       () => {
-        orderRequests.delete(orderId);
+        orderRequests.delete(cacheKey);
       },
       () => {
-        orderRequests.delete(orderId);
+        orderRequests.delete(cacheKey);
       },
     );
   }
@@ -96,4 +103,39 @@ export async function getOrderById(orderId: string): Promise<OrderDetail> {
 
 export async function cancelOrder(orderId: string): Promise<OrderDetail> {
   return apiClient.post<OrderDetail>(`/orders/${orderId}/cancel`);
+}
+
+export interface AdminOrderListItem extends OrderListItem {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+}
+
+export interface AdminOrderListResponse {
+  data: AdminOrderListItem[];
+  meta: PaginationMeta;
+}
+
+export async function getAdminOrders(params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+  payment_method?: string;
+  user_id?: string;
+  concert_id?: string;
+}): Promise<AdminOrderListResponse> {
+  const query = new URLSearchParams();
+  if (params?.page) query.append("page", String(params.page));
+  if (params?.limit) query.append("limit", String(params.limit));
+  if (params?.status) query.append("status", params.status);
+  if (params?.search) query.append("search", params.search);
+  if (params?.payment_method)
+    query.append("payment_method", params.payment_method);
+  if (params?.user_id) query.append("user_id", params.user_id);
+  if (params?.concert_id) query.append("concert_id", params.concert_id);
+
+  return apiClient.get<AdminOrderListResponse>(
+    `/orders/admin?${query.toString()}`,
+  );
 }
