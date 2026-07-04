@@ -1,7 +1,13 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 
 export class CreateTicketCategoryDto {
+  @ApiPropertyOptional({ example: '7d9e4e35-5a1b-4458-bda4-5de2a317a0f4' })
+  @IsString()
+  @IsUUID()
+  @IsOptional()
+  id?: string;
+
   @ApiProperty({ example: 'SVIP' })
   @IsString()
   @IsNotEmpty()
@@ -22,10 +28,20 @@ export class CreateTicketCategoryDto {
   @Min(1)
   max_per_user!: number;
 
-  @ApiProperty({ example: 1, required: false })
+  @ApiPropertyOptional({ example: 1 })
   @IsInt()
   @Min(1)
   @IsOptional()
   gate_number?: number;
+
+  @ApiPropertyOptional({ example: 0 })
+  @IsInt()
+  @IsOptional()
+  position?: number;
+
+  @ApiPropertyOptional({ example: 'available' })
+  @IsString()
+  @IsOptional()
+  status?: string;
 }
 

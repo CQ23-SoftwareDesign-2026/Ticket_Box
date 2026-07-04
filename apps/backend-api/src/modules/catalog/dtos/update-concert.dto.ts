@@ -1,7 +1,9 @@
-import { IsDateString, IsOptional, IsString, IsEnum, MaxLength } from 'class-validator';
+import { IsDateString, IsOptional, IsString, IsEnum, MaxLength, IsArray, ValidateNested } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import { IsFutureDate } from '../../../shared/validators/is-future-date.decorator';
 import { ConcertStatus } from '../constants/concert-status.enum';
+import { CreateTicketCategoryDto } from './create-ticket-category.dto';
 
 export class UpdateConcertDto {
   @ApiPropertyOptional({ example: 'Anh Trai Say Hi' })
@@ -45,4 +47,11 @@ export class UpdateConcertDto {
   @IsOptional()
   @IsEnum(ConcertStatus)
   status?: ConcertStatus;
+
+  @ApiPropertyOptional({ type: [CreateTicketCategoryDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateTicketCategoryDto)
+  ticketTiers?: CreateTicketCategoryDto[];
 }

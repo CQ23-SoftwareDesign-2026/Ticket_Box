@@ -61,5 +61,5 @@ export class CreateConcertDto {
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => CreateTicketCategoryDto)
-  ticket_categories!: CreateTicketCategoryDto[];
+  ticketTiers!: CreateTicketCategoryDto[];
 }
