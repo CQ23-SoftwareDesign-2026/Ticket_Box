@@ -11,6 +11,7 @@ export type PaymentGatewaySessionInput = {
     idempotencyKey: string;
     returnUrl?: string;
     webhookUrl?: string;
+    expiredAt?: number;
 };
 
 export type PaymentGatewaySessionResult = {
