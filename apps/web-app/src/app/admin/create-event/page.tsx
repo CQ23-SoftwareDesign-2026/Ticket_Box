@@ -89,7 +89,7 @@ function EventForm() {
     svg_map_url: "https://cdn.ticketbox.local/maps/default.svg",
     poster_url:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih",
-    status: "PUBLISHED",
+    status: "DRAFT",
   });
 
   const [ticketCategories, setTicketCategories] = useState<TicketCategory[]>([
@@ -183,7 +183,6 @@ function EventForm() {
       const payload = {
         ...formData,
         start_time: startDate.toISOString(),
-        status: "PUBLISHED",
         ticket_categories: ticketCategories,
       };
 
@@ -285,7 +284,7 @@ function EventForm() {
             disabled={isSaving}
             className="px-6 py-2 rounded-lg bg-primary text-primary-foreground font-body text-xs font-semibold hover:bg-primary-hover active:scale-95 transition-all shadow-sm disabled:opacity-50"
           >
-            {isSaving ? "Saving..." : "Publish Event"}
+            {isSaving ? "Saving..." : isEditing ? "Save Event" : "Create Event"}
           </button>
         </div>
       </header>
@@ -329,7 +328,7 @@ function EventForm() {
                   }
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div>
                   <label className="block font-body text-xs font-semibold text-foreground mb-1">
                     Venue Location
@@ -356,6 +355,23 @@ function EventForm() {
                       setFormData({ ...formData, start_time: e.target.value })
                     }
                   />
+                </div>
+                <div>
+                  <label className="block font-body text-xs font-semibold text-foreground mb-1">
+                    Event Status
+                  </label>
+                  <select
+                    className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:ring-1 focus:ring-primary text-sm cursor-pointer appearance-none"
+                    value={formData.status}
+                    onChange={(e) =>
+                      setFormData({ ...formData, status: e.target.value })
+                    }
+                  >
+                    <option value="DRAFT">Draft</option>
+                    <option value="PUBLISHED">Published</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="CANCELLED">Cancelled</option>
+                  </select>
                 </div>
               </div>
               <div>
@@ -614,7 +630,7 @@ function EventForm() {
               disabled={isSaving}
               className="flex-1 px-4 py-3 rounded-lg bg-primary text-primary-foreground font-body text-xs font-semibold hover:bg-primary/90 active:scale-95 transition-all shadow-sm text-center disabled:opacity-50"
             >
-              {isSaving ? "Saving..." : "Publish"}
+              {isSaving ? "Saving..." : isEditing ? "Save" : "Create"}
             </button>
           </div>
         </div>

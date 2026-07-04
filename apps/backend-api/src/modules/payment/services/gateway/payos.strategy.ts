@@ -47,6 +47,7 @@ export class PayOsStrategy implements PaymentGatewayStrategy {
                 ],
                 cancelUrl,
                 returnUrl,
+                ...(input.expiredAt ? { expiredAt: input.expiredAt } : {}),
             };
 
             const paymentLinkRes = await this.payOS.paymentRequests.create(requestData);
