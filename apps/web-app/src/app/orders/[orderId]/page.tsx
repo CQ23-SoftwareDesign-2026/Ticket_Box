@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { SiteShell, Button } from "@/components/common";
+import { useAuth } from "@/context/AuthContext";
 import {
   getOrderById,
   cancelOrder,
@@ -62,6 +63,12 @@ export default function OrderDetailsPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const orderId = resolvedParams.orderId;
 
+  const { user } = useAuth();
+  const isAdmin = !!(
+    user?.roles?.includes("Admin") ||
+    (user && "role" in user && (user as { role?: string }).role === "Admin")
+  );
+
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +79,7 @@ export default function OrderDetailsPage({ params }: PageProps) {
     setLoading(true);
     setError(null);
     try {
-      const data = await getOrderById(orderId);
+      const data = await getOrderById(orderId, isAdmin);
       setOrder(data);
     } catch (err) {
       console.error("Failed to load order details:", err);
@@ -89,7 +96,7 @@ export default function OrderDetailsPage({ params }: PageProps) {
 
     async function load() {
       try {
-        const data = await getOrderById(orderId);
+        const data = await getOrderById(orderId, isAdmin);
         if (active) {
           setOrder(data);
           setLoading(false);
@@ -110,7 +117,7 @@ export default function OrderDetailsPage({ params }: PageProps) {
     return () => {
       active = false;
     };
-  }, [orderId]);
+  }, [orderId, isAdmin]);
 
   const handleCancelOrder = async () => {
     if (
