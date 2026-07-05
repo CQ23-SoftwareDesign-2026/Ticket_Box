@@ -1,3 +1,3 @@
-import { StaffHomeScreen } from '@/features/auth/screens/staff-home-screen';
+import { StaffHomeScreen } from '@/features/checkin/screens/staff-home-screen';
 
 export default StaffHomeScreen;

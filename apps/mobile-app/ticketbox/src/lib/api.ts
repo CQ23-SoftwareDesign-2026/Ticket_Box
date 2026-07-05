@@ -1,5 +1,6 @@
 import axios, {
   AxiosError,
+  create as createAxios,
   type AxiosInstance,
   type InternalAxiosRequestConfig,
 } from 'axios';
@@ -13,7 +14,7 @@ import {
   handleUnauthorized,
   setSessionTokens,
 } from '@/lib/session';
-import { tokenStorage } from '@/lib/storage';
+import { tokenStorage } from '@/features/auth/storage/token-storage';
 
 type RetryableRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean;
@@ -25,7 +26,7 @@ type RefreshResponse = {
   user: User;
 };
 
-const authClient = axios.create({
+const authClient = createAxios({
   baseURL: APP_CONFIG.apiBaseUrl,
   headers: {
     'Content-Type': 'application/json',

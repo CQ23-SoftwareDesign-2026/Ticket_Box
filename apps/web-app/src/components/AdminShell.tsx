@@ -9,6 +9,7 @@ import {
   Calendar,
   DollarSign,
   Users,
+  ClipboardCheck,
   Settings,
   Plus,
   Menu,
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/admin/events", label: "Events", icon: Calendar },
   { href: "/admin/revenue", label: "Revenue", icon: DollarSign },
   { href: "/admin/users", label: "User", icon: Users },
+  { href: "/admin/assignments", label: "Assignments", icon: ClipboardCheck },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
@@ -111,7 +113,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
       {/* Mobile Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-16 pb-safe px-4 shadow-[0px_-4px_20px_rgba(15,23,42,0.08)] bg-surface border-t border-border">
-        {navItems.slice(0, 4).map((item) => {
+        {navItems.slice(0, 5).map((item) => {
           const isActive = pathname?.startsWith(item.href);
           return (
             <Link

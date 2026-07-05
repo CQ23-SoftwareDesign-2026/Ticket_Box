@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 
-import { scanSessionStorage, type CurrentScanSession } from '@/lib/storage';
+import { scanSessionStorage, type CurrentScanSession } from '@/features/checkin/storage/checkin-storage';
 
 export function useCurrentScanSession() {
   const [session, setSession] = useState<CurrentScanSession | null>(null);

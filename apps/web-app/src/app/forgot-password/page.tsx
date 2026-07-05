@@ -5,7 +5,7 @@ import { TicketBoxAuthShell } from "@/components/ticketbox-auth-shell";
 import { ConcertHeroIllustration } from "@/components/ticketbox-illustrations";
 import { authService } from "@/services/auth.service";
 import { AlertCircle, CheckCircle2, Loader2, KeyRound } from "lucide-react";
-import { getErrorMessage } from "@/utils/error.utils";
+import { getAuthErrorMessage } from "@/utils/error.utils";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -21,7 +21,7 @@ export default function ForgotPasswordPage() {
       await authService.forgotPassword(email);
       setSuccess(true);
     } catch (error: unknown) {
-      setError(getErrorMessage(error));
+      setError(getAuthErrorMessage(error, "forgot-password"));
     } finally {
       setLoading(false);
     }

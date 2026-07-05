@@ -1,3 +1,3 @@
-import { ScannerPlaceholderScreen } from '@/features/auth/screens/scanner-placeholder-screen';
+import { ScannerScreen } from '@/features/checkin/screens/scanner-screen';
 
-export default ScannerPlaceholderScreen;
+export default ScannerScreen;

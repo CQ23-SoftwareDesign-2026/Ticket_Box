@@ -7,40 +7,40 @@ import { TicketBoxAuthShell } from "@/components/ticketbox-auth-shell";
 import { ConcertHeroIllustration } from "@/components/ticketbox-illustrations";
 import { authService } from "@/services/auth.service";
 import { useAuth } from "@/context/AuthContext";
-import { AlertCircle, Loader2 } from "lucide-react";
+import {
+  getAuthErrorMessage,
+  shouldSuggestResendVerification,
+} from "@/utils/error.utils";
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams?.get("returnUrl") || "/";
+  const verified = searchParams?.get("verified") === "1";
+  const reset = searchParams?.get("reset") === "1";
+  const registered = searchParams?.get("registered") === "1";
   const { login } = useAuth();
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(searchParams?.get("email") ?? "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showResendVerification, setShowResendVerification] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setShowResendVerification(false);
 
     try {
-      await authService.login(email, password);
-      const profile = await authService.me();
-      login(profile);
-      router.push(returnUrl);
+      const response = await authService.login(email, password);
+      login(response.user);
+      router.replace(returnUrl);
     } catch (err: unknown) {
-      const responseMessage =
-        typeof err === "object" && err !== null && "response" in err
-          ? (err as { response?: { data?: { message?: string } } }).response
-              ?.data?.message
-          : undefined;
-      const message =
-        responseMessage ||
-        (err instanceof Error && err.message) ||
-        "Login failed";
-      setError(message);
+      setError(getAuthErrorMessage(err, "login"));
+      setShowResendVerification(shouldSuggestResendVerification(err));
     } finally {
       setLoading(false);
     }
@@ -56,10 +56,47 @@ function LoginForm() {
       ]}
     >
       <form className="space-y-5" onSubmit={onSubmit}>
+        {verified ? (
+          <div className="flex items-center gap-3 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
+            <CheckCircle2 className="h-5 w-5 shrink-0" />
+            <p>Your email has been verified. You can sign in now.</p>
+          </div>
+        ) : null}
+
+        {reset ? (
+          <div className="flex items-center gap-3 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
+            <CheckCircle2 className="h-5 w-5 shrink-0" />
+            <p>
+              Your password has been updated. Please sign in with your new
+              password.
+            </p>
+          </div>
+        ) : null}
+
+        {registered ? (
+          <div className="flex items-center gap-3 rounded-xl bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-950/50 dark:text-blue-200">
+            <CheckCircle2 className="h-5 w-5 shrink-0" />
+            <p>
+              Your account has been created. Check your email to verify it
+              before signing in.
+            </p>
+          </div>
+        ) : null}
+
         {error ? (
           <div className="flex items-center gap-3 rounded-xl bg-red-50 p-4 text-sm text-red-800 dark:bg-red-950/50 dark:text-red-200">
             <AlertCircle className="h-5 w-5 shrink-0" />
-            <p>{error}</p>
+            <div className="space-y-2">
+              <p>{error}</p>
+              {showResendVerification ? (
+                <Link
+                  href={`/resend-verification?email=${encodeURIComponent(email)}`}
+                  className="inline-flex font-semibold text-red-900 underline underline-offset-4 dark:text-red-100"
+                >
+                  Resend verification email
+                </Link>
+              ) : null}
+            </div>
           </div>
         ) : null}
 
@@ -97,24 +134,10 @@ function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
             type="password"
             className="ticketbox-input"
-            placeholder="••••••••"
+            placeholder="********"
             required
             disabled={loading}
           />
-        </div>
-
-        <div className="flex items-center space-x-2 py-2">
-          <input
-            type="checkbox"
-            id="remember"
-            className="h-4 w-4 rounded border-input bg-background text-primary focus:ring-primary focus:ring-offset-2"
-          />
-          <label
-            htmlFor="remember"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-          >
-            Remember me for 30 days
-          </label>
         </div>
 
         <button
