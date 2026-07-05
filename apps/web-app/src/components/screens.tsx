@@ -149,7 +149,7 @@ export function HeroCarousel() {
       : "Loading...";
 
   return (
-    <section className="group relative overflow-hidden bg-[#111318] text-white min-h-[600px] flex items-end pb-16">
+    <section className="group relative overflow-hidden bg-[#111318] text-white min-h-[480px] flex items-end pb-10">
       {previousConcert && (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
@@ -562,11 +562,16 @@ export function InteractiveTicketSelector({
 
       router.push(`/checkout/${response.order_id}`);
     } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to reserve tickets right now.",
-      );
+      const msg = error instanceof Error ? error.message : "";
+      if (msg.includes("ERR_NO_TICKET")) {
+        setError("Hết vé hoặc không đủ số lượng yêu cầu.");
+      } else if (msg.includes("ERR_LIMIT_EXCEEDED")) {
+        setError("Vượt quá giới hạn mua vé cho phép.");
+      } else if (msg.includes("ERR_NOT_INITIALIZED")) {
+        setError("Hạng vé chưa được kích hoạt hoặc không tồn tại.");
+      } else {
+        setError(msg || "Có lỗi xảy ra khi đặt vé. Vui lòng thử lại.");
+      }
     } finally {
       setIsReserving(false);
     }
@@ -693,7 +698,11 @@ export function InteractiveTicketSelector({
             >
               {isReserving ? "Reserving seats..." : "Confirm and Checkout"}
             </button>
-            {error ? <p className="text-xs text-rose-600">{error}</p> : null}
+            {error ? (
+              <div className="mt-4 text-xs text-red-500 font-medium text-center bg-red-500/10 border border-red-500/20 py-2.5 px-4 rounded-xl">
+                {error}
+              </div>
+            ) : null}
           </div>
         )}
       </div>
@@ -1095,6 +1104,7 @@ export function useReservationTimer(orderId?: string) {
     }
     return null;
   });
+  const clockOffsetRef = useRef(0);
 
   useEffect(() => {
     if (!orderId) return;
@@ -1102,10 +1112,24 @@ export function useReservationTimer(orderId?: string) {
     let active = true;
 
     const syncWithServer = async () => {
+      // Calculate clock skew (drift) by checking Date header from server
+      try {
+        const start = Date.now();
+        const res = await fetch(window.location.origin, { method: "HEAD" });
+        const serverDateHeader = res.headers.get("Date");
+        if (serverDateHeader) {
+          const serverTime = new Date(serverDateHeader).getTime();
+          const clientTime = (start + Date.now()) / 2;
+          clockOffsetRef.current = serverTime - clientTime;
+        }
+      } catch (e) {
+        console.error("Failed to calculate clock offset:", e);
+      }
+
       const fetchOrderWithRetry = async (
         retries = 5,
         delay = 1000,
-      ): Promise<OrderDetail> => {
+      ): Promise<OrderDetail | null> => {
         try {
           return await getOrderById(orderId);
         } catch (err) {
@@ -1119,7 +1143,7 @@ export function useReservationTimer(orderId?: string) {
 
       try {
         const order = await fetchOrderWithRetry();
-        if (!active) return;
+        if (!active || !order) return;
 
         if (order.status === "PAID") {
           setTimeLeft(null);
@@ -1193,7 +1217,7 @@ export function useReservationTimer(orderId?: string) {
     if (isNaN(expiresAtTime)) return;
 
     const updateTimer = () => {
-      const remaining = expiresAtTime - Date.now();
+      const remaining = expiresAtTime - (Date.now() + clockOffsetRef.current);
       if (remaining <= 0) {
         setTimeLeft(0);
         setIsExpired(true);
@@ -1351,38 +1375,101 @@ export function OrderSummaryCard({
     return null;
   });
 
-  const title =
-    checkoutState?.concertTitle ||
-    searchParams.get("title") ||
-    orderSummary.event;
-  const tierName = checkoutState?.tierName || searchParams.get("tierName");
-  const price = checkoutState
-    ? String(checkoutState.price)
-    : searchParams.get("price");
-  const qty = checkoutState
-    ? String(checkoutState.quantity)
-    : searchParams.get("qty");
-  const date =
-    checkoutState?.date || searchParams.get("date") || orderSummary.date;
-  const venue =
-    checkoutState?.venue || searchParams.get("venue") || orderSummary.venue;
+  const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
 
-  let subtotal: string = orderSummary.subtotal;
-  let total: string = orderSummary.total;
-  let seatsText: string = orderSummary.seats;
-  const payHref = checkoutState
-    ? `/checkout/${checkoutState.orderId}/processing`
-    : "/checkout/order-2048/processing";
+  useEffect(() => {
+    if (orderId) {
+      getOrderById(orderId)
+        .then((data) => {
+          setOrderDetail(data);
+        })
+        .catch((err) => {
+          console.error("Failed to load order details in summary:", err);
+        });
+    }
+  }, [orderId]);
 
-  if (tierName && price && qty) {
-    const qtyVal = parseInt(qty, 10) || 1;
-    const priceVal = parseFloat(price) || 0;
-    const subtotalVal = priceVal * qtyVal;
+  const isStateMatching =
+    checkoutState !== null && checkoutState.orderId === orderId;
 
-    subtotal = formatConcertCurrency(subtotalVal);
-    total = formatConcertCurrency(subtotalVal);
-    seatsText = `${qtyVal}x ${tierName} Ticket${qtyVal > 1 ? "s" : ""}`;
+  const title = isStateMatching
+    ? checkoutState?.concertTitle || orderSummary.event
+    : orderDetail?.concert_name ||
+      searchParams.get("title") ||
+      orderSummary.event;
+
+  const date = isStateMatching
+    ? checkoutState?.date || orderSummary.date
+    : searchParams.get("date") || "Chi tiết trong vé";
+
+  const venue = isStateMatching
+    ? checkoutState?.venue || orderSummary.venue
+    : searchParams.get("venue") || "Chi tiết trong vé";
+
+  let subtotal: string = "Đang tải...";
+  let total: string = "Đang tải...";
+  let seatsText: string = "Đang tải...";
+
+  if (isStateMatching) {
+    const tierName = checkoutState?.tierName || searchParams.get("tierName");
+    const price = checkoutState
+      ? String(checkoutState.price)
+      : searchParams.get("price");
+    const qty = checkoutState
+      ? String(checkoutState.quantity)
+      : searchParams.get("qty");
+
+    if (tierName && price && qty) {
+      const qtyVal = parseInt(qty, 10) || 1;
+      const priceVal = parseFloat(price) || 0;
+      const subtotalVal = priceVal * qtyVal;
+
+      subtotal = formatConcertCurrency(subtotalVal);
+      total = formatConcertCurrency(subtotalVal);
+      seatsText = `${qtyVal}x ${tierName} Ticket${qtyVal > 1 ? "s" : ""}`;
+    }
+  } else if (orderDetail) {
+    const amountVal = parseFloat(orderDetail.total_amount) || 0;
+    subtotal = formatConcertCurrency(amountVal);
+    total = formatConcertCurrency(amountVal);
+
+    const metadata = orderDetail.ticket_metadata as {
+      ticket_breakdown?: Array<{
+        quantity?: number;
+        category_name?: string | null;
+      }>;
+      quantity?: number;
+      category_name?: string | null;
+    } | null;
+    if (metadata) {
+      if (
+        Array.isArray(metadata.ticket_breakdown) &&
+        metadata.ticket_breakdown.length > 0
+      ) {
+        seatsText = metadata.ticket_breakdown
+          .map(
+            (item) =>
+              `${item.quantity ?? 0}x ${item.category_name || "Ticket"}`,
+          )
+          .join(", ");
+      } else if (metadata.quantity) {
+        seatsText = `${metadata.quantity}x ${metadata.category_name || "Ticket"}`;
+      } else if (orderDetail.ticket_count > 0) {
+        seatsText = `${orderDetail.ticket_count}x Ticket${orderDetail.ticket_count > 1 ? "s" : ""}`;
+      } else {
+        seatsText = "Vé chưa thanh toán";
+      }
+    } else if (orderDetail.ticket_count > 0) {
+      seatsText = `${orderDetail.ticket_count}x Ticket${orderDetail.ticket_count > 1 ? "s" : ""}`;
+    } else {
+      seatsText = "Vé chưa thanh toán";
+    }
   }
+
+  const payHref =
+    isStateMatching && checkoutState
+      ? `/checkout/${checkoutState.orderId}/processing`
+      : `/checkout/${orderId}/processing`;
 
   return (
     <Card className="space-y-5 p-6 lg:sticky lg:top-24">
@@ -1410,12 +1497,16 @@ export function OrderSummaryCard({
           <Ticket size={14} className="mt-0.5 shrink-0 text-primary/60" />
           <span>{seatsText}</span>
         </div>
-        {checkoutState && (
+        {((isStateMatching && checkoutState) || orderDetail) && (
           <div className="flex items-start gap-2.5 px-4 py-3 text-xs text-on-surface-variant/70">
             <Lock size={12} className="mt-0.5 shrink-0" />
             <span>
               Reserved until{" "}
-              {new Date(checkoutState.expiresAt).toLocaleTimeString([], {
+              {new Date(
+                isStateMatching
+                  ? checkoutState!.expiresAt
+                  : orderDetail!.expires_at,
+              ).toLocaleTimeString([], {
                 hour: "numeric",
                 minute: "2-digit",
               })}

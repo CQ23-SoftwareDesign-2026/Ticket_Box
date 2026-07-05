@@ -10,6 +10,7 @@ import {
 } from "@/services/concert.service";
 import { uploadImage, uploadSvg } from "@/services/upload.service";
 import { getErrorMessage } from "@/utils/error.utils";
+import { generateBio, getJobStatus } from "@/services/worker.service";
 import {
   ChevronRight,
   Info,
@@ -28,6 +29,7 @@ type TicketCategory = {
   price: number;
   total_quantity: number;
   max_per_user: number;
+  gate_number?: number | null;
 };
 
 function EventForm() {
@@ -98,10 +100,12 @@ function EventForm() {
       price: 500000,
       total_quantity: 1000,
       max_per_user: 4,
+      gate_number: 1,
     },
   ]);
 
   const [isGeneratingBio, setIsGeneratingBio] = useState(false);
+  const [bioProgress, setBioProgress] = useState<number | null>(null);
 
   const handlePressKitButtonClick = () => {
     pressKitInputRef.current?.click();
@@ -141,6 +145,7 @@ function EventForm() {
             svg_map_url:
               data.mapUrl || "https://cdn.ticketbox.local/maps/default.svg",
             poster_url:
+              data.posterUrl ||
               "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih",
             status: data.status || "PUBLISHED",
           });
@@ -153,6 +158,7 @@ function EventForm() {
                 price: t.price,
                 total_quantity: t.total_quantity,
                 max_per_user: t.max_per_user,
+                gate_number: t.gate_number ?? null,
               })),
             );
           }
@@ -183,7 +189,14 @@ function EventForm() {
       const payload = {
         ...formData,
         start_time: startDate.toISOString(),
-        ticket_categories: ticketCategories,
+        ticketTiers: ticketCategories.map((tc) => ({
+          id: tc.id,
+          name: tc.name,
+          price: Number(tc.price),
+          total_quantity: Number(tc.total_quantity),
+          max_per_user: Number(tc.max_per_user),
+          gate_number: tc.gate_number ? Number(tc.gate_number) : null,
+        })),
       };
 
       if (isEditing) {
@@ -205,7 +218,13 @@ function EventForm() {
   const handleAddTier = () => {
     setTicketCategories([
       ...ticketCategories,
-      { name: "New Tier", price: 0, total_quantity: 100, max_per_user: 2 },
+      {
+        name: "New Tier",
+        price: 0,
+        total_quantity: 100,
+        max_per_user: 2,
+        gate_number: 1,
+      },
     ]);
   };
 
@@ -216,26 +235,67 @@ function EventForm() {
   const handleTierChange = (
     index: number,
     field: keyof TicketCategory,
-    value: string | number,
+    value: string | number | null,
   ) => {
     const newTiers = [...ticketCategories];
     newTiers[index] = { ...newTiers[index], [field]: value };
     setTicketCategories(newTiers);
   };
 
-  const generateAIBio = () => {
-    setIsGeneratingBio(true);
-    setTimeout(() => {
-      const pressKitHint = pressKitFile
-        ? `Based on your press kit "${pressKitFile.name}", `
-        : "Based on the event details you provided, ";
+  const generateAIBio = async () => {
+    if (!isEditing || !editId) {
+      alert(
+        "Please create the event first before generating the AI Biography.",
+      );
+      return;
+    }
+    if (!pressKitFile) {
+      alert("Please choose a PDF press kit file first.");
+      return;
+    }
 
-      setFormData((prev) => ({
-        ...prev,
-        ai_bio: `${pressKitHint}join us for an electrifying night at ${prev.location || "our premium venue"}! Experience the pulse-pounding beats and spectacular visuals of ${prev.name || "this exclusive event"}. This unforgettable night brings together top artists for a multi-sensory journey you won't forget. Secure your tickets now and be part of the music history.`,
-      }));
+    setIsGeneratingBio(true);
+    setBioProgress(0);
+
+    try {
+      const res = await generateBio(editId, pressKitFile);
+      const jobId = res.job_id;
+
+      const pollInterval = setInterval(async () => {
+        try {
+          const job = await getJobStatus(jobId);
+          setBioProgress(job.progress_percentage);
+
+          if (job.status === "COMPLETED") {
+            clearInterval(pollInterval);
+            setIsGeneratingBio(false);
+            setBioProgress(null);
+            // Fetch updated concert to get the newly generated bio
+            const updated = await getConcertById(editId);
+            setFormData((prev) => ({ ...prev, ai_bio: updated.aiBio || "" }));
+            alert("AI Biography generated and updated successfully!");
+          } else if (job.status === "FAILED") {
+            clearInterval(pollInterval);
+            setIsGeneratingBio(false);
+            setBioProgress(null);
+            alert(
+              `AI Biography generation failed: ${job.error_message || "Unknown error"}`,
+            );
+          }
+        } catch (err) {
+          console.error("Error checking bio job status:", err);
+        }
+      }, 2000);
+    } catch (err: unknown) {
+      console.error(err);
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Failed to start AI Bio generation",
+      );
       setIsGeneratingBio(false);
-    }, 1500);
+      setBioProgress(null);
+    }
   };
 
   if (isLoading) {
@@ -508,12 +568,15 @@ function EventForm() {
                   </span>
                 </div>
                 <button
+                  type="button"
                   onClick={generateAIBio}
                   disabled={isGeneratingBio}
-                  className="text-primary hover:text-primary/80 text-xs flex items-center gap-1 disabled:opacity-50"
+                  className="text-primary hover:text-primary/80 text-xs flex items-center gap-1 disabled:opacity-50 font-bold"
                 >
                   <Sparkles className="w-4 h-4" />
-                  {isGeneratingBio ? "Generating..." : "Generate with AI"}
+                  {isGeneratingBio
+                    ? `Generating (${bioProgress ?? 0}%)`
+                    : "Generate with AI"}
                 </button>
               </label>
 
@@ -570,7 +633,7 @@ function EventForm() {
                     <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pl-2">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 pl-2">
                   <div>
                     <label className="block font-body text-xs font-semibold text-muted-foreground mb-1">
                       Price (VND)
@@ -614,6 +677,24 @@ function EventForm() {
                           index,
                           "max_per_user",
                           Number(e.target.value),
+                        )
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-body text-xs font-semibold text-muted-foreground mb-1">
+                      Gate Number
+                    </label>
+                    <input
+                      className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-foreground focus:border-primary focus:ring-1 focus:ring-primary text-sm"
+                      type="number"
+                      placeholder="e.g. 1"
+                      value={tier.gate_number ?? ""}
+                      onChange={(e) =>
+                        handleTierChange(
+                          index,
+                          "gate_number",
+                          e.target.value ? Number(e.target.value) : null,
                         )
                       }
                     />

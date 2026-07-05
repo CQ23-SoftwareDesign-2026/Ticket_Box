@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User as UserIcon,
@@ -18,11 +18,75 @@ import { useAuth } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { SiteShell } from "@/components/common";
 import { authService } from "@/services/auth.service";
+import { getOrders, getOrderById } from "@/services/order.service";
+import { getConcerts } from "@/services/concert.service";
 
 function ProfileContent() {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
+  const [ticketsOwned, setTicketsOwned] = useState(0);
+  const [eventsAttended, setEventsAttended] = useState(0);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    const fetchStats = async () => {
+      try {
+        const ordersRes = await getOrders(1, 100);
+        if (!active) return;
+
+        const paidOrders = ordersRes.data.filter((o) => o.status === "PAID");
+
+        const details = await Promise.all(
+          paidOrders.map((o) => getOrderById(o.id).catch(() => null)),
+        );
+        if (!active) return;
+
+        let activeTickets = 0;
+        for (const detail of details) {
+          if (detail && detail.tickets) {
+            activeTickets += detail.tickets.filter((t) => !t.is_scanned).length;
+          }
+        }
+
+        const userConcertNames = Array.from(
+          new Set(paidOrders.map((o) => o.concert_name).filter(Boolean)),
+        );
+
+        const [pubRes, compRes, cancRes] = await Promise.all([
+          getConcerts({ status: "PUBLISHED", limit: 100 }).catch(() => null),
+          getConcerts({ status: "COMPLETED", limit: 100 }).catch(() => null),
+          getConcerts({ status: "CANCELLED", limit: 100 }).catch(() => null),
+        ]);
+        if (!active) return;
+
+        const validConcertsList = [
+          ...(pubRes?.items || []),
+          ...(compRes?.items || []),
+          ...(cancRes?.items || []),
+        ];
+
+        const attendedCount = userConcertNames.filter((name) =>
+          validConcertsList.some((c) => c.title === name),
+        ).length;
+
+        setTicketsOwned(activeTickets);
+        setEventsAttended(attendedCount);
+      } catch (err) {
+        console.error("Failed to load profile statistics:", err);
+      } finally {
+        if (active) setStatsLoading(false);
+      }
+    };
+
+    void fetchStats();
+
+    return () => {
+      active = false;
+    };
+  }, []);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -137,7 +201,9 @@ function ProfileContent() {
               <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
                 Tickets Owned
               </p>
-              <p className="mt-1.5 text-3xl font-black text-[#7132f5]">12</p>
+              <p className="mt-1.5 text-3xl font-black text-[#7132f5]">
+                {statsLoading ? "..." : ticketsOwned}
+              </p>
             </motion.div>
 
             <motion.div
@@ -147,7 +213,9 @@ function ProfileContent() {
               <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
                 Events Attended
               </p>
-              <p className="mt-1.5 text-3xl font-black text-[#7132f5]">8</p>
+              <p className="mt-1.5 text-3xl font-black text-[#7132f5]">
+                {statsLoading ? "..." : eventsAttended}
+              </p>
             </motion.div>
           </div>
         </div>

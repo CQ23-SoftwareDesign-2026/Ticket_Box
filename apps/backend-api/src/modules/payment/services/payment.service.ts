@@ -319,6 +319,30 @@ export class PaymentService {
             });
         }
 
+        if (transaction.order.status === 'CANCELLED') {
+            this.logger.warn(`Received successful payment webhook for already CANCELLED/EXPIRED order ${transaction.order_id}`);
+            await this.prisma.paymentTransaction.update({
+                where: { id: transaction.id },
+                data: {
+                    status: 'SUCCESS',
+                    transaction_id_3rd_party: String(dto.data.paymentLinkId),
+                    raw_response: this.mergeTelemetry(transaction.raw_response, {
+                        webhook: this.buildWebhookTelemetry(dto, dto.signature),
+                        warning: 'Paid after order expiration/cancellation',
+                    }) as Prisma.JsonObject,
+                },
+            });
+
+            return new PaymentWebhookResponseDto({
+                order_status: 'CANCELLED',
+                payment_status: 'SUCCESS',
+                ticket_count: 0,
+                message: 'Order was already cancelled or expired. Refund required.',
+                ticket_ids: [],
+            });
+        }
+
+
         if (transaction.order.status === 'PAID' && transaction.order.tickets.length > 0) {
             await this.prisma.paymentTransaction.update({
                 where: { id: transaction.id },
