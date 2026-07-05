@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -9,125 +8,33 @@ import { Button } from '@/components/ui/button';
 import { SurfaceCard } from '@/components/ui/surface-card';
 import { StatusPill } from '@/components/ui/status-pill';
 import { colors, radii, spacing } from '@/constants/theme';
-import { checkinApi } from '@/features/checkin/api/checkin-api';
-import { concertApi } from '@/features/checkin/api/concert-api';
 import { useCurrentScanSession } from '@/features/checkin/hooks/use-current-scan-session';
-import type { CheckinAssignment } from '@/features/checkin/types/checkin.types';
-import { getErrorMessage } from '@/lib/errors';
+import { getAssignmentId, useSessionSetup } from '@/features/checkin/hooks/use-session-setup';
+import { formatSchedule, formatTicketTypes } from '@/features/checkin/utils/checkin-formatters';
 import { routes } from '@/lib/routes';
-import { prefetchStorage, scanSessionStorage } from '@/lib/storage';
-
-type AssignmentWithTicketTypes = CheckinAssignment & {
-  ticketTypeLabels: string[];
-};
 
 export function SessionSetupScreen() {
   const router = useRouter();
   const { session: currentSession } = useCurrentScanSession();
-  const [assignments, setAssignments] = useState<AssignmentWithTicketTypes[]>([]);
-  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
-  const [assignmentsError, setAssignmentsError] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isAssignmentsLoading, setIsAssignmentsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    async function loadAssignments() {
-      setIsAssignmentsLoading(true);
-      setAssignmentsError(null);
-
-      try {
-        const response = await checkinApi.getMyAssignments();
-        const enrichedAssignments = await enrichAssignmentsWithTicketTypes(response);
-        setAssignments(enrichedAssignments);
-
-        if (enrichedAssignments.length > 0) {
-          setSelectedAssignmentId((current) => current ?? buildAssignmentId(enrichedAssignments[0]));
-        }
-      } catch (error) {
-        setAssignmentsError(getErrorMessage(error, 'Unable to load assignments right now.'));
-      } finally {
-        setIsAssignmentsLoading(false);
-      }
-    }
-
-    void loadAssignments();
-  }, []);
-
-  const selectedAssignment = useMemo(
-    () => assignments.find((assignment) => buildAssignmentId(assignment) === selectedAssignmentId) ?? null,
-    [assignments, selectedAssignmentId],
-  );
-
-  useEffect(() => {
-    if (assignments.length === 0) {
-      setSelectedAssignmentId(null);
-      return;
-    }
-
-    setSelectedAssignmentId((current) => {
-      if (current && assignments.some((assignment) => buildAssignmentId(assignment) === current)) {
-        return current;
-      }
-
-      return buildAssignmentId(assignments[0]);
-    });
-  }, [assignments]);
-
-  const handleRetryAssignments = async () => {
-    setIsAssignmentsLoading(true);
-    setAssignmentsError(null);
-
-    try {
-      const response = await checkinApi.getMyAssignments();
-      const enrichedAssignments = await enrichAssignmentsWithTicketTypes(response);
-      setAssignments(enrichedAssignments);
-
-      if (enrichedAssignments.length > 0) {
-        setSelectedAssignmentId(buildAssignmentId(enrichedAssignments[0]));
-      }
-    } catch (error) {
-      setAssignmentsError(getErrorMessage(error, 'Unable to load assignments right now.'));
-    } finally {
-      setIsAssignmentsLoading(false);
-    }
-  };
+  const {
+    assignments,
+    selectedAssignment,
+    selectedAssignmentId,
+    assignmentsError,
+    submitError,
+    isAssignmentsLoading,
+    isSubmitting,
+    setSelectedAssignmentId,
+    setSubmitError,
+    retryAssignments,
+    beginScanning,
+  } = useSessionSetup();
 
   const handleStartScanning = async () => {
-    if (!selectedAssignment) {
-      return;
-    }
+    const didStart = await beginScanning(selectedAssignment);
 
-    setIsSubmitting(true);
-    setSubmitError(null);
-
-    try {
-      const hashes = await checkinApi.prefetchTickets(selectedAssignment.concert_id, selectedAssignment.gate_number);
-      const prefetchedAt = new Date().toISOString();
-
-      await prefetchStorage.setPrefetchedTicketSet({
-        concertId: selectedAssignment.concert_id,
-        gateNumber: selectedAssignment.gate_number,
-        hashes,
-        prefetchedAt,
-      });
-
-      await scanSessionStorage.setCurrentSession({
-        concertId: selectedAssignment.concert_id,
-        concertTitle: selectedAssignment.concert_name,
-        concertVenue: selectedAssignment.location,
-        gateNumber: selectedAssignment.gate_number,
-        gateLabel: selectedAssignment.gate_label,
-        ticketTypeLabels: selectedAssignment.ticketTypeLabels,
-        prefetchedHashCount: hashes.length,
-        prefetchedAt,
-      });
-
+    if (didStart) {
       router.push(routes.staffScanner);
-    } catch (error) {
-      setSubmitError(getErrorMessage(error, 'Prefetch failed. Please try again before entering scan mode.'));
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -224,7 +131,7 @@ export function SessionSetupScreen() {
             <MaterialCommunityIcons color={colors.danger} name="alert-circle-outline" size={24} />
             <AppText variant="subtitle">Assignments unavailable</AppText>
             <AppText tone="muted">{assignmentsError}</AppText>
-            <Button icon="refresh" label="Retry" onPress={handleRetryAssignments} />
+            <Button icon="refresh" label="Retry" onPress={() => void retryAssignments()} />
           </SurfaceCard>
         ) : assignments.length === 0 ? (
           <SurfaceCard variant="default" style={styles.centerStateCard}>
@@ -235,7 +142,7 @@ export function SessionSetupScreen() {
         ) : (
           <View style={styles.concertStack}>
             {assignments.map((assignment) => {
-              const assignmentId = buildAssignmentId(assignment);
+              const assignmentId = getAssignmentId(assignment);
               const isSelected = assignmentId === selectedAssignmentId;
 
               return (
@@ -415,70 +322,6 @@ export function SessionSetupScreen() {
       </View>
     </AppScreen>
   );
-}
-
-function buildAssignmentId(assignment: CheckinAssignment) {
-  return `${assignment.concert_id}:${assignment.gate_number}`;
-}
-
-function formatSchedule(value: string) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return 'Schedule unavailable';
-  }
-
-  return date.toLocaleString([], {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-async function enrichAssignmentsWithTicketTypes(assignments: CheckinAssignment[]): Promise<AssignmentWithTicketTypes[]> {
-  const concertCache = new Map<string, string[]>();
-
-  return Promise.all(
-    assignments.map(async (assignment) => {
-      const cacheKey = `${assignment.concert_id}:${assignment.gate_number}`;
-      const cachedLabels = concertCache.get(cacheKey);
-
-      if (cachedLabels) {
-        return {
-          ...assignment,
-          ticketTypeLabels: cachedLabels,
-        };
-      }
-
-      try {
-        const concert = await concertApi.getConcert(assignment.concert_id);
-        const ticketTypeLabels = concert.ticketTiers
-          .filter((tier) => tier.gate_number === assignment.gate_number)
-          .map((tier) => tier.name);
-
-        concertCache.set(cacheKey, ticketTypeLabels);
-
-        return {
-          ...assignment,
-          ticketTypeLabels,
-        };
-      } catch {
-        return {
-          ...assignment,
-          ticketTypeLabels: [],
-        };
-      }
-    }),
-  );
-}
-
-function formatTicketTypes(labels: string[]) {
-  if (labels.length === 0) {
-    return 'Not configured';
-  }
-
-  return labels.join(', ');
 }
 
 const styles = StyleSheet.create({

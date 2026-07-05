@@ -13,8 +13,9 @@ import { StatusPill } from '@/components/ui/status-pill';
 import { colors, radii, spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useCurrentScanSession } from '@/features/checkin/hooks/use-current-scan-session';
+import { pendingSyncStorage, recentScanHistoryStorage } from '@/features/checkin/storage/checkin-storage';
+import { formatTicketTypes } from '@/features/checkin/utils/checkin-formatters';
 import { routes } from '@/lib/routes';
-import { pendingSyncStorage, recentScanHistoryStorage } from '@/lib/storage';
 
 export function StaffHomeScreen() {
   const router = useRouter();
@@ -363,8 +364,4 @@ function formatSessionDate(value: string) {
     month: 'short',
     day: 'numeric',
   });
-}
-
-function formatTicketTypes(labels: string[]) {
-  return labels.join(', ');
 }

@@ -7,22 +7,22 @@ import {
 } from 'react';
 
 import { authApi } from '@/features/auth/api/auth-api';
+import { tokenStorage } from '@/features/auth/storage/token-storage';
 import type {
   AuthResponse,
   User,
 } from '@/features/auth/types/auth.types';
-import { resolveAuthRoute } from '@/features/auth/utils/resolve-auth-route';
-import { setApiAccessToken } from '@/lib/api';
-import { routes } from '@/lib/routes';
-import { registerSessionUserHandler, registerUnauthorizedHandler, setSessionTokens } from '@/lib/session';
+import { resolveAuthRoute } from '@/features/auth/utils/access-policy';
 import {
   localScanStorage,
   pendingSyncStorage,
   prefetchStorage,
   recentScanHistoryStorage,
   scanSessionStorage,
-  tokenStorage,
-} from '@/lib/storage';
+} from '@/features/checkin/storage/checkin-storage';
+import { setApiAccessToken } from '@/lib/api';
+import { routes } from '@/lib/routes';
+import { registerSessionUserHandler, registerUnauthorizedHandler, setSessionTokens } from '@/lib/session';
 
 export type AuthContextValue = {
   user: User | null;
