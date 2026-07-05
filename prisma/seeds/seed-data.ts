@@ -112,6 +112,24 @@ export const concerts = [
             { name: "Huyền Thoại 1", price: 800000, max_per_user: 4, gate_number: 10, position: 31, status: "sold_out", total_quantity: 6000 },
             { name: "Huyền Thoại 2", price: 800000, max_per_user: 4, gate_number: 10, position: 32, status: "sold_out", total_quantity: 6000 },
         ],
+        performers: [
+            "Soobin",
+            "Cường Seven",
+            "S.T Sơn Thạch",
+            "Jun Phạm",
+            "Kay Trần",
+            "Binz",
+            "BB Trần",
+            "Bằng Kiều",
+            "Tuấn Hưng",
+            "Tự Long",
+            "Quốc Thiên",
+            "Tiến Luật",
+            "Đinh Tiến Đạt",
+            "Trọng Hiếu",
+            "Kiên Ứng",
+            "Bùi Công Nam"
+        ],
     },
     {
         id: "f3d948b0-2ca9-4cd6-8fd0-0fcf10dcaa4f",
@@ -143,6 +161,22 @@ export const concerts = [
             { name: "GA 1B", price: 1500000, max_per_user: 6, gate_number: 7, position: 15, status: "sale_closed", total_quantity: 6000 },
             { name: "GA 2A", price: 1000000, max_per_user: 6, gate_number: 6, position: 16, status: "sale_closed", total_quantity: 7000 },
             { name: "GA 2B", price: 1000000, max_per_user: 6, gate_number: 7, position: 17, status: "sale_closed", total_quantity: 7000 },
+        ],
+        performers: [
+            "Soobin",
+            "Cường Seven",
+            "S.T Sơn Thạch",
+            "Jun Phạm",
+            "Kay Trần",
+            "Binz",
+            "BB Trần",
+            "Bằng Kiều",
+            "Tuấn Hưng",
+            "Tự Long",
+            "Quốc Thiên",
+            "Tiến Luật",
+            "Đinh Tiến Đạt",
+            "Trọng Hiếu"
         ],
     },
     {
@@ -197,6 +231,24 @@ export const concerts = [
             { name: "Màn Đêm Rực Sáng 1", price: 800000, max_per_user: 10, gate_number: 8, position: 25, status: "sold_out", total_quantity: 5000 },
             { name: "Màn Đêm Rực Sáng 2", price: 800000, max_per_user: 10, gate_number: 8, position: 26, status: "sold_out", total_quantity: 5000 },
         ],
+        performers: [
+            "Mỹ Linh",
+            "Thu Phương",
+            "Hồng Nhung",
+            "Thanh Lam",
+            "Mỹ Tâm",
+            "Tóc Tiên",
+            "Trang Pháp",
+            "Bùi Lan Hương",
+            "Phương Vy",
+            "Uyên Linh",
+            "Kiều Anh",
+            "Lynk Lee",
+            "Minh Tuyết",
+            "Đoan Trang",
+            "Ninh Dương Lan Ngọc",
+            "Diệu Nhi"
+        ],
     },
     {
         id: "2b7e14d8-2a17-4ac4-bc9c-02fa998bf293",
@@ -217,6 +269,14 @@ export const concerts = [
             { name: "BALLERINA", price: 1600000, max_per_user: 4, gate_number: 2, position: 4, status: "sold_out", total_quantity: 2200 },
             { name: "FEATHER", price: 1100000, max_per_user: 4, gate_number: 3, position: 5, status: "sold_out", total_quantity: 3000 },
             { name: "MOONLIGHT", price: 860000, max_per_user: 4, gate_number: 3, position: 6, status: "sold_out", total_quantity: 3800 },
+        ],
+        performers: [
+            "Phùng Khánh Linh",
+            "Vũ.",
+            "Lân Nhã",
+            "Orange",
+            "Mỹ Anh",
+            "Khánh Linh Band"
         ],
     },
     {
@@ -239,6 +299,15 @@ export const concerts = [
             { name: "FEATHER", price: 1100000, max_per_user: 4, gate_number: 3, position: 5, status: "sold_out", total_quantity: 3000 },
             { name: "MOONLIGHT", price: 860000, max_per_user: 4, gate_number: 3, position: 6, status: "sold_out", total_quantity: 3800 },
         ],
+        performers: [
+            "Phùng Khánh Linh",
+            "GREY D",
+            "Mỹ Anh",
+            "Vũ.",
+            "Orange",
+            "The Cassette",
+            "Black Swan Band"
+        ],
     },
     {
         id: "3ac46e1d-8f5b-47a9-b9d1-cfbe7d8c92ed",
@@ -259,6 +328,11 @@ export const concerts = [
             { name: "Hạng Shine", price: 1800000, max_per_user: 10, gate_number: 2, position: 4, status: "book_now", total_quantity: 280 },
             { name: "Hạng Sun", price: 1450000, max_per_user: 10, gate_number: 3, position: 5, status: "book_now", total_quantity: 350 },
             { name: "Hạng Cloud", price: 1150000, max_per_user: 10, gate_number: 3, position: 6, status: "book_now", total_quantity: 450 },
+        ],
+        performers: [
+            "Hà Nhi",
+            "Khánh An Band",
+            "Sky Melody"
         ],
     },
     {
@@ -292,6 +366,18 @@ export const concerts = [
 
             { name: "NHÀ KHO A", price: 500000, max_per_user: 4, gate_number: 6, position: 12, status: "sold_out", total_quantity: 5000 },
             { name: "NHÀ KHO B", price: 500000, max_per_user: 4, gate_number: 6, position: 13, status: "sold_out", total_quantity: 5000 },
+        ],
+        performers: [
+            "HIEUTHUHAI",
+            "HURRYKNG",
+            "Negav",
+            "Pháp Kiều",
+            "JSOL",
+            "ERIK",
+            "Orange",
+            "tlinh",
+            "WEAN",
+            "Rhyder"
         ],
     },
 ];
