@@ -146,8 +146,9 @@ export class TicketingService implements OnModuleInit {
                 await client.hSet(key, {
                     available: available.toString(),
                     max_per_user: cat.max_per_user.toString(),
+                    sales_start_at: cat.sales_start_at ? cat.sales_start_at.toISOString() : '',
                 });
-                this.logger.log(`[Redis Warmup] Initialized category ${cat.id} (${cat.name}) with available: ${available}, max_per_user: ${cat.max_per_user}`);
+                this.logger.log(`[Redis Warmup] Initialized category ${cat.id} (${cat.name}) with available: ${available}, max_per_user: ${cat.max_per_user}, sales_start_at: ${cat.sales_start_at ?? 'none'}`);
             } else {
                 this.logger.log(`[Redis Warmup] Category ${cat.id} is already initialized on Redis`);
             }
@@ -157,6 +158,28 @@ export class TicketingService implements OnModuleInit {
     async reserveTicket(userId: string, dto: ReserveTicketDto) {
         const { concert_id, items } = dto;
         const userKey = `user:${userId}:reservations`;
+
+        // Check if any category has not started sales yet
+        for (const item of items) {
+            let salesStartAt: Date | null;
+            const inventory = await this.getCategoryInventory(item.category_id);
+            if (inventory) {
+                salesStartAt = inventory.sales_start_at;
+            } else {
+                const category = await this.prisma.ticketCategory.findUnique({
+                    where: { id: item.category_id },
+                    select: { sales_start_at: true },
+                });
+                salesStartAt = category?.sales_start_at ?? null;
+            }
+
+            if (salesStartAt) {
+                const now = new Date();
+                if (now < salesStartAt) {
+                    throw new BadRequestException('Hạng vé này chưa đến thời điểm mở bán.');
+                }
+            }
+        }
 
         const args: string[] = [items.length.toString()];
         for (const item of items) {
@@ -332,7 +355,7 @@ export class TicketingService implements OnModuleInit {
         }
     }
 
-    async seedCategoryInventory(categoryId: string, available: number, maxPerUser: number): Promise<void> {
+    async seedCategoryInventory(categoryId: string, available: number, maxPerUser: number, salesStartAt?: Date | null): Promise<void> {
         const client = this.redisService.getClient();
         if (!client || !client.isOpen) {
             throw new Error('Redis is not available');
@@ -341,8 +364,9 @@ export class TicketingService implements OnModuleInit {
         await client.hSet(key, {
             available: available.toString(),
             max_per_user: maxPerUser.toString(),
+            sales_start_at: salesStartAt ? salesStartAt.toISOString() : '',
         });
-        this.logger.log(`Seeded category ${categoryId} with available: ${available}, max_per_user: ${maxPerUser}`);
+        this.logger.log(`Seeded category ${categoryId} with available: ${available}, max_per_user: ${maxPerUser}, sales_start_at: ${salesStartAt ?? 'none'}`);
     }
 
     async getCategoryInventory(categoryId: string) {
@@ -357,6 +381,7 @@ export class TicketingService implements OnModuleInit {
         return {
             available: parseInt(data.available, 10),
             max_per_user: parseInt(data.max_per_user, 10),
+            sales_start_at: data.sales_start_at ? new Date(data.sales_start_at) : null,
         };
     }
 
@@ -412,7 +437,7 @@ export class TicketingService implements OnModuleInit {
         const available = Math.max(0, category.total_quantity - (soldCount + pendingCount));
         
         try {
-            await this.seedCategoryInventory(categoryId, available, category.max_per_user);
+            await this.seedCategoryInventory(categoryId, available, category.max_per_user, category.sales_start_at);
         } catch (err) {
             this.logger.error(`[Lazy Seeding Failed] Could not cache category ${categoryId} on Redis`, err);
         }
