@@ -8,6 +8,7 @@ import {
   IsArray,
   ArrayMinSize,
   IsEnum,
+  IsUrl,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -45,11 +46,13 @@ export class CreateConcertDto {
   @ApiPropertyOptional({ example: 'https://cdn.ticketbox.local/maps/anh-trai-say-hi.svg' })
   @IsOptional()
   @IsString()
+  @IsUrl()
   svg_map_url?: string;
 
   @ApiPropertyOptional({ example: 'https://cdn.ticketbox.local/posters/anh-trai-say-hi.png' })
   @IsOptional()
   @IsString()
+  @IsUrl()
   poster_url?: string;
 
   @ApiProperty({ enum: ConcertStatus, example: ConcertStatus.PUBLISHED })
@@ -61,5 +64,5 @@ export class CreateConcertDto {
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => CreateTicketCategoryDto)
-  ticket_categories!: CreateTicketCategoryDto[];
+  ticketTiers!: CreateTicketCategoryDto[];
 }

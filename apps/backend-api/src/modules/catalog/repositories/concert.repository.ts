@@ -25,6 +25,8 @@ type ConcertTicketCategoryRow = {
   total_quantity: number;
   max_per_user: number;
   gate_number?: number | null;
+  position?: number | null;
+  status?: string | null;
 };
 
 type ConcertDetailRow = ConcertListRow & {
@@ -111,12 +113,14 @@ export class ConcertRepository {
         poster_url: payload.poster_url ?? null,
         status: payload.status,
         ticket_categories: {
-          create: payload.ticket_categories.map((category) => ({
+          create: (payload.ticketTiers || []).map((category) => ({
             name: category.name,
             price: category.price,
             total_quantity: category.total_quantity,
             max_per_user: category.max_per_user,
             gate_number: category.gate_number ?? null,
+            position: category.position ?? 0,
+            status: category.status ?? 'book_now',
           })),
         },
       },
@@ -127,6 +131,62 @@ export class ConcertRepository {
   }
 
   async update(id: string, payload: UpdateConcertDto): Promise<ConcertResponseDto> {
+    if (payload.ticketTiers) {
+      const incomingTiers = payload.ticketTiers;
+
+      // Get existing categories to identify deleted ones
+      const existing = await this.prisma.ticketCategory.findMany({
+        where: { concert_id: id },
+        select: { id: true },
+      });
+      const existingIds = existing.map((e) => e.id);
+
+      const incomingIds = incomingTiers.map((t) => t.id).filter((tierId): tierId is string => !!tierId);
+      const toDelete = existingIds.filter((exId) => !incomingIds.includes(exId));
+
+      await this.prisma.$transaction(async (tx) => {
+        // 1. Delete removed categories
+        if (toDelete.length > 0) {
+          await tx.ticketCategory.deleteMany({
+            where: { id: { in: toDelete } },
+          });
+        }
+
+        // 2. Create or Update incoming categories
+        for (const tier of incomingTiers) {
+          if (tier.id && existingIds.includes(tier.id)) {
+            // Update
+            await tx.ticketCategory.update({
+              where: { id: tier.id },
+              data: {
+                name: tier.name,
+                price: tier.price,
+                total_quantity: tier.total_quantity,
+                max_per_user: tier.max_per_user,
+                gate_number: tier.gate_number ?? null,
+                position: tier.position ?? 0,
+                status: tier.status ?? 'book_now',
+              },
+            });
+          } else {
+            // Create
+            await tx.ticketCategory.create({
+              data: {
+                concert_id: id,
+                name: tier.name,
+                price: tier.price,
+                total_quantity: tier.total_quantity,
+                max_per_user: tier.max_per_user,
+                gate_number: tier.gate_number ?? null,
+                position: tier.position ?? 0,
+                status: tier.status ?? 'book_now',
+              },
+            });
+          }
+        }
+      });
+    }
+
     const concert = await this.prisma.concert.update({
       where: { id },
       data: {
@@ -166,6 +226,8 @@ export class ConcertRepository {
         total_quantity: tc.total_quantity,
         max_per_user: tc.max_per_user,
         gate_number: tc.gate_number ?? null,
+        position: tc.position ?? 0,
+        status: tc.status ?? 'book_now',
       }),
     );
 
