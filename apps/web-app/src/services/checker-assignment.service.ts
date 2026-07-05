@@ -60,5 +60,7 @@ export async function updateCheckerAssignment(
 export async function deleteCheckerAssignment(
   id: string,
 ): Promise<DeleteAssignmentResponse> {
-  return apiClient.delete<DeleteAssignmentResponse>(`/checkin/assignments/${id}`);
+  return apiClient.delete<DeleteAssignmentResponse>(
+    `/checkin/assignments/${id}`,
+  );
 }

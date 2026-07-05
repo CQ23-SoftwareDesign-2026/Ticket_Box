@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   CalendarDays,
@@ -138,7 +138,9 @@ function SummaryCard({
       <div className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${tone}`}>
+            <p
+              className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${tone}`}
+            >
               {label}
             </p>
             <p className="mt-3 font-display text-3xl font-bold text-foreground">
@@ -232,59 +234,108 @@ export default function AdminAssignmentsPage() {
     },
   ];
 
-  const loadBootstrapData = async () => {
-    setBootstrapping(true);
-    setGlobalError(null);
+  const loadBootstrapData = useCallback(async () => {
+    const [concertData, checkerData] = await Promise.all([
+      getAssignmentConcerts(),
+      getAssignmentCheckers(),
+    ]);
 
-    try {
-      const [concertData, checkerData] = await Promise.all([
-        getAssignmentConcerts(),
-        getAssignmentCheckers(),
-      ]);
+    return { concertData, checkerData };
+  }, []);
 
-      setConcerts(concertData);
-      setCheckers(checkerData);
-    } catch (error) {
-      setGlobalError(getErrorMessage(error));
-    } finally {
-      setBootstrapping(false);
-    }
-  };
-
-  const loadAssignments = async (
-    nextPage = page,
-    nextConcertFilter = concertFilter,
-    nextCheckerFilter = checkerFilter,
-  ) => {
-    setLoading(true);
-    setGlobalError(null);
-
-    try {
-      const response = await getCheckerAssignments({
+  const loadAssignments = useCallback(
+    async (
+      nextPage: number,
+      nextConcertFilter: string,
+      nextCheckerFilter: string,
+    ) => {
+      return getCheckerAssignments({
         page: nextPage,
         limit: 10,
         concert_id: nextConcertFilter || undefined,
         checker_id: nextCheckerFilter || undefined,
       });
-
-      setAssignments(response.data);
-      setMeta(response.meta);
-    } catch (error) {
-      setAssignments([]);
-      setMeta(DEFAULT_META);
-      setGlobalError(getErrorMessage(error));
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [],
+  );
 
   useEffect(() => {
-    void loadBootstrapData();
-  }, []);
+    let active = true;
+
+    const bootstrap = async () => {
+      setBootstrapping(true);
+      setGlobalError(null);
+
+      try {
+        const { concertData, checkerData } = await loadBootstrapData();
+
+        if (!active) {
+          return;
+        }
+
+        setConcerts(concertData);
+        setCheckers(checkerData);
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+
+        setGlobalError(getErrorMessage(error));
+      } finally {
+        if (active) {
+          setBootstrapping(false);
+        }
+      }
+    };
+
+    void bootstrap();
+
+    return () => {
+      active = false;
+    };
+  }, [loadBootstrapData]);
 
   useEffect(() => {
-    void loadAssignments(page, concertFilter, checkerFilter);
-  }, [page, concertFilter, checkerFilter]);
+    let active = true;
+
+    const fetchAssignments = async () => {
+      setLoading(true);
+      setGlobalError(null);
+
+      try {
+        const response = await loadAssignments(
+          page,
+          concertFilter,
+          checkerFilter,
+        );
+
+        if (!active) {
+          return;
+        }
+
+        setAssignments(response.data);
+        setMeta(response.meta);
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+
+        setAssignments([]);
+        setMeta(DEFAULT_META);
+        setGlobalError(getErrorMessage(error));
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void fetchAssignments();
+
+    return () => {
+      active = false;
+    };
+  }, [page, concertFilter, checkerFilter, loadAssignments]);
 
   useEffect(() => {
     if (!feedback) {
@@ -714,7 +765,9 @@ export default function AdminAssignmentsPage() {
                     </td>
                     <td className="px-6 py-5">
                       <p className="text-sm font-medium text-foreground">
-                        {formatConcertTime(assignment.concertDetails?.start_time)}
+                        {formatConcertTime(
+                          assignment.concertDetails?.start_time,
+                        )}
                       </p>
                     </td>
                     <td className="px-6 py-5">
