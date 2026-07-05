@@ -119,14 +119,12 @@ function AssignmentModal({
 function SummaryCard({
   label,
   value,
-  hint,
   icon: Icon,
   tone,
   tint,
 }: {
   label: string;
   value: string;
-  hint: string;
   icon: React.ComponentType<{ className?: string }>;
   tone: string;
   tint: string;
@@ -153,7 +151,6 @@ function SummaryCard({
             <Icon className="h-4 w-4" />
           </div>
         </div>
-        <p className="mt-4 text-sm leading-6 text-muted-foreground">{hint}</p>
       </div>
     </div>
   );
@@ -200,7 +197,6 @@ export default function AdminAssignmentsPage() {
     {
       label: "Total Assignments",
       value: meta.totalItems.toString(),
-      hint: "Checker-to-gate mappings already in effect.",
       icon: ClipboardCheck,
       tone: "text-primary",
       tint: "bg-primary/5",
@@ -208,7 +204,6 @@ export default function AdminAssignmentsPage() {
     {
       label: "Published Concerts",
       value: concerts.length.toString(),
-      hint: "Concerts currently eligible for assignment.",
       icon: CalendarDays,
       tone: "text-amber-300",
       tint: "bg-amber-500/5",
@@ -216,7 +211,6 @@ export default function AdminAssignmentsPage() {
     {
       label: "Active Checkers",
       value: checkers.length.toString(),
-      hint: "Staff accounts that can receive gate duty.",
       icon: UserRound,
       tone: "text-emerald-300",
       tint: "bg-emerald-500/5",
@@ -224,10 +218,6 @@ export default function AdminAssignmentsPage() {
     {
       label: "Filtered Results",
       value: meta.itemCount.toString(),
-      hint:
-        concertFilter || checkerFilter
-          ? "Assignments remaining after the current filters."
-          : "Assignments visible on the current page.",
       icon: ShieldCheck,
       tone: "text-sky-300",
       tint: "bg-sky-500/5",
@@ -512,11 +502,6 @@ export default function AdminAssignmentsPage() {
                 <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
                   Checker assignments
                 </h1>
-                <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground">
-                  Assign published concert gates to active checkers, manage
-                  reassignment quickly, and keep the check-in scope aligned with
-                  backend security rules.
-                </p>
               </div>
             </div>
 
