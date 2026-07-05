@@ -260,7 +260,8 @@ export default function AdminEventsPage() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span
-                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${concert.status === "PUBLISHED"
+                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${
+                          concert.status === "PUBLISHED"
                             ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                             : concert.status === "COMING_SOON"
                               ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
@@ -269,7 +270,7 @@ export default function AdminEventsPage() {
                                 : concert.status === "CANCELLED"
                                   ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
                                   : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
-                          }`}
+                        }`}
                       >
                         {concert.status === "PUBLISHED" && (
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>

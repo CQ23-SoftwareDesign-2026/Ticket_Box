@@ -55,7 +55,7 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
       try {
         const orderData = await getOrderById(orderId);
         if (!active) return;
-        if (orderData.status === "PAID") {
+        if (orderData && orderData.status === "PAID") {
           window.location.href = `/payment/callback?code=00&cancel=false`;
         }
       } catch (err) {
@@ -94,7 +94,7 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
     const interval = setInterval(async () => {
       try {
         const orderData = await getOrderById(paymentSession.resolvedOrderId);
-        if (active && orderData.status === "PAID") {
+        if (active && orderData && orderData.status === "PAID") {
           clearInterval(interval);
           window.location.href = `/payment/callback?code=00&cancel=false`;
         }
@@ -115,31 +115,13 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
       setLoadingSource(source);
       setError(null);
 
-      const state = getCheckoutReservationState();
-      const resolvedOrderId = state?.orderId ?? orderId;
-
-      const savedKey =
-        typeof window !== "undefined"
-          ? window.sessionStorage.getItem(
-              `idempotency_key_${resolvedOrderId}`,
-            ) || undefined
-          : undefined;
+      const resolvedOrderId = orderId;
 
       try {
-        const result = await processPayment(
-          {
-            order_id: resolvedOrderId,
-            payment_method: selectedMethod,
-          },
-          savedKey,
-        );
-
-        if (result.idempotency_key && typeof window !== "undefined") {
-          window.sessionStorage.setItem(
-            `idempotency_key_${resolvedOrderId}`,
-            result.idempotency_key,
-          );
-        }
+        const result = await processPayment({
+          order_id: resolvedOrderId,
+          payment_method: selectedMethod,
+        });
 
         if (result.qr_code && result.checkout_url) {
           if (typeof window !== "undefined") {

@@ -75,19 +75,36 @@ export async function getOrders(
   return apiClient.get<OrderListResponse>(`/orders?${params.toString()}`);
 }
 
-const orderRequests = new Map<string, Promise<OrderDetail>>();
+const orderRequests = new Map<string, Promise<OrderDetail | null>>();
 
 export async function getOrderById(
   orderId: string,
   isAdmin = false,
-): Promise<OrderDetail> {
+): Promise<OrderDetail | null> {
+  if (
+    !orderId ||
+    orderId === "order-2048" ||
+    orderId === "undefined" ||
+    orderId === "null"
+  ) {
+    return null;
+  }
+
   const cacheKey = `${orderId}-${isAdmin}`;
   let promise = orderRequests.get(cacheKey);
   if (!promise) {
     const endpoint = isAdmin
       ? `/orders/admin/${orderId}`
       : `/orders/${orderId}`;
-    promise = apiClient.get<OrderDetail>(endpoint);
+    promise = apiClient.get<OrderDetail>(endpoint).catch((err) => {
+      if (err && typeof err === "object" && "response" in err) {
+        const response = (err as { response?: { status?: number } }).response;
+        if (response?.status === 404) {
+          return null;
+        }
+      }
+      throw err;
+    });
     orderRequests.set(cacheKey, promise);
     void promise.then(
       () => {

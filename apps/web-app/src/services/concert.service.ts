@@ -18,6 +18,7 @@ export interface ConcertTicketTier {
   price: number;
   total_quantity: number;
   max_per_user: number;
+  gate_number?: number | null;
 }
 
 export interface ConcertDetailResponse {
@@ -254,11 +255,13 @@ export interface CreateConcertDto {
   svg_map_url: string;
   poster_url: string;
   status: string;
-  ticket_categories: Array<{
+  ticketTiers: Array<{
+    id?: string;
     name: string;
     price: number;
     total_quantity: number;
     max_per_user: number;
+    gate_number?: number | null;
   }>;
 }
 

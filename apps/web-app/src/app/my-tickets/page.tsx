@@ -6,9 +6,11 @@ import { SiteShell, Button } from "@/components/common";
 import {
   getOrders,
   cancelOrder,
+  getOrderById,
   type OrderListItem,
   type PaginationMeta,
 } from "@/services/order.service";
+import { formatConcertCurrency } from "@/services/concert.service";
 import {
   Calendar,
   Ticket,
@@ -71,6 +73,46 @@ export default function MyTicketsPage() {
       active = false;
     };
   }, [currentPage, activeTab]);
+
+  const [pendingTicketCounts, setPendingTicketCounts] = useState<
+    Record<string, number>
+  >({});
+
+  useEffect(() => {
+    orders.forEach((order) => {
+      if (
+        order.status === "PENDING" &&
+        pendingTicketCounts[order.id] === undefined
+      ) {
+        getOrderById(order.id)
+          .then((detail) => {
+            if (!detail) return;
+            let count = 0;
+            const metadata = detail.ticket_metadata as {
+              ticket_breakdown?: Array<{ quantity?: number }>;
+              quantity?: number;
+            } | null;
+            if (metadata) {
+              if (Array.isArray(metadata.ticket_breakdown)) {
+                count = metadata.ticket_breakdown.reduce(
+                  (sum: number, item) => sum + (item.quantity || 0),
+                  0,
+                );
+              } else if (typeof metadata.quantity === "number") {
+                count = metadata.quantity;
+              }
+            }
+            setPendingTicketCounts((prev) => ({
+              ...prev,
+              [order.id]: count || detail.ticket_count || 0,
+            }));
+          })
+          .catch((err) => {
+            console.error("Failed to fetch order details for count:", err);
+          });
+      }
+    });
+  }, [orders, pendingTicketCounts]);
 
   // Reset page when switching tabs
   const handleTabChange = (key: TabKey) => {
@@ -286,8 +328,14 @@ export default function MyTicketsPage() {
                           </span>
                           <span className="flex items-center gap-1">
                             <Ticket size={13} />
-                            {order.ticket_count}{" "}
-                            {order.ticket_count > 1 ? "tickets" : "ticket"}
+                            {order.status === "PENDING"
+                              ? (pendingTicketCounts[order.id] ?? 0)
+                              : order.ticket_count}{" "}
+                            {(order.status === "PENDING"
+                              ? (pendingTicketCounts[order.id] ?? 0)
+                              : order.ticket_count) > 1
+                              ? "tickets"
+                              : "ticket"}
                           </span>
                         </div>
                       </div>
@@ -299,7 +347,7 @@ export default function MyTicketsPage() {
                             Total amount
                           </p>
                           <p className="text-lg font-black text-on-surface">
-                            {order.total_amount}
+                            {formatConcertCurrency(Number(order.total_amount))}
                           </p>
                         </div>
 

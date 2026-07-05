@@ -80,6 +80,9 @@ export default function OrderDetailsPage({ params }: PageProps) {
     setError(null);
     try {
       const data = await getOrderById(orderId, isAdmin);
+      if (!data) {
+        throw new Error("Order not found");
+      }
       setOrder(data);
     } catch (err) {
       console.error("Failed to load order details:", err);
@@ -97,6 +100,9 @@ export default function OrderDetailsPage({ params }: PageProps) {
     async function load() {
       try {
         const data = await getOrderById(orderId, isAdmin);
+        if (!data) {
+          throw new Error("Order not found");
+        }
         if (active) {
           setOrder(data);
           setLoading(false);

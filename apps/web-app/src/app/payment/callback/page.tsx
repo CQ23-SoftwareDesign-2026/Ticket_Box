@@ -71,6 +71,9 @@ function CallbackContent() {
 
         // Fetch the order status
         const orderData = await getOrderById(resolvedOrderId);
+        if (!orderData) {
+          throw new Error("Order not found");
+        }
 
         // If transaction is marked success in query parameters but PENDING in backend, poll for webhook completion
         const isQuerySuccess = code === "00" && !cancel;

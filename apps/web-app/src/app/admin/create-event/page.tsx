@@ -28,6 +28,7 @@ type TicketCategory = {
   price: number;
   total_quantity: number;
   max_per_user: number;
+  gate_number?: number | null;
 };
 
 function EventForm() {
@@ -98,6 +99,7 @@ function EventForm() {
       price: 500000,
       total_quantity: 1000,
       max_per_user: 4,
+      gate_number: 1,
     },
   ]);
 
@@ -154,6 +156,7 @@ function EventForm() {
                 price: t.price,
                 total_quantity: t.total_quantity,
                 max_per_user: t.max_per_user,
+                gate_number: t.gate_number ?? null,
               })),
             );
           }
@@ -184,7 +187,14 @@ function EventForm() {
       const payload = {
         ...formData,
         start_time: startDate.toISOString(),
-        ticket_categories: ticketCategories,
+        ticketTiers: ticketCategories.map((tc) => ({
+          id: tc.id,
+          name: tc.name,
+          price: Number(tc.price),
+          total_quantity: Number(tc.total_quantity),
+          max_per_user: Number(tc.max_per_user),
+          gate_number: tc.gate_number ? Number(tc.gate_number) : null,
+        })),
       };
 
       if (isEditing) {
@@ -206,7 +216,13 @@ function EventForm() {
   const handleAddTier = () => {
     setTicketCategories([
       ...ticketCategories,
-      { name: "New Tier", price: 0, total_quantity: 100, max_per_user: 2 },
+      {
+        name: "New Tier",
+        price: 0,
+        total_quantity: 100,
+        max_per_user: 2,
+        gate_number: 1,
+      },
     ]);
   };
 
@@ -217,7 +233,7 @@ function EventForm() {
   const handleTierChange = (
     index: number,
     field: keyof TicketCategory,
-    value: string | number,
+    value: string | number | null,
   ) => {
     const newTiers = [...ticketCategories];
     newTiers[index] = { ...newTiers[index], [field]: value };
@@ -571,7 +587,7 @@ function EventForm() {
                     <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pl-2">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 pl-2">
                   <div>
                     <label className="block font-body text-xs font-semibold text-muted-foreground mb-1">
                       Price (VND)
@@ -615,6 +631,24 @@ function EventForm() {
                           index,
                           "max_per_user",
                           Number(e.target.value),
+                        )
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-body text-xs font-semibold text-muted-foreground mb-1">
+                      Gate Number
+                    </label>
+                    <input
+                      className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-foreground focus:border-primary focus:ring-1 focus:ring-primary text-sm"
+                      type="number"
+                      placeholder="e.g. 1"
+                      value={tier.gate_number ?? ""}
+                      onChange={(e) =>
+                        handleTierChange(
+                          index,
+                          "gate_number",
+                          e.target.value ? Number(e.target.value) : null,
                         )
                       }
                     />
