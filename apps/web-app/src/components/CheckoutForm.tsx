@@ -19,6 +19,8 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
   const [selectedMethod] = useState<"PAYOS">("PAYOS");
   const [loadingSource, setLoadingSource] = useState<LoadingSource>(null);
   const [error, setError] = useState<string | null>(null);
+  const [orderStatus, setOrderStatus] = useState<string | null>(null);
+  const [isOrderLoading, setIsOrderLoading] = useState(true);
   const [paymentSession, setPaymentSession] = useState<{
     qrCode: string;
     checkoutUrl: string;
@@ -53,13 +55,26 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
     let active = true;
     const checkInitialStatus = async () => {
       try {
+        setIsOrderLoading(true);
         const orderData = await getOrderById(orderId);
         if (!active) return;
-        if (orderData && orderData.status === "PAID") {
-          window.location.href = `/payment/callback?code=00&cancel=false`;
+        if (orderData) {
+          setOrderStatus(orderData.status);
+          if (orderData.status === "PAID") {
+            window.location.href = `/payment/callback?code=00&cancel=false`;
+          } else if (orderData.status === "CANCELLED") {
+            setError("Đơn hàng này đã bị hủy hoặc đã hết hạn giữ chỗ.");
+          }
         }
       } catch (err) {
         console.error("Failed to check initial order status:", err);
+        if (active) {
+          setError("Không tìm thấy đơn hàng hoặc đơn hàng không hợp lệ.");
+        }
+      } finally {
+        if (active) {
+          setIsOrderLoading(false);
+        }
       }
     };
     void checkInitialStatus();
@@ -174,6 +189,43 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
   const isAnyLoading = loadingSource !== null;
   const leftLoading = loadingSource === "left";
   const rightLoading = loadingSource === "right";
+
+  if (isOrderLoading) {
+    return (
+      <div className="lg:col-span-2 flex flex-col items-center justify-center py-20 space-y-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-on-surface-variant text-sm font-semibold">
+          Tải thông tin đơn hàng...
+        </p>
+      </div>
+    );
+  }
+
+  if (error && (orderStatus === null || orderStatus === "CANCELLED")) {
+    return (
+      <div className="lg:col-span-2 rounded-3xl border border-outline-variant bg-surface p-8 text-center max-w-lg mx-auto space-y-6">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+          <span className="text-2xl font-bold">⚠</span>
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-xl font-bold text-on-surface">
+            Đơn hàng không khả dụng
+          </h2>
+          <p className="text-sm text-on-surface-variant leading-relaxed">
+            {error}
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            window.location.href = "/";
+          }}
+          className="inline-flex h-11 px-6 items-center justify-center rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 active:scale-[0.98] transition-all"
+        >
+          Quay lại Trang chủ
+        </button>
+      </div>
+    );
+  }
 
   if (paymentSession) {
     return (

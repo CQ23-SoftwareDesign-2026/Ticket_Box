@@ -149,7 +149,7 @@ export function HeroCarousel() {
       : "Loading...";
 
   return (
-    <section className="group relative overflow-hidden bg-[#111318] text-white min-h-[600px] flex items-end pb-16">
+    <section className="group relative overflow-hidden bg-[#111318] text-white min-h-[480px] flex items-end pb-10">
       {previousConcert && (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
@@ -1104,6 +1104,7 @@ export function useReservationTimer(orderId?: string) {
     }
     return null;
   });
+  const clockOffsetRef = useRef(0);
 
   useEffect(() => {
     if (!orderId) return;
@@ -1111,6 +1112,20 @@ export function useReservationTimer(orderId?: string) {
     let active = true;
 
     const syncWithServer = async () => {
+      // Calculate clock skew (drift) by checking Date header from server
+      try {
+        const start = Date.now();
+        const res = await fetch(window.location.origin, { method: "HEAD" });
+        const serverDateHeader = res.headers.get("Date");
+        if (serverDateHeader) {
+          const serverTime = new Date(serverDateHeader).getTime();
+          const clientTime = (start + Date.now()) / 2;
+          clockOffsetRef.current = serverTime - clientTime;
+        }
+      } catch (e) {
+        console.error("Failed to calculate clock offset:", e);
+      }
+
       const fetchOrderWithRetry = async (
         retries = 5,
         delay = 1000,
@@ -1202,7 +1217,7 @@ export function useReservationTimer(orderId?: string) {
     if (isNaN(expiresAtTime)) return;
 
     const updateTimer = () => {
-      const remaining = expiresAtTime - Date.now();
+      const remaining = expiresAtTime - (Date.now() + clockOffsetRef.current);
       if (remaining <= 0) {
         setTimeLeft(0);
         setIsExpired(true);

@@ -12,15 +12,13 @@ import {
 import {
   Calendar,
   Ticket,
-  ChevronDown,
-  ChevronUp,
   Loader2,
   ShieldCheck,
   AlertTriangle,
   Receipt,
   Ban,
   RefreshCw,
-  Landmark,
+  X,
 } from "lucide-react";
 import QRCode from "qrcode";
 
@@ -28,12 +26,12 @@ interface PageProps {
   params: Promise<{ orderId: string }>;
 }
 
-function TicketQrCode({ hash }: { hash: string }) {
+function TicketQrCode({ hash, width = 150 }: { hash: string; width?: number }) {
   const [qrUrl, setQrUrl] = useState<string>("");
 
   useEffect(() => {
     let active = true;
-    QRCode.toDataURL(hash, { width: 150, margin: 1 })
+    QRCode.toDataURL(hash, { width, margin: 1 })
       .then((url) => {
         if (active) setQrUrl(url);
       })
@@ -43,7 +41,7 @@ function TicketQrCode({ hash }: { hash: string }) {
     return () => {
       active = false;
     };
-  }, [hash]);
+  }, [hash, width]);
 
   if (!qrUrl) {
     return (
@@ -73,7 +71,7 @@ export default function OrderDetailsPage({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
-  const [openTelemetryId, setOpenTelemetryId] = useState<string | null>(null);
+  const [selectedQrHash, setSelectedQrHash] = useState<string | null>(null);
 
   const handleRefresh = async () => {
     setLoading(true);
@@ -159,10 +157,6 @@ export default function OrderDetailsPage({ params }: PageProps) {
     }
   };
 
-  const toggleTelemetry = (txId: string) => {
-    setOpenTelemetryId(openTelemetryId === txId ? null : txId);
-  };
-
   if (loading) {
     return (
       <SiteShell active="/my-tickets">
@@ -210,22 +204,9 @@ export default function OrderDetailsPage({ params }: PageProps) {
         {/* Header Breadcrumbs */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant">
-              <span
-                className="hover:text-primary cursor-pointer"
-                onClick={() => window.history.back()}
-              >
-                Orders
-              </span>
-              <span>/</span>
-              <span className="text-on-surface/60">Detail</span>
-            </div>
-            <h1 className="mt-2 font-display text-3xl font-black text-on-surface sm:text-4xl">
+            <h1 className="font-display text-3xl font-black text-on-surface sm:text-4xl">
               Order Details
             </h1>
-            <p className="mt-1 text-xs font-mono text-on-surface-variant">
-              ID: {order.id}
-            </p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -333,92 +314,92 @@ export default function OrderDetailsPage({ params }: PageProps) {
             </div>
 
             {/* Passes & QR Section */}
-            <div className="space-y-4">
-              <h3 className="font-display text-xl font-bold text-on-surface flex items-center gap-2">
-                <ShieldCheck size={20} className="text-primary" />
-                Digital Entry Passes
-              </h3>
+            {order.tickets && order.tickets.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="font-display text-xl font-bold text-on-surface flex items-center gap-2">
+                  <ShieldCheck size={20} className="text-primary" />
+                  Digital Entry Passes
+                </h3>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                {order.tickets.map((ticket, index) => (
-                  <div
-                    key={ticket.id}
-                    className="overflow-hidden rounded-3xl border border-outline-variant bg-surface shadow-sm flex flex-col justify-between"
-                  >
-                    <div className="p-5 space-y-4">
-                      <div className="flex justify-between items-center gap-2 border-b border-outline-variant/60 pb-3">
-                        <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                          Pass #{index + 1}
-                        </span>
-                        {ticket.is_scanned ? (
-                          <span className="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600">
-                            Scanned
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {order.tickets.map((ticket, index) => (
+                    <div
+                      key={ticket.id}
+                      className="overflow-hidden rounded-3xl border border-outline-variant bg-surface shadow-sm flex flex-col justify-between"
+                    >
+                      <div className="p-5 space-y-4">
+                        <div className="flex justify-between items-center gap-2 border-b border-outline-variant/60 pb-3">
+                          <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                            Pass #{index + 1}
                           </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-                            Active
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <div>
-                          <p className="text-[10px] uppercase text-on-surface-variant font-medium">
-                            Category
-                          </p>
-                          <p className="text-sm font-semibold text-on-surface">
-                            {ticket.category_name || "General Admission"}
-                          </p>
+                          {ticket.is_scanned ? (
+                            <span className="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                              Used
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                              Active
+                            </span>
+                          )}
                         </div>
-                        {ticket.gate_number !== null && (
+
+                        <div className="space-y-2">
                           <div>
                             <p className="text-[10px] uppercase text-on-surface-variant font-medium">
-                              Gate Number
+                              Category
                             </p>
                             <p className="text-sm font-semibold text-on-surface">
-                              Gate {ticket.gate_number}
+                              {ticket.category_name || "General Admission"}
+                            </p>
+                          </div>
+                          {ticket.gate_number !== null && (
+                            <div>
+                              <p className="text-[10px] uppercase text-on-surface-variant font-medium">
+                                Gate Number
+                              </p>
+                              <p className="text-sm font-semibold text-on-surface">
+                                Gate {ticket.gate_number}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* QR Display */}
+                      <div className="bg-surface-low p-5 border-t border-outline-variant/40 flex flex-col items-center justify-center space-y-3">
+                        {isPaid ? (
+                          <div
+                            onClick={() =>
+                              setSelectedQrHash(ticket.qr_code_hash)
+                            }
+                            className="relative aspect-square w-32 overflow-hidden rounded-xl border border-outline-variant bg-surface p-1 shadow-sm cursor-pointer hover:scale-105 active:scale-95 transition-all duration-200"
+                            title="Click to enlarge QR Code"
+                          >
+                            <TicketQrCode hash={ticket.qr_code_hash} />
+                          </div>
+                        ) : (
+                          <div className="flex aspect-square w-32 flex-col items-center justify-center rounded-xl border border-dashed border-outline-variant bg-surface-low p-4 text-center">
+                            <AlertTriangle
+                              size={20}
+                              className="text-on-surface-variant/60 mx-auto"
+                            />
+                            <p className="mt-1 text-[9px] font-semibold text-on-surface-variant/80">
+                              QR Locked
+                            </p>
+                            <p className="mt-0.5 text-[8px] text-on-surface-variant/60 leading-tight">
+                              Requires paid order status
                             </p>
                           </div>
                         )}
-                        <div>
-                          <p className="text-[10px] uppercase text-on-surface-variant font-medium">
-                            QR Hash Reference
-                          </p>
-                          <p className="text-[11px] font-mono text-on-surface-variant truncate">
-                            {ticket.qr_code_hash}
-                          </p>
-                        </div>
+                        <p className="text-[9px] uppercase tracking-wider text-on-surface-variant/70 font-semibold">
+                          Scan at entry gate
+                        </p>
                       </div>
                     </div>
-
-                    {/* QR Display */}
-                    <div className="bg-primary/5 p-5 border-t border-outline-variant/40 flex flex-col items-center justify-center space-y-3">
-                      {isPaid ? (
-                        <div className="relative aspect-square w-32 overflow-hidden rounded-xl border border-outline-variant bg-surface p-1 shadow-sm">
-                          <TicketQrCode hash={ticket.qr_code_hash} />
-                        </div>
-                      ) : (
-                        <div className="flex aspect-square w-32 flex-col items-center justify-center rounded-xl border border-dashed border-outline-variant bg-surface-low p-4 text-center">
-                          <AlertTriangle
-                            size={20}
-                            className="text-on-surface-variant/60 mx-auto"
-                          />
-                          <p className="mt-1 text-[9px] font-semibold text-on-surface-variant/80">
-                            QR Locked
-                          </p>
-                          <p className="mt-0.5 text-[8px] text-on-surface-variant/60 leading-tight">
-                            Requires paid order status
-                          </p>
-                        </div>
-                      )}
-                      <p className="text-[9px] uppercase tracking-wider text-on-surface-variant/70 font-semibold">
-                        Scan at entry gate
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Right Column / Invoice Ledger & Telemetry */}
@@ -451,114 +432,41 @@ export default function OrderDetailsPage({ params }: PageProps) {
                 </div>
               </div>
             </div>
-
-            {/* Payment Transactions Ledger & Deep JSONB inspector */}
-            <div className="space-y-4">
-              <h3 className="font-display text-lg font-bold text-on-surface flex items-center gap-2">
-                <Landmark size={18} className="text-primary" />
-                Payment Operations
-              </h3>
-
-              {order.payment_transactions.length === 0 ? (
-                <div className="rounded-3xl border border-dashed border-outline-variant p-6 text-center text-sm text-on-surface-variant">
-                  No payment attempts recorded for this order.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {order.payment_transactions.map((tx) => {
-                    const isOpen = openTelemetryId === tx.id;
-                    return (
-                      <div
-                        key={tx.id}
-                        className="rounded-3xl border border-outline-variant bg-surface p-4 shadow-sm space-y-3"
-                      >
-                        <div className="flex justify-between items-start gap-2">
-                          <div>
-                            <span className="text-[10px] font-mono font-bold text-on-surface-variant">
-                              TX: {tx.id.slice(0, 8).toUpperCase()}
-                            </span>
-                            <h4 className="text-sm font-bold text-on-surface mt-0.5">
-                              {tx.payment_method} Sandbox
-                            </h4>
-                          </div>
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold ${
-                              tx.status === "SUCCESS"
-                                ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
-                                : tx.status === "FAILED"
-                                  ? "bg-rose-50 border border-rose-200 text-rose-700"
-                                  : "bg-amber-50 border border-amber-200 text-amber-700"
-                            }`}
-                          >
-                            {tx.status || "PENDING"}
-                          </span>
-                        </div>
-
-                        <div className="space-y-1.5 text-xs border-t border-outline-variant/40 pt-2 text-on-surface-variant">
-                          <div className="flex justify-between">
-                            <span>Amount:</span>
-                            <span className="font-semibold text-on-surface">
-                              {tx.amount}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Date:</span>
-                            <span>{formatDate(tx.created_at)}</span>
-                          </div>
-                          {tx.transaction_id_3rd_party && (
-                            <div className="flex justify-between">
-                              <span>3rd Party ID:</span>
-                              <span className="font-mono">
-                                {tx.transaction_id_3rd_party}
-                              </span>
-                            </div>
-                          )}
-                          <div className="flex flex-col pt-1">
-                            <span className="text-[10px] font-medium">
-                              Idempotency Key:
-                            </span>
-                            <span className="font-mono text-[10px] text-on-surface truncate">
-                              {tx.idempotency_key}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Collapsible raw response JSONB database logs */}
-                        {tx.raw_response && (
-                          <div className="pt-2">
-                            <button
-                              onClick={() => toggleTelemetry(tx.id)}
-                              className="w-full flex items-center justify-between gap-1 rounded-xl bg-surface-low border border-outline-variant/60 px-3 py-2 text-xs font-semibold text-on-surface-variant hover:bg-surface-high transition-colors"
-                            >
-                              <span className="inline-flex items-center gap-1">
-                                <Receipt size={12} />
-                                Raw Telemetry Log
-                              </span>
-                              {isOpen ? (
-                                <ChevronUp size={13} />
-                              ) : (
-                                <ChevronDown size={13} />
-                              )}
-                            </button>
-
-                            {isOpen && (
-                              <div className="mt-2 rounded-xl bg-surface-low border border-outline-variant/60 p-3 overflow-x-auto text-[10px] font-mono text-on-surface-variant shadow-inner max-h-48">
-                                <pre>
-                                  {JSON.stringify(tx.raw_response, null, 2)}
-                                </pre>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </section>
+
+      {/* Enlarged QR Modal */}
+      {selectedQrHash && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in-quick"
+          onClick={() => setSelectedQrHash(null)}
+        >
+          <div
+            className="relative w-full max-w-sm rounded-3xl border border-outline-variant bg-surface p-6 shadow-2xl flex flex-col items-center space-y-4 animate-fade-in-quick"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setSelectedQrHash(null)}
+              className="absolute right-4 top-4 rounded-full p-1.5 text-on-surface-variant hover:bg-surface-low transition-colors cursor-pointer"
+              aria-label="Close modal"
+            >
+              <X size={18} />
+            </button>
+            <div className="text-center">
+              <h3 className="font-display text-lg font-bold text-on-surface">
+                Digital Entry Pass
+              </h3>
+              <p className="text-xs text-on-surface-variant mt-1">
+                Scan this QR code at the entrance
+              </p>
+            </div>
+            <div className="relative aspect-square w-64 overflow-hidden rounded-2xl border border-outline-variant bg-surface p-2 shadow-inner">
+              <TicketQrCode hash={selectedQrHash} width={300} />
+            </div>
+          </div>
+        </div>
+      )}
     </SiteShell>
   );
 }

@@ -12,7 +12,6 @@ import {
   Settings,
   Plus,
   Menu,
-  Bell,
   LogOut,
   User as UserIcon,
 } from "lucide-react";
@@ -22,7 +21,7 @@ const navItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/events", label: "Events", icon: Calendar },
   { href: "/admin/revenue", label: "Revenue", icon: DollarSign },
-  { href: "/admin/staff", label: "Staff", icon: Users },
+  { href: "/admin/users", label: "User", icon: Users },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
@@ -77,10 +76,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </h2>
 
           <div className="flex items-center gap-4 ml-auto">
-            <button className="relative text-muted-foreground hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-high">
-              <Bell className="w-6 h-6" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full border border-surface"></span>
-            </button>
             <div className="relative group">
               <div className="h-8 w-8 rounded-full bg-primary-container text-primary-foreground flex items-center justify-center font-bold text-sm overflow-hidden ring-2 ring-transparent group-hover:ring-primary transition-all cursor-pointer">
                 {user?.fullName?.charAt(0).toUpperCase() || "A"}

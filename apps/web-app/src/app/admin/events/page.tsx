@@ -241,9 +241,6 @@ export default function AdminEventsPage() {
                           <p className="font-bold text-foreground group-hover:text-primary transition-colors">
                             {concert.title}
                           </p>
-                          <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                            {concert.id}
-                          </p>
                         </div>
                       </div>
                     </td>
