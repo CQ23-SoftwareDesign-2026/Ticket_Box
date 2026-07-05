@@ -17,7 +17,9 @@ import {
   Eye,
   Trash2,
   Hourglass,
+  Sparkles,
 } from "lucide-react";
+import { ConcertWorkerDrawer } from "./_components/ConcertWorkerDrawer";
 
 export default function AdminEventsPage() {
   const [concerts, setConcerts] = useState<ConcertCardItem[]>([]);
@@ -25,6 +27,9 @@ export default function AdminEventsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [selectedWorkerConcert, setSelectedWorkerConcert] =
+    useState<ConcertCardItem | null>(null);
+  const [isWorkerDrawerOpen, setIsWorkerDrawerOpen] = useState(false);
 
   const fetchConcerts = async (search = "", status = "All") => {
     setIsLoading(true);
@@ -293,6 +298,16 @@ export default function AdminEventsPage() {
                           <Eye className="w-5 h-5" />
                         </Link>
                         <button
+                          onClick={() => {
+                            setSelectedWorkerConcert(concert);
+                            setIsWorkerDrawerOpen(true);
+                          }}
+                          className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
+                          title="Worker Operations (AI Bio & Guest Import)"
+                        >
+                          <Sparkles className="w-5 h-5" />
+                        </button>
+                        <button
                           onClick={() =>
                             handleDelete(concert.id, concert.title)
                           }
@@ -338,6 +353,24 @@ export default function AdminEventsPage() {
           </div>
         )}
       </section>
+
+      <ConcertWorkerDrawer
+        isOpen={isWorkerDrawerOpen}
+        onClose={() => {
+          setIsWorkerDrawerOpen(false);
+          setSelectedWorkerConcert(null);
+        }}
+        concert={
+          selectedWorkerConcert
+            ? {
+                id: selectedWorkerConcert.id,
+                title: selectedWorkerConcert.title,
+                venue: selectedWorkerConcert.venue,
+                date: selectedWorkerConcert.date,
+              }
+            : null
+        }
+      />
     </div>
   );
 }

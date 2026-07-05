@@ -31,7 +31,9 @@ export function useAdminUsers() {
   });
 
   // Drawer States
-  const [selectedUserId, setSelectedUserIdState] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserIdState] = useState<string | null>(
+    null,
+  );
   const [detailData, setDetailData] = useState<AdminUserDetail | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
 

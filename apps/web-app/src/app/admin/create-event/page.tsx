@@ -10,6 +10,7 @@ import {
 } from "@/services/concert.service";
 import { uploadImage, uploadSvg } from "@/services/upload.service";
 import { getErrorMessage } from "@/utils/error.utils";
+import { generateBio, getJobStatus } from "@/services/worker.service";
 import {
   ChevronRight,
   Info,
@@ -104,6 +105,7 @@ function EventForm() {
   ]);
 
   const [isGeneratingBio, setIsGeneratingBio] = useState(false);
+  const [bioProgress, setBioProgress] = useState<number | null>(null);
 
   const handlePressKitButtonClick = () => {
     pressKitInputRef.current?.click();
@@ -240,19 +242,60 @@ function EventForm() {
     setTicketCategories(newTiers);
   };
 
-  const generateAIBio = () => {
-    setIsGeneratingBio(true);
-    setTimeout(() => {
-      const pressKitHint = pressKitFile
-        ? `Based on your press kit "${pressKitFile.name}", `
-        : "Based on the event details you provided, ";
+  const generateAIBio = async () => {
+    if (!isEditing || !editId) {
+      alert(
+        "Please create the event first before generating the AI Biography.",
+      );
+      return;
+    }
+    if (!pressKitFile) {
+      alert("Please choose a PDF press kit file first.");
+      return;
+    }
 
-      setFormData((prev) => ({
-        ...prev,
-        ai_bio: `${pressKitHint}join us for an electrifying night at ${prev.location || "our premium venue"}! Experience the pulse-pounding beats and spectacular visuals of ${prev.name || "this exclusive event"}. This unforgettable night brings together top artists for a multi-sensory journey you won't forget. Secure your tickets now and be part of the music history.`,
-      }));
+    setIsGeneratingBio(true);
+    setBioProgress(0);
+
+    try {
+      const res = await generateBio(editId, pressKitFile);
+      const jobId = res.job_id;
+
+      const pollInterval = setInterval(async () => {
+        try {
+          const job = await getJobStatus(jobId);
+          setBioProgress(job.progress_percentage);
+
+          if (job.status === "COMPLETED") {
+            clearInterval(pollInterval);
+            setIsGeneratingBio(false);
+            setBioProgress(null);
+            // Fetch updated concert to get the newly generated bio
+            const updated = await getConcertById(editId);
+            setFormData((prev) => ({ ...prev, ai_bio: updated.aiBio || "" }));
+            alert("AI Biography generated and updated successfully!");
+          } else if (job.status === "FAILED") {
+            clearInterval(pollInterval);
+            setIsGeneratingBio(false);
+            setBioProgress(null);
+            alert(
+              `AI Biography generation failed: ${job.error_message || "Unknown error"}`,
+            );
+          }
+        } catch (err) {
+          console.error("Error checking bio job status:", err);
+        }
+      }, 2000);
+    } catch (err: unknown) {
+      console.error(err);
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Failed to start AI Bio generation",
+      );
       setIsGeneratingBio(false);
-    }, 1500);
+      setBioProgress(null);
+    }
   };
 
   if (isLoading) {
@@ -525,12 +568,15 @@ function EventForm() {
                   </span>
                 </div>
                 <button
+                  type="button"
                   onClick={generateAIBio}
                   disabled={isGeneratingBio}
-                  className="text-primary hover:text-primary/80 text-xs flex items-center gap-1 disabled:opacity-50"
+                  className="text-primary hover:text-primary/80 text-xs flex items-center gap-1 disabled:opacity-50 font-bold"
                 >
                   <Sparkles className="w-4 h-4" />
-                  {isGeneratingBio ? "Generating..." : "Generate with AI"}
+                  {isGeneratingBio
+                    ? `Generating (${bioProgress ?? 0}%)`
+                    : "Generate with AI"}
                 </button>
               </label>
 
