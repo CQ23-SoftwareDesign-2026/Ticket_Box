@@ -1,7 +1,7 @@
 import { Redirect, Slot } from 'expo-router';
 
 import { useAuth } from '@/features/auth/hooks/use-auth';
-import { isCheckerOrAdmin } from '@/features/auth/utils/role-helpers';
+import { canAccessStaffApp } from '@/features/auth/utils/access-policy';
 import { routes } from '@/lib/routes';
 
 export default function StaffLayout() {
@@ -11,7 +11,7 @@ export default function StaffLayout() {
     return <Redirect href={routes.login} />;
   }
 
-  if (!user || !isCheckerOrAdmin(user.roles)) {
+  if (!user || !canAccessStaffApp(user.roles)) {
     return <Redirect href={routes.pendingApproval} />;
   }
 
