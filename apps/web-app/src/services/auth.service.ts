@@ -17,21 +17,16 @@ export const authService = {
    * Login with email and password
    */
   login: async (email: string, password: string): Promise<AuthResponse> => {
-    try {
-      const response = await apiClient.post<AuthResponse>("/auth/login", {
-        email,
-        password,
-      });
+    const response = await apiClient.post<AuthResponse>("/auth/login", {
+      email,
+      password,
+    });
 
-      if (response) {
-        tokenStorage.setTokens(response.accessToken, response.refreshToken);
-      }
-
-      return response;
-    } catch (error) {
-      console.error("Login failed:", error);
-      throw error;
+    if (response) {
+      tokenStorage.setTokens(response.accessToken, response.refreshToken);
     }
+
+    return response;
   },
 
   /**
@@ -42,21 +37,13 @@ export const authService = {
     password: string,
     fullName: string,
   ): Promise<RegisterResponse> => {
-    try {
-      const response = await apiClient.post<RegisterResponse>(
-        "/auth/register",
-        {
-          email,
-          password,
-          fullName,
-        },
-      );
+    const response = await apiClient.post<RegisterResponse>("/auth/register", {
+      email,
+      password,
+      fullName,
+    });
 
-      return response;
-    } catch (error) {
-      console.error("Registration failed:", error);
-      throw error;
-    }
+    return response;
   },
 
   /**
