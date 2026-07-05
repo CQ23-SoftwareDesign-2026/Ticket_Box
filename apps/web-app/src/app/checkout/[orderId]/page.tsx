@@ -26,10 +26,6 @@ export default async function CheckoutPage({
           <h1 className="font-display text-4xl font-black tracking-tight text-on-surface sm:text-5xl">
             Complete your order
           </h1>
-          <p className="mt-2 text-sm font-mono text-on-surface-variant">
-            Reservation ID:{" "}
-            <span className="text-on-surface/70">{orderId}</span>
-          </p>
         </div>
         <CountdownTimer orderId={orderId} />
       </div>

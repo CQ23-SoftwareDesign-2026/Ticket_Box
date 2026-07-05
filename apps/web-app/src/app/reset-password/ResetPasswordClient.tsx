@@ -1,22 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { TicketBoxAuthShell } from "@/components/ticketbox-auth-shell";
-import { SecurityIllustration } from "@/components/ticketbox-illustrations";
 import { authService } from "@/services/auth.service";
 import { AlertCircle, CheckCircle2, Loader2, Lock } from "lucide-react";
-import { getErrorMessage } from "@/utils/error.utils";
+import { getAuthErrorMessage } from "@/utils/error.utils";
 
 export default function ResetPasswordClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const urlToken = useMemo(
+  const [token] = useState<string | null>(
     () => searchParams?.get("token") ?? null,
-    [searchParams],
   );
-
-  const [token] = useState<string | null>(() => urlToken);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,10 +21,10 @@ export default function ResetPasswordClient() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    if (urlToken) {
+    if (token) {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [urlToken]);
+  }, [token]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,25 +36,28 @@ export default function ResetPasswordClient() {
       );
       return;
     }
+
     if (newPassword !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
+
     if (newPassword.length < 8) {
       setError("Password must be at least 8 characters long.");
       return;
     }
 
     setLoading(true);
+
     try {
       await authService.resetPassword(token, newPassword);
       setSuccess(true);
-      // Wait a moment then redirect
+
       setTimeout(() => {
-        router.push("/login");
+        router.replace("/login?reset=1");
       }, 3000);
-    } catch (error: unknown) {
-      setError(getErrorMessage(error));
+    } catch (requestError: unknown) {
+      setError(getAuthErrorMessage(requestError, "reset-password"));
       setLoading(false);
     }
   };
@@ -67,7 +67,8 @@ export default function ResetPasswordClient() {
       <TicketBoxAuthShell
         title="Password updated"
         description="Your password has been successfully reset."
-        sidebar={<SecurityIllustration />}
+        compact
+        footerLinks={[{ label: "Back to sign in", href: "/login" }]}
       >
         <div className="flex flex-col items-center justify-center space-y-4 py-8 text-center">
           <div className="rounded-full bg-green-50 p-3 text-green-600 dark:bg-green-950/50 dark:text-green-400">
@@ -76,12 +77,38 @@ export default function ResetPasswordClient() {
           <p className="text-muted-foreground">
             You will be redirected to the sign in page momentarily.
           </p>
-          <a
-            href="/login"
+          <Link
+            href="/login?reset=1"
             className="ticketbox-button-primary mt-4 w-full sm:w-auto"
           >
             Go to sign in now
-          </a>
+          </Link>
+        </div>
+      </TicketBoxAuthShell>
+    );
+  }
+
+  if (!token) {
+    return (
+      <TicketBoxAuthShell
+        title="Reset link unavailable"
+        description="This password reset link is missing or no longer available."
+        compact
+        footerLinks={[{ label: "Back to sign in", href: "/login" }]}
+      >
+        <div className="space-y-5 text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-300">
+            <AlertCircle className="h-10 w-10" />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Please request a new password reset email and try again.
+          </p>
+          <Link
+            href="/forgot-password"
+            className="ticketbox-button-primary w-full"
+          >
+            Request a new reset link
+          </Link>
         </div>
       </TicketBoxAuthShell>
     );
@@ -91,23 +118,23 @@ export default function ResetPasswordClient() {
     <TicketBoxAuthShell
       title="Create new password"
       description="Set a new password for your account to continue."
-      sidebar={<SecurityIllustration />}
+      compact
       footerLinks={[{ label: "Back to sign in", href: "/login" }]}
     >
       <form className="space-y-5" onSubmit={onSubmit}>
-        {error && (
+        {error ? (
           <div className="flex items-center gap-3 rounded-xl bg-red-50 p-4 text-sm text-red-800 dark:bg-red-950/50 dark:text-red-200">
             <AlertCircle className="h-5 w-5 shrink-0" />
             <p>{error}</p>
           </div>
-        )}
+        ) : null}
 
         <div className="space-y-1">
           <label className="ticketbox-label" htmlFor="password">
             New password
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <Lock className="h-5 w-5 text-muted-foreground" />
             </div>
             <input
@@ -116,12 +143,12 @@ export default function ResetPasswordClient() {
               onChange={(e) => setNewPassword(e.target.value)}
               type="password"
               className="ticketbox-input pl-10"
-              placeholder="••••••••"
+              placeholder="********"
               required
               disabled={loading}
             />
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="mt-1 text-xs text-muted-foreground">
             Must be at least 8 characters.
           </p>
         </div>
@@ -131,7 +158,7 @@ export default function ResetPasswordClient() {
             Confirm password
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <Lock className="h-5 w-5 text-muted-foreground" />
             </div>
             <input
@@ -140,7 +167,7 @@ export default function ResetPasswordClient() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               type="password"
               className="ticketbox-input pl-10"
-              placeholder="••••••••"
+              placeholder="********"
               required
               disabled={loading}
             />
@@ -148,7 +175,7 @@ export default function ResetPasswordClient() {
         </div>
 
         <button
-          className="ticketbox-button-primary w-full mt-4"
+          className="ticketbox-button-primary mt-4 w-full"
           disabled={loading}
         >
           {loading ? (

@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { TicketBoxAuthShell } from "@/components/ticketbox-auth-shell";
 import { ConcertHeroIllustration } from "@/components/ticketbox-illustrations";
 import { authService } from "@/services/auth.service";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
-import { getErrorMessage } from "@/utils/error.utils";
+import { getAuthErrorMessage } from "@/utils/error.utils";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -19,11 +20,12 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
     try {
       await authService.register(email, password, fullName);
       setSuccess(true);
-    } catch (error: unknown) {
-      setError(getErrorMessage(error));
+    } catch (requestError: unknown) {
+      setError(getAuthErrorMessage(requestError, "register"));
     } finally {
       setLoading(false);
     }
@@ -43,12 +45,18 @@ export default function RegisterPage() {
           <p className="text-muted-foreground">
             Once verified, you can sign in to your account.
           </p>
-          <a
-            href="/login"
+          <Link
+            href={`/login?registered=1&email=${encodeURIComponent(email)}`}
             className="ticketbox-button-primary mt-4 w-full sm:w-auto"
           >
             Return to sign in
-          </a>
+          </Link>
+          <Link
+            href={`/resend-verification?email=${encodeURIComponent(email)}`}
+            className="text-sm font-semibold text-primary hover:underline hover:underline-offset-4"
+          >
+            Resend verification email
+          </Link>
         </div>
       </TicketBoxAuthShell>
     );
@@ -64,12 +72,12 @@ export default function RegisterPage() {
       ]}
     >
       <form className="space-y-5" onSubmit={onSubmit}>
-        {error && (
+        {error ? (
           <div className="flex items-center gap-3 rounded-xl bg-red-50 p-4 text-sm text-red-800 dark:bg-red-950/50 dark:text-red-200">
             <AlertCircle className="h-5 w-5 shrink-0" />
             <p>{error}</p>
           </div>
-        )}
+        ) : null}
 
         <div className="space-y-1">
           <label className="ticketbox-label" htmlFor="fullName">
@@ -113,18 +121,18 @@ export default function RegisterPage() {
             onChange={(e) => setPassword(e.target.value)}
             type="password"
             className="ticketbox-input"
-            placeholder="••••••••"
+            placeholder="********"
             required
             minLength={8}
             disabled={loading}
           />
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="mt-1 text-xs text-muted-foreground">
             Must be at least 8 characters.
           </p>
         </div>
 
         <button
-          className="ticketbox-button-primary w-full mt-4"
+          className="ticketbox-button-primary mt-4 w-full"
           disabled={loading}
         >
           {loading ? (

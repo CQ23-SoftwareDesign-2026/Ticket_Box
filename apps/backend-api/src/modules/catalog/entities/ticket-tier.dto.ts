@@ -22,6 +22,12 @@ export class TicketTierDto {
   @ApiProperty({ example: 1, required: false })
   gate_number?: number | null;
 
+  @ApiProperty({ example: 0, required: false })
+  position?: number | null;
+
+  @ApiProperty({ example: 'book_now', required: false })
+  status?: string | null;
+
   constructor(partial: Partial<TicketTierDto> = {}) {
     Object.assign(this, partial);
   }

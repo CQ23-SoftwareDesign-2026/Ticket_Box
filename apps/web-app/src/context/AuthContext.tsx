@@ -28,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error("Failed to restore session:", error);
+        tokenStorage.clearTokens();
       } finally {
         setIsLoading(false);
       }

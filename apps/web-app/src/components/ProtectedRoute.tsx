@@ -27,7 +27,7 @@ export function ProtectedRoute({
 
     if (!isAuthenticated) {
       // Not logged in, redirect to login with return url
-      router.push(`/login?returnUrl=${encodeURIComponent(pathname || "/")}`);
+      router.replace(`/login?returnUrl=${encodeURIComponent(pathname || "/")}`);
       return;
     }
 
@@ -36,7 +36,7 @@ export function ProtectedRoute({
       const hasRole = user?.roles?.some((role) => allowedRoles.includes(role));
       if (!hasRole) {
         // Logged in but missing role, redirect to access denied
-        router.push("/access-denied");
+        router.replace("/access-denied");
         return;
       }
     }
