@@ -19,6 +19,9 @@ export class TicketTierDto {
   @ApiProperty({ example: 2 })
   max_per_user!: number;
 
+  @ApiProperty({ example: 198, required: false })
+  remaining_quantity?: number;
+
   @ApiProperty({ example: 1, required: false })
   gate_number?: number | null;
 

@@ -12,6 +12,7 @@ type ConcertListRow = {
   name: string;
   description: string | null;
   location: string;
+  performers: string[];
   start_time: Date;
   svg_map_url: string | null;
   poster_url: string | null;
@@ -73,6 +74,7 @@ export class ConcertRepository {
           name: true,
           description: true,
           location: true,
+          performers: true,
           start_time: true,
           svg_map_url: true,
           poster_url: true,
@@ -107,6 +109,7 @@ export class ConcertRepository {
         name: payload.name,
         description: payload.description ?? null,
         location: payload.location,
+        performers: payload.performers ?? [],
         ai_bio: payload.ai_bio ?? null,
         start_time: new Date(payload.start_time),
         svg_map_url: payload.svg_map_url ?? null,
@@ -134,15 +137,55 @@ export class ConcertRepository {
     if (payload.ticketTiers) {
       const incomingTiers = payload.ticketTiers;
 
-      // Get existing categories to identify deleted ones
+      // Get existing categories to identify matching ones and deleted ones
       const existing = await this.prisma.ticketCategory.findMany({
         where: { concert_id: id },
-        select: { id: true },
+        select: { id: true, name: true },
       });
-      const existingIds = existing.map((e) => e.id);
 
-      const incomingIds = incomingTiers.map((t) => t.id).filter((tierId): tierId is string => !!tierId);
-      const toDelete = existingIds.filter((exId) => !incomingIds.includes(exId));
+      const matchedIds = new Set<string>();
+      const toUpdate: Array<{ id: string; data: any }> = [];
+      const toCreate: Array<any> = [];
+
+      for (const incoming of incomingTiers) {
+        // 1. Try to find match by ID
+        let existingMatch = existing.find((e) => incoming.id && e.id === incoming.id);
+
+        // 2. Try to find match by Name (case-insensitive) if ID match is not found
+        if (!existingMatch) {
+          existingMatch = existing.find((e) => e.name.toLowerCase() === incoming.name.toLowerCase() && !matchedIds.has(e.id));
+        }
+
+        if (existingMatch) {
+          matchedIds.add(existingMatch.id);
+          toUpdate.push({
+            id: existingMatch.id,
+            data: {
+              name: incoming.name,
+              price: incoming.price,
+              total_quantity: incoming.total_quantity,
+              max_per_user: incoming.max_per_user,
+              gate_number: incoming.gate_number ?? null,
+              position: incoming.position ?? 0,
+              status: incoming.status ?? 'book_now',
+            },
+          });
+        } else {
+          toCreate.push({
+            concert_id: id,
+            name: incoming.name,
+            price: incoming.price,
+            total_quantity: incoming.total_quantity,
+            max_per_user: incoming.max_per_user,
+            gate_number: incoming.gate_number ?? null,
+            position: incoming.position ?? 0,
+            status: incoming.status ?? 'book_now',
+          });
+        }
+      }
+
+      // Existing categories not matched are deleted
+      const toDelete = existing.filter((e) => !matchedIds.has(e.id)).map((e) => e.id);
 
       await this.prisma.$transaction(async (tx) => {
         // 1. Delete removed categories
@@ -152,37 +195,19 @@ export class ConcertRepository {
           });
         }
 
-        // 2. Create or Update incoming categories
-        for (const tier of incomingTiers) {
-          if (tier.id && existingIds.includes(tier.id)) {
-            // Update
-            await tx.ticketCategory.update({
-              where: { id: tier.id },
-              data: {
-                name: tier.name,
-                price: tier.price,
-                total_quantity: tier.total_quantity,
-                max_per_user: tier.max_per_user,
-                gate_number: tier.gate_number ?? null,
-                position: tier.position ?? 0,
-                status: tier.status ?? 'book_now',
-              },
-            });
-          } else {
-            // Create
-            await tx.ticketCategory.create({
-              data: {
-                concert_id: id,
-                name: tier.name,
-                price: tier.price,
-                total_quantity: tier.total_quantity,
-                max_per_user: tier.max_per_user,
-                gate_number: tier.gate_number ?? null,
-                position: tier.position ?? 0,
-                status: tier.status ?? 'book_now',
-              },
-            });
-          }
+        // 2. Update matched categories
+        for (const item of toUpdate) {
+          await tx.ticketCategory.update({
+            where: { id: item.id },
+            data: item.data,
+          });
+        }
+
+        // 3. Create new categories
+        for (const item of toCreate) {
+          await tx.ticketCategory.create({
+            data: item,
+          });
         }
       });
     }
@@ -193,6 +218,7 @@ export class ConcertRepository {
         name: payload.name,
         description: payload.description ?? undefined,
         location: payload.location,
+        performers: payload.performers ?? undefined,
         ai_bio: payload.ai_bio ?? undefined,
         start_time: payload.start_time ? new Date(payload.start_time) : undefined,
         svg_map_url: payload.svg_map_url ?? undefined,
@@ -236,6 +262,7 @@ export class ConcertRepository {
       name: concert.name,
       description: concert.description ?? null,
       location: concert.location,
+      performers: concert.performers,
       ai_bio: concert.ai_bio ?? null,
       start_time: concert.start_time,
       svg_map_url: concert.svg_map_url ?? null,
@@ -251,6 +278,7 @@ export class ConcertRepository {
       name: concert.name,
       description: concert.description ?? null,
       location: concert.location,
+      performers: concert.performers,
       start_time: concert.start_time,
       svg_map_url: concert.svg_map_url ?? null,
       poster_url: concert.poster_url ?? null,

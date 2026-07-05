@@ -13,6 +13,9 @@ export class ConcertListItemDto {
   @ApiProperty({ example: 'District 1 Stadium, Ho Chi Minh City' })
   location!: string;
 
+  @ApiPropertyOptional({ type: [String], example: ['Phung Khanh Linh', 'Chi Dep'] })
+  performers!: string[];
+
   @ApiProperty({ format: 'date-time', example: '2026-06-10T19:30:00+07:00' })
   start_time!: Date;
 
