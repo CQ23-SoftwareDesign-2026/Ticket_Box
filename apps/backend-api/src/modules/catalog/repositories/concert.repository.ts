@@ -28,6 +28,7 @@ type ConcertTicketCategoryRow = {
   gate_number?: number | null;
   position?: number | null;
   status?: string | null;
+  sales_start_at?: Date | null;
 };
 
 type ConcertDetailRow = ConcertListRow & {
@@ -124,6 +125,7 @@ export class ConcertRepository {
             gate_number: category.gate_number ?? null,
             position: category.position ?? 0,
             status: category.status ?? 'book_now',
+            sales_start_at: category.sales_start_at ? new Date(category.sales_start_at) : null,
           })),
         },
       },
@@ -168,6 +170,7 @@ export class ConcertRepository {
               gate_number: incoming.gate_number ?? null,
               position: incoming.position ?? 0,
               status: incoming.status ?? 'book_now',
+              sales_start_at: incoming.sales_start_at ? new Date(incoming.sales_start_at) : null,
             },
           });
         } else {
@@ -180,6 +183,7 @@ export class ConcertRepository {
             gate_number: incoming.gate_number ?? null,
             position: incoming.position ?? 0,
             status: incoming.status ?? 'book_now',
+            sales_start_at: incoming.sales_start_at ? new Date(incoming.sales_start_at) : null,
           });
         }
       }
@@ -254,6 +258,7 @@ export class ConcertRepository {
         gate_number: tc.gate_number ?? null,
         position: tc.position ?? 0,
         status: tc.status ?? 'book_now',
+        sales_start_at: tc.sales_start_at ?? null,
       }),
     );
 
