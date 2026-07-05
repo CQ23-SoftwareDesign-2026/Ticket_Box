@@ -178,7 +178,7 @@ export class TicketingService implements OnModuleInit {
                 );
 
                 if (!Array.isArray(result) || result.length === 0) {
-                    throw new BadRequestException('Unexpected response from reservation engine');
+                    throw new BadRequestException('Hệ thống đặt vé gặp sự cố. Vui lòng thử lại sau.');
                 }
 
                 status = result[0];
@@ -191,7 +191,7 @@ export class TicketingService implements OnModuleInit {
                         where: { id: failedCategoryId },
                     });
                     if (!category) {
-                        throw new BadRequestException('ERR_NOT_INITIALIZED');
+                        throw new BadRequestException('Hạng vé này không tồn tại hoặc đã bị xóa.');
                     }
 
                     // Count sold tickets
@@ -236,17 +236,17 @@ export class TicketingService implements OnModuleInit {
             }
 
             if (status === 'ERR_NOT_INITIALIZED') {
-                throw new BadRequestException('ERR_NOT_INITIALIZED');
+                throw new BadRequestException('Hạng vé này chưa được mở bán hoặc cấu hình chưa sẵn sàng.');
             }
             if (status === 'ERR_NO_TICKET') {
-                throw new BadRequestException('ERR_NO_TICKET');
+                throw new BadRequestException('Vé của hạng này đã được đặt hết. Vui lòng chọn hạng vé khác.');
             }
             if (status === 'ERR_LIMIT_EXCEEDED') {
-                throw new BadRequestException('ERR_LIMIT_EXCEEDED');
+                throw new BadRequestException('Số lượng vé bạn chọn vượt quá giới hạn tối đa được phép mua cho mỗi tài khoản.');
             }
 
             if (status !== 'OK') {
-                throw new BadRequestException('Unknown reservation error');
+                throw new BadRequestException('Lỗi đặt chỗ không xác định. Vui lòng thử lại.');
             }
         } catch (err) {
             if (err instanceof BadRequestException) {
@@ -358,6 +358,66 @@ export class TicketingService implements OnModuleInit {
             available: parseInt(data.available, 10),
             max_per_user: parseInt(data.max_per_user, 10),
         };
+    }
+
+    async getOrSeedInventory(categoryId: string): Promise<number> {
+        const cached = await this.getCategoryInventory(categoryId);
+        if (cached !== null) {
+            return cached.available;
+        }
+
+        const category = await this.prisma.ticketCategory.findUnique({
+            where: { id: categoryId },
+        });
+        if (!category) {
+            return 0;
+        }
+
+        // Count sold tickets
+        const soldCount = await this.prisma.ticket.count({
+            where: { category_id: categoryId },
+        });
+
+        // Count pending unexpired tickets
+        const pendingOrders = await this.prisma.order.findMany({
+            where: {
+                status: 'PENDING',
+                expires_at: {
+                    gt: new Date(),
+                },
+            },
+        });
+
+        let pendingCount = 0;
+        for (const order of pendingOrders) {
+            const rawMetadata = order.ticket_metadata;
+            if (rawMetadata) {
+                try {
+                    const metadata = typeof rawMetadata === 'string' ? JSON.parse(rawMetadata) : (rawMetadata as any);
+                    if (metadata.category_id === categoryId) {
+                        pendingCount += metadata.quantity || 0;
+                    } else if (Array.isArray(metadata.ticket_breakdown)) {
+                        for (const breakItem of metadata.ticket_breakdown) {
+                            if (breakItem.category_id === categoryId) {
+                                pendingCount += breakItem.quantity || 0;
+                            }
+                        }
+                    }
+                } catch (jsonErr) {
+                    this.logger.error(`Failed to parse ticket_metadata for order ${order.id}`, jsonErr);
+                }
+            }
+        }
+
+        const available = Math.max(0, category.total_quantity - (soldCount + pendingCount));
+        
+        try {
+            await this.seedCategoryInventory(categoryId, available, category.max_per_user);
+        } catch (err) {
+            this.logger.error(`[Lazy Seeding Failed] Could not cache category ${categoryId} on Redis`, err);
+        }
+
+        return available;
     }
 
     async getUserReservations(userId: string) {

@@ -314,21 +314,30 @@ export class OrdersService {
             data: { status: 'CANCELLED' },
         });
 
-        const metadata = order.ticket_metadata as Record<string, unknown> | null;
-        if (metadata) {
-            let breakdown: Array<{ category_id: string; quantity: number }> = [];
-            if (Array.isArray(metadata.ticket_breakdown)) {
-                breakdown = metadata.ticket_breakdown as any;
-            } else if (typeof metadata.category_id === 'string' && typeof metadata.quantity === 'number') {
-                breakdown = [{ category_id: metadata.category_id, quantity: metadata.quantity }];
+        const rawMetadata = order.ticket_metadata;
+        if (rawMetadata) {
+            let metadata: any = null;
+            try {
+                metadata = typeof rawMetadata === 'string' ? JSON.parse(rawMetadata) : rawMetadata;
+            } catch {
+                // Ignore parse error
             }
 
-            for (const item of breakdown) {
-                await this.ticketingService.rollbackCategoryInventory(
-                    order.user_id,
-                    item.category_id,
-                    item.quantity
-                );
+            if (metadata) {
+                let breakdown: Array<{ category_id: string; quantity: number }> = [];
+                if (Array.isArray(metadata.ticket_breakdown)) {
+                    breakdown = metadata.ticket_breakdown as any;
+                } else if (typeof metadata.category_id === 'string' && typeof metadata.quantity === 'number') {
+                    breakdown = [{ category_id: metadata.category_id, quantity: metadata.quantity }];
+                }
+
+                for (const item of breakdown) {
+                    await this.ticketingService.rollbackCategoryInventory(
+                        order.user_id,
+                        item.category_id,
+                        item.quantity
+                    );
+                }
             }
         }
 

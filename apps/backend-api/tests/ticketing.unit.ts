@@ -124,7 +124,7 @@ test('reserveTicket throws BadRequestException when inventory is not initialized
         },
         (err: any) => {
             assert.equal(err.name, 'BadRequestException');
-            assert.equal(err.message, 'ERR_NOT_INITIALIZED');
+            assert.equal(err.message, 'Hạng vé này không tồn tại hoặc đã bị xóa.');
             return true;
         }
     );
@@ -146,7 +146,7 @@ test('reserveTicket throws BadRequestException when tickets are depleted', async
         },
         (err: any) => {
             assert.equal(err.name, 'BadRequestException');
-            assert.equal(err.message, 'ERR_NO_TICKET');
+            assert.equal(err.message, 'Vé của hạng này đã được đặt hết. Vui lòng chọn hạng vé khác.');
             return true;
         }
     );
@@ -168,7 +168,7 @@ test('reserveTicket throws BadRequestException when user limit is exceeded', asy
         },
         (err: any) => {
             assert.equal(err.name, 'BadRequestException');
-            assert.equal(err.message, 'ERR_LIMIT_EXCEEDED');
+            assert.equal(err.message, 'Số lượng vé bạn chọn vượt quá giới hạn tối đa được phép mua cho mỗi tài khoản.');
             return true;
         }
     );
@@ -305,7 +305,7 @@ test('reserveTicket throws ERR_NOT_INITIALIZED if category is not found in DB du
         },
         (err: any) => {
             assert.equal(err.name, 'BadRequestException');
-            assert.equal(err.message, 'ERR_NOT_INITIALIZED');
+            assert.equal(err.message, 'Hạng vé này không tồn tại hoặc đã bị xóa.');
             return true;
         }
     );

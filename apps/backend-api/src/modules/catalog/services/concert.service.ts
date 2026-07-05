@@ -52,7 +52,7 @@ export class ConcertService {
 
   async getConcertById(id: string): Promise<ConcertResponseDto> {
     const cacheKey = this.getConcertDetailCacheKey(id);
-    let concert: ConcertResponseDto | null = null;
+    let concert: ConcertResponseDto | null;
 
     const cached = await this.redisService.getJson<ConcertResponseDto>(cacheKey);
     if (cached) {
