@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { siteNavigation, siteName } from "@/lib/constants";
 import {
   LayoutDashboard,
   User as UserIcon,
   Ticket,
   LogOut,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -16,16 +18,20 @@ import { Suspense } from "react";
 type ButtonProps = {
   children: ReactNode;
   href?: string;
-  variant?: "primary" | "secondary" | "ghost" | "soft";
+  variant?: "primary" | "secondary" | "ghost" | "soft" | "outline";
   className?: string;
   onClick?: () => void;
+  disabled?: boolean;
+  type?: "button" | "submit" | "reset";
+  loading?: boolean;
 };
 
 const buttonStyles = {
-  primary: "bg-primary text-on-primary hover:bg-primary-container",
-  secondary: "bg-secondary text-on-secondary hover:bg-secondary-container",
-  ghost: "bg-transparent text-on-surface hover:bg-surface-high",
-  soft: "bg-primary/10 text-primary hover:bg-primary/15",
+  primary: "bg-primary text-on-primary hover:bg-primary-container shadow-md hover:shadow-primary/20",
+  secondary: "bg-secondary text-on-secondary hover:bg-secondary-container shadow-md hover:shadow-secondary/20",
+  ghost: "bg-transparent text-on-surface hover:bg-surface-high/60",
+  soft: "bg-primary/10 text-primary hover:bg-primary/20",
+  outline: "border border-outline bg-transparent text-on-surface hover:bg-surface hover:border-on-surface-variant/50",
 } as const;
 
 export function Button({
@@ -34,26 +40,46 @@ export function Button({
   variant = "primary",
   className = "",
   onClick,
+  disabled = false,
+  type = "button",
+  loading = false,
 }: ButtonProps) {
   const classes = [
-    "inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98] cursor-pointer",
+    "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed cursor-pointer",
     buttonStyles[variant],
     className,
   ]
     .filter(Boolean)
     .join(" ");
 
-  if (href) {
+  const content = (
+    <>
+      {loading && (
+        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+      )}
+      {children}
+    </>
+  );
+
+  if (href && !disabled) {
     return (
       <Link href={href} className={classes}>
-        {children}
+        {content}
       </Link>
     );
   }
 
   return (
-    <button onClick={onClick} className={classes}>
-      {children}
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled || loading}
+      className={classes}
+    >
+      {content}
     </button>
   );
 }
@@ -67,7 +93,7 @@ export function Badge({
 }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${className}`}
+      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.15em] border border-outline-variant/60 bg-surface-low/80 backdrop-blur-sm text-on-surface-variant/90 shadow-sm ${className}`}
     >
       {children}
     </span>
@@ -83,7 +109,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-outline-variant/80 bg-surface shadow-[0_4px_20px_rgba(15,23,42,0.08)] ${className}`}
+      className={`rounded-3xl border border-outline-variant/40 bg-surface/30 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.25)] transition-all duration-300 hover:border-outline-variant/70 ${className}`}
     >
       {children}
     </div>
@@ -92,15 +118,47 @@ export function Card({
 
 export function Input({
   className = "",
+  disabled = false,
+  type = "text",
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement>) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === "password";
+  const inputType = isPassword ? (showPassword ? "text" : "password") : type;
+
+  if (isPassword) {
+    return (
+      <div className="relative w-full">
+        <input
+          disabled={disabled}
+          type={inputType}
+          {...props}
+          className={`w-full rounded-xl border border-outline-variant bg-surface/50 backdrop-blur-sm pl-4 pr-10 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 outline-none transition-all duration-200 focus:border-primary focus:ring-4 focus:ring-primary/15 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+        />
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => setShowPassword(!showPassword)}
+          disabled={disabled}
+          className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-on-surface-variant/60 hover:text-on-surface transition-colors cursor-pointer"
+        >
+          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <input
+      disabled={disabled}
+      type={type}
       {...props}
-      className={`w-full rounded-xl border border-outline-variant bg-surface px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15 ${className}`}
+      className={`w-full rounded-xl border border-outline-variant bg-surface/50 backdrop-blur-sm px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 outline-none transition-all duration-200 focus:border-primary focus:ring-4 focus:ring-primary/15 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
     />
   );
 }
+
+
 
 export function Tabs({
   items,
@@ -247,57 +305,52 @@ function HeaderSearchInput() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchQuery = searchParams?.get("q") || "";
+  const [prevQuery, setPrevQuery] = useState(searchQuery);
+  const [value, setValue] = useState(searchQuery);
+
+  if (searchQuery !== prevQuery) {
+    setPrevQuery(searchQuery);
+    setValue(searchQuery);
+  }
+
+  useEffect(() => {
+    // Skip setting param if it matches the current searchQuery to avoid duplicate router actions
+    if (value === searchQuery) return;
+
+    const handler = setTimeout(() => {
+      const params = new URLSearchParams(searchParams?.toString() || "");
+      if (value) {
+        params.set("q", value);
+      } else {
+        params.delete("q");
+      }
+      
+      const newUrl = pathname?.startsWith("/concerts")
+        ? `/concerts?${params.toString()}`
+        : `/?${params.toString()}#upcoming-concerts`;
+      
+      router.push(newUrl);
+    }, 450); // 450ms debounce delay
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, searchQuery, pathname, searchParams, router]);
 
   return (
     <input
       type="text"
-      placeholder="Search by name or location"
-      defaultValue={searchQuery}
-      onChange={(e) => {
-        const params = new URLSearchParams(searchParams?.toString() || "");
-        if (e.target.value) params.set("q", e.target.value);
-        else params.delete("q");
-        // Stay on /concerts if already there, otherwise go to homepage
-        if (pathname?.startsWith("/concerts")) {
-          router.push(`/concerts?${params.toString()}`);
-        } else {
-          router.push(`/?${params.toString()}#upcoming-concerts`);
-        }
-      }}
-      className="hidden sm:block w-48 lg:w-64 rounded-full border border-outline-variant bg-surface px-4 py-2 text-sm text-white outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/50"
+      placeholder="Tìm kiếm liveshow hoặc địa điểm..."
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      className="hidden sm:block w-48 lg:w-64 rounded-full border border-slate-800 bg-slate-900/40 px-4 py-2 text-sm text-white placeholder-slate-500 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
     />
   );
 }
 
-function HeaderStatusFilters() {
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
-  // Show active state only when on the /concerts page
-  const statusFilter = pathname?.startsWith("/concerts")
-    ? searchParams?.get("status") || "PUBLISHED"
-    : null;
-
-  return (
-    <div className="status-filter-group">
-      <Link
-        href="/concerts?status=PUBLISHED"
-        className={`status-filter-btn${statusFilter === "PUBLISHED" ? " status-filter-btn--active" : ""}`}
-      >
-        <span>Published</span>
-      </Link>
-      <Link
-        href="/concerts?status=COMPLETED"
-        className={`status-filter-btn${statusFilter === "COMPLETED" ? " status-filter-btn--active" : ""}`}
-      >
-        <span>Completed</span>
-      </Link>
-    </div>
-  );
-}
 
 export function SiteShell({
   children,
-  active = "/",
   action,
 }: {
   children: ReactNode;
@@ -306,28 +359,64 @@ export function SiteShell({
 }) {
   const { user, isAuthenticated, logout } = useAuth();
   const router = useRouter();
-  const isAdmin =
-    user?.roles?.includes("Admin") ||
-    (typeof user === "object" &&
-      user !== null &&
-      "role" in user &&
-      (user as { role?: string }).role === "Admin");
+  const pathname = usePathname();
+  const isAdmin = user?.roles?.some(role => ["admin", "organizer", "checker"].includes(role.toLowerCase())) || false;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 border-b border-outline-variant/50 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 shadow-[0_1px_0_0_rgba(0,0,0,0.03)]">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Link
-            href="/"
-            className="shrink-0 transition-opacity hover:opacity-80"
-          >
-            <BrandMark compact />
-          </Link>
+    <div className="flex min-h-screen flex-col bg-slate-950 text-on-surface">
+      <header className="sticky top-0 z-50 border-b border-slate-900 bg-slate-950/80 backdrop-blur-md shadow-sm">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
+          
+          {/* Brand & Left Navigation */}
+          <div className="flex items-center gap-8">
+            <Link
+              href="/"
+              className="shrink-0 transition-opacity hover:opacity-80"
+            >
+              <BrandMark compact />
+            </Link>
 
+            <nav className="hidden md:flex items-center gap-6 text-sm font-bold text-on-surface-variant/80">
+              <Link
+                href="/concerts"
+                className={`relative transition-colors hover:text-primary ${
+                  pathname?.startsWith("/concerts") ? "text-primary" : ""
+                }`}
+              >
+                Sự kiện
+              </Link>
+              <Link
+                href="/my-tickets"
+                className={`relative transition-colors hover:text-primary ${
+                  pathname === "/my-tickets" ? "text-primary" : ""
+                }`}
+              >
+                Vé của tôi
+              </Link>
+              <Link
+                href="/support"
+                className={`relative transition-colors hover:text-primary ${
+                  pathname === "/support" ? "text-primary" : ""
+                }`}
+              >
+                Trợ giúp
+              </Link>
+              <Link
+                href="/private-policy"
+                className={`relative transition-colors hover:text-primary ${
+                  pathname === "/private-policy" ? "text-primary" : ""
+                }`}
+              >
+                Chính sách
+              </Link>
+            </nav>
+          </div>
+
+          {/* Search & Right Action Menu */}
           <div className="flex items-center gap-4">
             <Suspense
               fallback={
-                <div className="hidden sm:block w-48 lg:w-64 h-9 rounded-full bg-outline-variant/30 animate-pulse" />
+                <div className="hidden sm:block w-48 lg:w-64 h-9 rounded-full bg-slate-900/30 animate-pulse" />
               }
             >
               <HeaderSearchInput />
@@ -335,13 +424,13 @@ export function SiteShell({
 
             {isAuthenticated ? (
               <div className="relative group">
-                <button className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-container text-primary-foreground font-bold shadow-sm ring-2 ring-transparent transition-all duration-200 hover:ring-primary/40 hover:shadow-md active:scale-95 cursor-pointer">
+                <button className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-primary to-purple-500 text-white font-bold shadow-md shadow-primary/10 ring-2 ring-transparent transition-all duration-200 hover:ring-primary/45 hover:shadow-lg active:scale-95 cursor-pointer">
                   {user?.fullName?.charAt(0).toUpperCase() || "U"}
                 </button>
 
-                {/* Dropdown */}
+                {/* Dropdown Menu */}
                 <div
-                  className="absolute right-0 mt-3 w-52 origin-top-right rounded-2xl border border-outline-variant/60 bg-surface-low/95 backdrop-blur-md shadow-xl ring-1 ring-black/5
+                  className="absolute right-0 mt-3 w-52 origin-top-right rounded-2xl border border-slate-800 bg-[#16222f]/95 backdrop-blur-md shadow-2xl ring-1 ring-black/5
               opacity-0 invisible translate-y-1 scale-95
               group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100
               transition-all duration-200 ease-out z-50 overflow-hidden"
@@ -349,86 +438,68 @@ export function SiteShell({
                   <div className="p-1.5 flex flex-col gap-0.5 text-left">
                     <Link
                       href="/profile"
-                      className="flex items-center gap-2.5 px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface hover:text-on-surface rounded-xl transition-colors"
+                      className="flex items-center gap-2.5 px-3 py-2.5 text-sm font-semibold text-on-surface-variant/90 hover:bg-slate-900 hover:text-on-surface rounded-xl transition-colors"
                     >
                       <UserIcon
                         size={16}
                         className="text-on-surface-variant/70"
                       />{" "}
-                      Profile
+                      Hồ sơ cá nhân
                     </Link>
                     <Link
                       href="/my-tickets"
-                      className="flex items-center gap-2.5 px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface hover:text-on-surface rounded-xl transition-colors"
+                      className="flex items-center gap-2.5 px-3 py-2.5 text-sm font-semibold text-on-surface-variant/90 hover:bg-slate-900 hover:text-on-surface rounded-xl transition-colors"
                     >
                       <Ticket
                         size={16}
                         className="text-on-surface-variant/70"
                       />{" "}
-                      My Tickets
+                      Thư viện vé
                     </Link>
                     {isAdmin && (
                       <Link
                         href="/admin/dashboard"
-                        className="flex items-center gap-2.5 px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface hover:text-on-surface rounded-xl transition-colors"
+                        className="flex items-center gap-2.5 px-3 py-2.5 text-sm font-semibold text-on-surface-variant/90 hover:bg-slate-900 hover:text-on-surface rounded-xl transition-colors"
                       >
                         <LayoutDashboard
                           size={16}
                           className="text-on-surface-variant/70"
                         />{" "}
-                        Admin
+                        Quản trị hệ thống
                       </Link>
                     )}
 
-                    <div className="h-px bg-outline-variant/60 my-1 mx-1" />
+                    <div className="h-px bg-slate-850 my-1.5 mx-1" />
 
                     <button
                       onClick={() => {
                         void logout().then(() => router.replace("/login"));
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-semibold text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-bold text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer text-left"
                     >
-                      <LogOut size={16} /> Log out
+                      <LogOut size={16} /> Đăng xuất
                     </button>
                   </div>
                 </div>
               </div>
             ) : (
-              action
+              action || (
+                <Link
+                  href="/login"
+                  className="flex items-center justify-center rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold px-4 py-2 shadow-sm transition-all duration-200"
+                >
+                  Đăng nhập
+                </Link>
+              )
             )}
           </div>
         </div>
 
-        {/* Second Row for filters and links */}
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 pb-3 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4">
-            <Suspense
-              fallback={
-                <div className="w-48 h-8 rounded-full bg-outline-variant/30 animate-pulse" />
-              }
-            >
-              <HeaderStatusFilters />
-            </Suspense>
-          </div>
-
-          <div className="flex items-center gap-6 text-sm font-bold text-on-surface-variant">
-            <Link
-              href="/support"
-              className="relative transition-colors hover:text-primary after:absolute after:-bottom-1 after:left-0 after:h-[1.5px] after:w-0 after:bg-primary after:transition-all after:duration-200 hover:after:w-full mr-12"
-            >
-              Support
-            </Link>
-            <Link
-              href="/contact-us"
-              className="relative transition-colors hover:text-primary after:absolute after:-bottom-1 after:left-0 after:h-[1.5px] after:w-0 after:bg-primary after:transition-all after:duration-200 hover:after:w-full mr-12"
-            >
-              Contact Us
-            </Link>
-          </div>
-        </div>
       </header>
+      
       <main className="flex-1">{children}</main>
-      <footer className="border-t border-gray-800 bg-[#2b2d31]">
+      
+      <footer className="border-t border-slate-900 bg-slate-950">
         <div className="mx-auto flex w-full max-w-7xl flex-col items-start justify-between gap-8 px-4 py-12 sm:flex-row sm:px-6 lg:px-8">
           <div className="flex flex-col space-y-4">
             <Link
@@ -479,10 +550,10 @@ export function SiteShell({
                 TicketBox
               </span>
             </Link>
-            <div className="flex items-center gap-4 text-white/70">
+            <div className="flex items-center gap-4 text-white/50">
               <Link
                 href="#"
-                className="hover:text-white transition-colors"
+                className="hover:text-primary transition-colors duration-200"
                 aria-label="Facebook"
               >
                 <svg
@@ -500,7 +571,7 @@ export function SiteShell({
               </Link>
               <Link
                 href="#"
-                className="hover:text-white transition-colors"
+                className="hover:text-primary transition-colors duration-200"
                 aria-label="Instagram"
               >
                 <svg
@@ -520,7 +591,7 @@ export function SiteShell({
               </Link>
               <Link
                 href="#"
-                className="hover:text-white transition-colors"
+                className="hover:text-primary transition-colors duration-200"
                 aria-label="YouTube"
               >
                 <svg
@@ -538,39 +609,43 @@ export function SiteShell({
                 </svg>
               </Link>
             </div>
-            <p className="text-xs font-semibold text-white/50 tracking-wide mt-2">
-              © 2026 TicketBox. All rights reserved.
+            <p className="text-xs font-semibold text-white/40 tracking-wide mt-2">
+              © 2026 TicketBox. Bản quyền được bảo lưu.
             </p>
           </div>
-          <div className="flex flex-wrap items-center justify-start sm:justify-end gap-x-8 gap-y-4 text-sm font-bold text-white/80">
+          <div className="flex flex-wrap items-center justify-start sm:justify-end gap-x-8 gap-y-4 text-sm font-bold text-white/70">
             <Link
-              href="/#upcoming-concerts"
-              className="hover:text-white transition-colors"
+              href="/concerts"
+              className="hover:text-white transition-colors duration-150"
             >
-              Concerts
+              Sự kiện
             </Link>
             <Link
               href="/private-policy"
-              className="hover:text-white transition-colors"
+              className="hover:text-white transition-colors duration-150"
             >
-              Private Policy
+              Chính sách bảo mật
             </Link>
             <Link
               href="/support"
-              className="hover:text-white transition-colors"
+              className="hover:text-white transition-colors duration-150"
             >
-              Support
+              Trung tâm trợ giúp
             </Link>
           </div>
         </div>
       </footer>
-      <div className="sticky bottom-0 z-40 border-t border-outline-variant bg-surface/95 px-4 py-3 backdrop-blur md:hidden">
+
+      {/* Mobile Sticky Bottom Nav */}
+      <div className="sticky bottom-0 z-40 border-t border-slate-900 bg-slate-950/85 px-4 py-2.5 backdrop-blur-md md:hidden">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-2">
           {siteNavigation.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-1 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold ${active === item.href ? "text-primary" : "text-on-surface-variant"}`}
+              className={`flex flex-1 flex-col items-center gap-1 rounded-xl px-2 py-1 text-[10px] font-bold ${
+                pathname === item.href ? "text-primary" : "text-on-surface-variant/75"
+              }`}
             >
               <span className="material-symbols-outlined text-[20px]">
                 {item.label === "My Tickets"
@@ -581,7 +656,13 @@ export function SiteShell({
                       ? "support_agent"
                       : "explore"}
               </span>
-              {item.label}
+              {item.label === "My Tickets"
+                ? "Vé của tôi"
+                : item.label === "Profile"
+                  ? "Cá nhân"
+                  : item.label === "Support"
+                    ? "Trợ giúp"
+                    : "Khám phá"}
             </Link>
           ))}
         </div>

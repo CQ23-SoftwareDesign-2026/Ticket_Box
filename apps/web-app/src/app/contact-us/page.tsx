@@ -1,7 +1,9 @@
 "use client";
 
-import { SiteShell, SectionHeading } from "@/components/common";
-import { Mail, MapPin, Phone } from "lucide-react";
+import { useState } from "react";
+import { SiteShell, SectionHeading, Input, Button } from "@/components/common";
+import { Mail, MapPin, Phone, Send } from "lucide-react";
+import { useToast } from "@/context/ToastContext";
 
 const TEAM_MEMBERS = [
   {
@@ -27,125 +29,168 @@ const TEAM_MEMBERS = [
 ];
 
 export default function ContactUsPage() {
+  const { success: showSuccessToast } = useToast();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !email || !message) return;
+
+    setLoading(true);
+    // Simulate sending message
+    setTimeout(() => {
+      setLoading(false);
+      showSuccessToast("Cảm ơn bạn đã liên hệ! Lời nhắn của bạn đã được gửi thành công.");
+      setName("");
+      setEmail("");
+      setMessage("");
+    }, 1200);
+  };
+
   return (
     <SiteShell active="/contact-us">
       <main className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="mb-16 text-center">
-          <SectionHeading title="Contact Us" />
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-on-surface-variant">
-            Welcome to TicketBox, your ultimate platform for booking concert
-            tickets securely and effortlessly. We are dedicated to bringing you
-            the best live entertainment experiences. Meet the team behind the
-            magic below.
+          <SectionHeading title="Liên hệ với chúng tôi" />
+          <p className="mx-auto mt-4 max-w-2xl text-base text-on-surface-variant/80 leading-relaxed">
+            Chào mừng bạn đến với TicketBox, nền tảng đặt vé ca nhạc an toàn và nhanh chóng. 
+            Chúng tôi tận tâm mang đến cho bạn những trải nghiệm giải trí trực tiếp tuyệt vời nhất. 
+            Gặp gỡ đội ngũ đứng sau TicketBox dưới đây.
           </p>
         </div>
 
-        <div className="mb-20 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+        {/* Team Members Grid */}
+        <div className="mb-20 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {TEAM_MEMBERS.map((member) => (
             <div
               key={member.name}
-              className="ticketbox-panel flex flex-col items-center p-8 text-center transition-transform duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-primary/10"
+              className="rounded-3xl border border-outline-variant/40 bg-surface/20 p-8 text-center flex flex-col items-center backdrop-blur-lg shadow-xl hover:-translate-y-2 hover:shadow-2xl hover:border-outline-variant/60 transition-all duration-300"
             >
-              <div className="mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-surface-highest text-3xl font-bold text-primary shadow-inner">
+              <div className="mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 border border-primary/20 text-3xl font-black text-primary shadow-inner">
                 {member.name
                   .split(" ")
                   .map((n) => n[0])
                   .join("")
                   .slice(0, 2)}
               </div>
-              <h3 className="mb-1 text-xl font-bold text-on-surface">
+              <h3 className="mb-1 text-lg font-bold text-on-surface">
                 {member.name}
               </h3>
-              <p className="mb-4 text-sm font-medium text-primary">
+              <p className="mb-6 text-xs font-semibold text-primary/80">
                 {member.role}
               </p>
               <a
                 href={`mailto:${member.email}`}
-                className="mt-auto flex items-center gap-2 text-sm text-on-surface-variant hover:text-primary transition-colors"
+                className="mt-auto flex items-center gap-2 text-xs font-bold text-on-surface-variant hover:text-primary transition-colors bg-surface-low border border-outline-variant/40 hover:border-primary/35 px-4 py-2 rounded-xl cursor-pointer"
               >
-                <Mail size={16} />
-                Email
+                <Mail size={14} className="text-primary/70" />
+                Gửi Email
               </a>
             </div>
           ))}
         </div>
 
-        <div className="ticketbox-panel mx-auto max-w-4xl p-8 sm:p-12">
+        {/* Office & Form Section */}
+        <div className="rounded-3xl border border-outline-variant/40 bg-surface/20 p-8 sm:p-12 backdrop-blur-lg shadow-xl max-w-4xl mx-auto">
           <div className="grid gap-12 md:grid-cols-2">
+            {/* Information */}
             <div>
-              <h3 className="mb-6 text-2xl font-bold text-on-surface">
-                Our Office
+              <h3 className="mb-6 text-xl font-bold text-on-surface">
+                Văn phòng của chúng tôi
               </h3>
               <div className="space-y-6">
                 <div className="flex items-start gap-4 text-on-surface-variant">
-                  <MapPin className="mt-1 shrink-0 text-primary" />
+                  <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary">
+                    <MapPin size={16} />
+                  </div>
                   <div>
-                    <p className="font-semibold text-on-surface">
-                      Headquarters
-                    </p>
-                    <p>Di An, Ho Chi Minh City, Vietnam</p>
+                    <p className="font-bold text-sm text-on-surface">Trụ sở chính</p>
+                    <p className="text-xs mt-1 text-on-surface-variant/80">Dĩ An, Thành phố Hồ Chí Minh, Việt Nam</p>
                   </div>
                 </div>
+                
                 <div className="flex items-start gap-4 text-on-surface-variant">
-                  <Phone className="mt-1 shrink-0 text-primary" />
+                  <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary">
+                    <Phone size={16} />
+                  </div>
                   <div>
-                    <p className="font-semibold text-on-surface">Phone</p>
-                    <p>+84 853 223 225</p>
+                    <p className="font-bold text-sm text-on-surface">Số điện thoại</p>
+                    <p className="text-xs mt-1 text-on-surface-variant/80">+84 853 223 225</p>
                   </div>
                 </div>
+
                 <div className="flex items-start gap-4 text-on-surface-variant">
-                  <Mail className="mt-1 shrink-0 text-primary" />
+                  <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary">
+                    <Mail size={16} />
+                  </div>
                   <div>
-                    <p className="font-semibold text-on-surface">
-                      General Support
-                    </p>
-                    <p>support@ticketbox.retrobit.io.vn</p>
+                    <p className="font-bold text-sm text-on-surface">Hỗ trợ chung</p>
+                    <p className="text-xs mt-1 text-on-surface-variant/80">support@ticketbox.retrobit.io.vn</p>
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* Contact Form */}
             <div>
-              <h3 className="mb-6 text-2xl font-bold text-on-surface">
-                Send us a message
+              <h3 className="mb-6 text-xl font-bold text-on-surface">
+                Gửi lời nhắn cho chúng tôi
               </h3>
-              <form className="space-y-4">
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-on-surface-variant">
-                    Name
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-on-surface-variant" htmlFor="contactName">
+                    Họ và tên
                   </label>
-                  <input
+                  <Input
+                    id="contactName"
                     type="text"
-                    placeholder="Your name"
-                    className="w-full rounded-xl border border-outline-variant bg-surface-low px-4 py-3 text-sm text-on-surface outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    placeholder="Nguyễn Văn A"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    disabled={loading}
                   />
                 </div>
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-on-surface-variant">
-                    Email
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-on-surface-variant" htmlFor="contactEmail">
+                    Địa chỉ Email
                   </label>
-                  <input
+                  <Input
+                    id="contactEmail"
                     type="email"
-                    placeholder="your@email.com"
-                    className="w-full rounded-xl border border-outline-variant bg-surface-low px-4 py-3 text-sm text-on-surface outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    placeholder="nguyenvana@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={loading}
                   />
                 </div>
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-on-surface-variant">
-                    Message
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-on-surface-variant" htmlFor="contactMessage">
+                    Nội dung lời nhắn
                   </label>
                   <textarea
+                    id="contactMessage"
                     rows={4}
-                    placeholder="How can we help?"
-                    className="w-full rounded-xl border border-outline-variant bg-surface-low px-4 py-3 text-sm text-on-surface outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    placeholder="Tôi có thể giúp gì cho bạn?"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    required
+                    disabled={loading}
+                    className="w-full rounded-2xl border border-outline-variant/60 bg-surface/50 px-4 py-3 text-sm text-white outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder-on-surface-variant/40"
                   />
                 </div>
-                <button
-                  type="button"
-                  className="ticketbox-button-primary w-full px-6 py-3"
+                <Button
+                  type="submit"
+                  className="w-full justify-center gap-2 py-3.5 mt-2"
+                  loading={loading}
                 >
-                  Send Message
-                </button>
+                  <Send size={16} />
+                  Gửi tin nhắn
+                </Button>
               </form>
             </div>
           </div>

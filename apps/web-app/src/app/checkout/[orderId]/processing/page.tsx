@@ -13,9 +13,9 @@ export default async function ProcessingPage({
       <div className="w-full space-y-8">
         <ProcessingAnimation />
         <div className="mx-auto flex max-w-2xl flex-wrap justify-center gap-3">
-          <Button href={`/orders/${orderId}`}>View tickets</Button>
+          <Button href={`/orders/${orderId}`}>Xem vé của tôi</Button>
           <Button href="/support" variant="soft">
-            Need help
+            Hỗ trợ trực tuyến
           </Button>
         </div>
       </div>

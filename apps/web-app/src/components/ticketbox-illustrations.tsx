@@ -1,23 +1,46 @@
 export function ConcertHeroIllustration() {
   return (
-    <div className="relative h-full overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,122,89,0.35),transparent_30%),linear-gradient(135deg,#140c2e_0%,#2a0b5e_40%,#0f62fe_100%)]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2),transparent_42%)]" />
-      <div className="absolute left-8 top-8 h-16 w-16 rounded-full border border-white/30 bg-white/10" />
-      <div className="absolute bottom-12 left-10 right-10 rounded-[28px] border border-white/15 bg-black/35 p-6 text-white backdrop-blur-md">
-        <p className="text-sm uppercase tracking-[0.35em] text-white/70">
-          TicketBox Auth
-        </p>
-        <h2 className="mt-3 text-4xl font-black leading-tight">
-          Fast, secure, and built for concert journeys.
-        </h2>
-        <p className="mt-4 max-w-xl text-sm leading-6 text-white/80">
-          The same design language can later expand into tickets, orders,
-          concepts, and admin flows without reworking the auth foundation.
-        </p>
+    <div className="relative h-full overflow-hidden bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.25),transparent_40%),linear-gradient(135deg,#090b11_0%,#1e1b4b_50%,#312e81_100%)] p-10 flex flex-col justify-between">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03),transparent_60%)]" />
+      
+      {/* Decorative floating glass shapes */}
+      <div className="absolute left-8 top-12 h-24 w-24 rounded-full border border-white/5 bg-white/5 backdrop-blur-sm animate-pulse" />
+      <div className="absolute right-12 top-1/4 h-32 w-32 -rotate-12 rounded-[24px] border border-white/5 bg-white/5 shadow-2xl backdrop-blur-md" />
+
+      {/* Top Brand Tagline */}
+      <div className="relative z-10">
+        <span className="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">
+          Âm Nhạc Đích Thực
+        </span>
       </div>
-      <div className="absolute right-8 top-1/3 h-40 w-40 -rotate-12 rounded-[36px] border border-white/30 bg-white/10 shadow-2xl backdrop-blur-md" />
-      <div className="absolute bottom-12 right-10 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white/80 backdrop-blur-md">
-        Prototype-ready
+
+      {/* Main Poster Info */}
+      <div className="relative z-10 mt-auto rounded-3xl border border-white/10 bg-black/40 p-8 text-foreground backdrop-blur-lg shadow-2xl">
+        <p className="text-xs font-bold uppercase tracking-[0.25em] text-primary">
+          TicketBox Concerts
+        </p>
+        <h2 className="mt-3 font-display text-3xl font-black leading-tight text-white">
+          Kết nối bạn với những giai điệu bùng nổ.
+        </h2>
+        <p className="mt-4 text-sm leading-relaxed text-on-surface-variant/80">
+          Quản lý vé điện tử cá nhân, cập nhật lịch diễn mới nhất và đồng hành cùng thần tượng của bạn trong những đêm nhạc sống động đáng nhớ.
+        </p>
+
+        {/* Feature Pill Row */}
+        <div className="mt-6 flex flex-wrap gap-2.5">
+          {[
+            "Vé Điện Tử QR",
+            "Đặt Chỗ Tức Thì",
+            "Bảo Mật Tuyệt Đối",
+          ].map((tag) => (
+            <span
+              key={tag}
+              className="rounded-lg bg-white/5 border border-white/10 px-3 py-1 text-[11px] font-bold text-on-surface-variant/90"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -25,55 +48,54 @@ export function ConcertHeroIllustration() {
 
 export function SecurityIllustration() {
   return (
-    <div className="relative h-full overflow-hidden bg-[linear-gradient(135deg,#f8f4ff_0%,#ffffff_50%,#edf2ff_100%)] p-10">
+    <div className="relative h-full overflow-hidden bg-[linear-gradient(135deg,#090b11_0%,#111827_50%,#0f172a_100%)] p-10">
       <div className="grid h-full gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="ticketbox-card bg-[linear-gradient(135deg,#140c2e_0%,#30135f_40%,#0f62fe_100%)] p-8 text-white">
-          <div className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-white/80">
-            Security Center
-          </div>
-          <h2 className="mt-6 max-w-md text-4xl font-black leading-tight">
-            Account security built for active users and protected sessions.
-          </h2>
-          <p className="mt-4 max-w-lg text-sm leading-6 text-white/75">
-            Prototype this now so future ticket checkout and concept flows can
-            reuse the same auth, verification, and session rules.
-          </p>
-          <div className="mt-8 grid grid-cols-2 gap-4 text-sm">
-            <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur-md">
-              <p className="text-white/65">Session status</p>
-              <p className="mt-2 text-lg font-bold">Active</p>
+        <div className="rounded-3xl border border-outline-variant/40 bg-surface/30 backdrop-blur-md p-8 text-foreground shadow-2xl flex flex-col justify-between">
+          <div>
+            <div className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.15em] text-primary">
+              Trung tâm Bảo mật
             </div>
-            <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur-md">
-              <p className="text-white/65">Token health</p>
-              <p className="mt-2 text-lg font-bold text-[#7cffb2]">
-                Refreshing
-              </p>
+            <h2 className="mt-6 max-w-md font-display text-3xl font-black leading-tight text-on-surface">
+              An toàn tài khoản chuẩn bảo mật cao cấp.
+            </h2>
+            <p className="mt-4 max-w-lg text-sm leading-relaxed text-on-surface-variant/80">
+              Mã hóa dữ liệu vé e-ticket QR Code bằng hàm băm salted hash, đảm bảo an tâm tuyệt đối cho khách hàng khi giao dịch trực tuyến.
+            </p>
+          </div>
+          <div className="mt-8 grid grid-cols-2 gap-4 text-sm">
+            <div className="rounded-2xl border border-outline-variant/50 bg-surface-low/40 p-4 backdrop-blur-sm">
+              <p className="text-on-surface-variant/60 text-xs">Phiên làm việc</p>
+              <p className="mt-1 text-base font-bold text-on-surface">Đang hoạt động</p>
+            </div>
+            <div className="rounded-2xl border border-outline-variant/50 bg-surface-low/40 p-4 backdrop-blur-sm">
+              <p className="text-on-surface-variant/60 text-xs">Trạng thái Token</p>
+              <p className="mt-1 text-base font-bold text-emerald-400">Tự động làm mới</p>
             </div>
           </div>
         </div>
-        <div className="space-y-4">
-          <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
-            <p className="text-sm font-semibold text-slate-500">
-              Active sessions
+        <div className="space-y-4 flex flex-col justify-between">
+          <div className="rounded-3xl border border-outline-variant/40 bg-surface/30 p-6 shadow-xl backdrop-blur-md">
+            <p className="text-sm font-bold text-on-surface-variant">
+              Thiết bị truy cập
             </p>
             <div className="mt-4 space-y-3">
-              <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                MacBook Pro • Chrome • Current
+              <div className="rounded-xl bg-surface-low/50 border border-outline-variant/30 px-4 py-2.5 text-xs text-on-surface-variant">
+                MacBook Pro • Chrome • Hiện tại
               </div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                iPhone 15 • iOS App • 2 hours ago
+              <div className="rounded-xl bg-surface-low/50 border border-outline-variant/30 px-4 py-2.5 text-xs text-on-surface-variant/70">
+                iPhone 15 Pro • Safari • 2 giờ trước
               </div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                Windows Workstation • Firefox • Yesterday
+              <div className="rounded-xl bg-surface-low/50 border border-outline-variant/30 px-4 py-2.5 text-xs text-on-surface-variant/70">
+                Windows Desktop • Edge • Hôm qua
               </div>
             </div>
           </div>
-          <div className="rounded-[28px] border border-[#0f62fe]/15 bg-[#eff6ff] p-6 shadow-[0_20px_50px_rgba(15,98,254,0.08)]">
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#0f62fe]">
-              Future proof
+          <div className="rounded-3xl border border-primary/20 bg-primary/5 p-6 shadow-lg">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
+              Hệ thống bán vé
             </p>
-            <p className="mt-3 text-2xl font-black text-slate-900">
-              Reuse this shell for tickets, concepts, and checkout auth.
+            <p className="mt-2 text-xl font-extrabold leading-tight text-on-surface">
+              Chốt vé tức thì trên RAM chống Overbooking.
             </p>
           </div>
         </div>

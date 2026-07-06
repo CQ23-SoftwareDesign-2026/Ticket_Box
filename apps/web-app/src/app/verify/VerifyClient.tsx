@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { TicketBoxAuthShell } from "@/components/ticketbox-auth-shell";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { ConcertHeroIllustration } from "@/components/ticketbox-illustrations";
 import { getAuthErrorMessage } from "@/utils/error.utils";
+import { useToast } from "@/context/ToastContext";
+import { Button } from "@/components/common";
 
 export default function VerifyClient() {
   const router = useRouter();
@@ -19,11 +21,13 @@ export default function VerifyClient() {
   const [message, setMessage] = useState<string | null>(
     token
       ? null
-      : "Missing verification token. Please request a new verification email.",
+      : "Không tìm thấy mã xác thực. Vui lòng yêu cầu gửi lại email xác thực.",
   );
+  const { success: showSuccessToast, error: showErrorToast } = useToast();
 
   useEffect(() => {
     if (!token) {
+      if (message) showErrorToast(message);
       return;
     }
 
@@ -52,7 +56,9 @@ export default function VerifyClient() {
         }
 
         setStatus("success");
-        setMessage(data.message ?? "Your email has been verified.");
+        const msg = data.message ?? "Email của bạn đã được xác minh thành công.";
+        setMessage(msg);
+        showSuccessToast(msg);
 
         setTimeout(() => {
           router.replace("/login?verified=1");
@@ -63,7 +69,9 @@ export default function VerifyClient() {
         }
 
         setStatus("error");
-        setMessage(getAuthErrorMessage(error, "verify-email"));
+        const errMsg = getAuthErrorMessage(error, "verify-email");
+        setMessage(errMsg);
+        showErrorToast(errMsg);
       }
     };
 
@@ -72,53 +80,70 @@ export default function VerifyClient() {
     return () => {
       active = false;
     };
-  }, [router, token]);
+  }, [router, token, message, showErrorToast, showSuccessToast]);
 
   return (
     <TicketBoxAuthShell
       title={
         status === "loading"
-          ? "Verifying your account"
+          ? "Đang xác thực tài khoản"
           : status === "success"
-            ? "Email verified"
-            : "Verification failed"
+            ? "Xác thực email thành công"
+            : "Xác thực thất bại"
       }
       description={
         status === "loading"
-          ? "We're checking your verification link now."
+          ? "Chúng tôi đang kiểm tra đường dẫn xác thực của bạn."
           : status === "success"
-            ? "Your email has been verified. You can sign in now."
-            : "This verification link is no longer valid."
+            ? "Email của bạn đã được xác minh thành công. Bạn có thể đăng nhập."
+            : "Liên kết xác thực này đã hết hạn hoặc không hợp lệ."
       }
-      compact
+      sidebar={<ConcertHeroIllustration />}
       footerLinks={[
-        { label: "Back to sign in", href: "/login" },
-        { label: "Resend verification", href: "/resend-verification" },
+        { label: "Quay lại đăng nhập", href: "/login" },
+        { label: "Gửi lại email xác thực", href: "/resend-verification" },
       ]}
     >
-      <div className="space-y-5 text-center">
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#0f62fe]/10 text-[#0f62fe]">
-          {status === "loading" ? (
-            <Loader2 className="h-10 w-10 animate-spin" />
-          ) : status === "success" ? (
-            <CheckCircle2 className="h-10 w-10" />
-          ) : (
-            <AlertCircle className="h-10 w-10" />
-          )}
-        </div>
-        {message ? (
-          <p className="text-sm text-muted-foreground">{message}</p>
-        ) : null}
-        <Link href="/login" className="ticketbox-button-primary w-full">
-          {status === "success" ? "Continue to sign in" : "Back to sign in"}
-        </Link>
+      <div className="space-y-5">
+        {status === "loading" && (
+          <div className="flex flex-col items-center justify-center py-6 gap-4">
+            <svg className="animate-spin h-10 w-10 text-primary" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            <p className="text-sm text-on-surface-variant/60">Vui lòng chờ trong giây lát...</p>
+          </div>
+        )}
+
+        {status === "success" && (
+          <div className="py-6 text-center">
+            <p className="text-sm text-on-surface-variant/80 leading-relaxed">
+              Email của bạn đã được xác minh thành công. Đang tự động chuyển hướng về trang đăng nhập...
+            </p>
+          </div>
+        )}
+
+        {status === "error" && (
+          <div className="py-6 text-center">
+            <p className="text-sm text-on-surface-variant/80 leading-relaxed">
+              Xác thực email thất bại hoặc liên kết đã hết hạn. Vui lòng yêu cầu liên kết mới.
+            </p>
+          </div>
+        )}
+
+        <Button href="/login" className="w-full py-3.5 mt-2">
+          {status === "success" ? "Tiếp tục đăng nhập" : "Quay lại đăng nhập"}
+        </Button>
+
         {status === "error" ? (
-          <Link
-            href="/resend-verification"
-            className="inline-flex text-sm font-semibold text-primary hover:underline hover:underline-offset-4"
-          >
-            Request a new verification email
-          </Link>
+          <div className="text-center pt-2">
+            <Link
+              href="/resend-verification"
+              className="inline-flex text-sm font-semibold text-primary hover:text-primary-container transition-colors"
+            >
+              Yêu cầu lại email xác thực mới
+            </Link>
+          </div>
         ) : null}
       </div>
     </TicketBoxAuthShell>

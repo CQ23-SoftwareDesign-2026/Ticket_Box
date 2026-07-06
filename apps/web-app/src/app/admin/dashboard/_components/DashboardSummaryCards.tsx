@@ -99,14 +99,14 @@ export function DashboardSummaryCards({
       <div className="bg-surface p-6 rounded-xl shadow-sm border border-border hover:-translate-y-1 transition-transform duration-300 relative overflow-hidden group">
         <div className="absolute inset-0 bg-linear-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         <div className="flex justify-between items-start mb-4">
-          <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+          <div className="p-2 bg-primary/10 rounded-lg text-primary">
             <Users className="w-6 h-6" />
           </div>
         </div>
         <p className="text-muted-foreground font-body text-xs font-semibold uppercase tracking-wider mb-1">
           Registered Users
         </p>
-        <h3 className="font-display text-4xl font-extrabold text-indigo-600">
+        <h3 className="font-display text-4xl font-extrabold text-on-surface">
           {isLoadingSummary ? (
             <div className="h-9 w-16 bg-surface-high animate-pulse rounded" />
           ) : (

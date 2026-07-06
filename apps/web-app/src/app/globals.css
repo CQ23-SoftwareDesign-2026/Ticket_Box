@@ -1,6 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
 @import "tailwindcss";
-@import "../styles/status-filter.css";
 
 @layer base {
   button,
@@ -16,29 +15,29 @@
 :root {
   --font-inter: "Inter", "Segoe UI", Arial, Helvetica, sans-serif;
   --font-montserrat: "Montserrat", "Segoe UI", Arial, Helvetica, sans-serif;
-  --background: #0f1115;
+  --background: #0b0f19;
   --foreground: #f8fafc;
-  --surface: #1e1e24;
-  --surface-low: #2b2d31;
-  --surface-high: #3a3d42;
-  --surface-highest: #4b4e54;
-  --primary: #4f46e5;
-  --primary-container: #4338ca;
-  --secondary: #712ae2;
-  --secondary-container: #8a4cfc;
-  --tertiary: #41485e;
-  --tertiary-container: #586076;
-  --outline: #334155;
-  --outline-variant: #1e293b;
+  --surface: #111827;
+  --surface-low: #1f2937;
+  --surface-high: #374151;
+  --surface-highest: #4b5563;
+  --primary: #6366f1;
+  --primary-container: #4f46e5;
+  --secondary: #8b5cf6;
+  --secondary-container: #7c3aed;
+  --tertiary: #4b5563;
+  --tertiary-container: #6b7280;
+  --outline: #374151;
+  --outline-variant: #1f2937;
   --on-surface: #f8fafc;
   --on-surface-variant: #cbd5e1;
   --on-primary: #ffffff;
-  --on-primary-container: #dad7ff;
+  --on-primary-container: #e0e7ff;
   --on-secondary: #ffffff;
-  --on-secondary-container: #fffbff;
+  --on-secondary-container: #f5f3ff;
   --on-tertiary: #ffffff;
-  --error: #ba1a1a;
-  --error-container: #ffdad6;
+  --error: #ef4444;
+  --error-container: #fee2e2;
 }
 
 @theme inline {
