@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min, IsIn } from 'class-validator';
+import { IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min, IsIn, IsDateString } from 'class-validator';
 
 export class CreateTicketCategoryDto {
   @ApiPropertyOptional({ example: '7d9e4e35-5a1b-4458-bda4-5de2a317a0f4' })
@@ -45,5 +45,10 @@ export class CreateTicketCategoryDto {
   @IsIn(['sale_closed', 'sold_out', 'book_now'])
   @IsOptional()
   status?: string;
+
+  @ApiPropertyOptional({ example: '2026-08-20T10:00:00.000Z' })
+  @IsDateString()
+  @IsOptional()
+  sales_start_at?: string | null;
 }
 

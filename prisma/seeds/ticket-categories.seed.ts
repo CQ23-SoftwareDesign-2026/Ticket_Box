@@ -16,6 +16,7 @@ export async function seedTicketCategories(prisma: PrismaClient) {
             gate_number: category.gate_number,
             position: category.position,
             status: category.status,
+            sales_start_at: category.sales_start_at,
         }));
     });
 

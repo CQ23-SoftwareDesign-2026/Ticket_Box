@@ -76,6 +76,7 @@ model Concert {
   name        String   @db.VarChar(255)
   description String?  @db.Text
   location    String   @db.VarChar(255)
+  performers  String[]
   ai_bio      String?  @db.Text
   start_time  DateTime
   svg_map_url String?  @db.VarChar(500)
@@ -92,15 +93,16 @@ model Concert {
 }
 
 model TicketCategory {
-  id             String  @id @default(uuid()) @db.Uuid
-  concert_id     String  @db.Uuid
-  name           String  @db.VarChar(100)
-  price          Decimal @db.Decimal(10, 2)
+  id             String    @id @default(uuid()) @db.Uuid
+  concert_id     String    @db.Uuid
+  name           String    @db.VarChar(100)
+  price          Decimal   @db.Decimal(10, 2)
   total_quantity Int
   max_per_user   Int
   gate_number    Int?
-  position       Int?    @default(0)
-  status         String? @db.VarChar(50)
+  position       Int?      @default(0)
+  status         String?   @db.VarChar(50)
+  sales_start_at DateTime?
 
   concert Concert @relation(fields: [concert_id], references: [id])
   tickets Ticket[]

@@ -124,7 +124,7 @@ test('reserveTicket throws BadRequestException when inventory is not initialized
         },
         (err: any) => {
             assert.equal(err.name, 'BadRequestException');
-            assert.equal(err.message, 'ERR_NOT_INITIALIZED');
+            assert.equal(err.message, 'Hạng vé này không tồn tại hoặc đã bị xóa.');
             return true;
         }
     );
@@ -146,7 +146,7 @@ test('reserveTicket throws BadRequestException when tickets are depleted', async
         },
         (err: any) => {
             assert.equal(err.name, 'BadRequestException');
-            assert.equal(err.message, 'ERR_NO_TICKET');
+            assert.equal(err.message, 'Vé của hạng này đã được đặt hết. Vui lòng chọn hạng vé khác.');
             return true;
         }
     );
@@ -168,7 +168,7 @@ test('reserveTicket throws BadRequestException when user limit is exceeded', asy
         },
         (err: any) => {
             assert.equal(err.name, 'BadRequestException');
-            assert.equal(err.message, 'ERR_LIMIT_EXCEEDED');
+            assert.equal(err.message, 'Số lượng vé bạn chọn vượt quá giới hạn tối đa được phép mua cho mỗi tài khoản.');
             return true;
         }
     );
@@ -186,6 +186,7 @@ test('seedCategoryInventory correctly calls Redis HSET', async () => {
     assert.deepEqual(mockRedisClient.hSet.mock.calls[0][1], {
         available: '50',
         max_per_user: '4',
+        sales_start_at: '',
     });
 });
 
@@ -204,6 +205,7 @@ test('getCategoryInventory parses values correctly', async () => {
     assert.deepEqual(result, {
         available: 45,
         max_per_user: 2,
+        sales_start_at: null,
     });
 });
 
@@ -270,7 +272,7 @@ test('reserveTicket performs Lazy Seeding when Redis returns ERR_NOT_INITIALIZED
     assert.equal(redisService.runLuaScript.mock.calls.length, 2);
 
     // Check that DB queries were called
-    assert.equal(mockPrisma.ticketCategory.findUnique.mock.calls.length, 1);
+    assert.equal(mockPrisma.ticketCategory.findUnique.mock.calls.length, 2);
     assert.equal(mockPrisma.ticket.count.mock.calls.length, 1);
     assert.equal(mockPrisma.order.findMany.mock.calls.length, 1);
 
@@ -280,6 +282,7 @@ test('reserveTicket performs Lazy Seeding when Redis returns ERR_NOT_INITIALIZED
     assert.deepEqual(mockRedisClient.hSet.mock.calls[0][1], {
         available: '8',
         max_per_user: '4',
+        sales_start_at: '',
     });
 
     assert.equal(result.status, 'SUCCESS');
@@ -305,7 +308,7 @@ test('reserveTicket throws ERR_NOT_INITIALIZED if category is not found in DB du
         },
         (err: any) => {
             assert.equal(err.name, 'BadRequestException');
-            assert.equal(err.message, 'ERR_NOT_INITIALIZED');
+            assert.equal(err.message, 'Hạng vé này không tồn tại hoặc đã bị xóa.');
             return true;
         }
     );
@@ -328,6 +331,36 @@ test('reserveTicket throws ServiceUnavailableException when Redis runLuaScript t
         (err: any) => {
             assert.equal(err.name, 'ServiceUnavailableException');
             assert.equal(err.message, 'Booking service temporarily unavailable. Please try again.');
+            return true;
+        }
+    );
+});
+
+test('reserveTicket throws BadRequestException when sales_start_at is in the future', async () => {
+    const { service, mockRedisClient } = createService();
+
+    // Set sales_start_at to a date in the future
+    const futureDate = new Date();
+    futureDate.setHours(futureDate.getHours() + 2); // 2 hours from now
+
+    mockRedisClient.hGetAll.mockResolvedValue({
+        available: '100',
+        max_per_user: '4',
+        sales_start_at: futureDate.toISOString(),
+    });
+
+    await assert.rejects(
+        async () => {
+            await service.reserveTicket('user-1', {
+                concert_id: 'concert-1',
+                items: [
+                    { category_id: 'category-1', quantity: 2 }
+                ],
+            });
+        },
+        (err: any) => {
+            assert.equal(err.name, 'BadRequestException');
+            assert.equal(err.message, 'Hạng vé này chưa đến thời điểm mở bán.');
             return true;
         }
     );

@@ -364,6 +364,49 @@ export class PaymentService {
             });
         }
 
+        if (transaction.order.status === 'CANCELLED') {
+            const breakdown = this.resolveTicketBreakdown(dto, transaction.order);
+            const currentMetadata = (transaction.order as any).ticket_metadata || {};
+            const refundMetadata = {
+                ...currentMetadata,
+                refund_required: true,
+                refund_reason: 'PAID_AFTER_EXPIRATION',
+                paid_amount: dto.data?.amount || Number(transaction.amount.toString()),
+                ticket_breakdown: breakdown,
+            };
+
+            await this.prisma.$transaction(async (tx) => {
+                await tx.paymentTransaction.update({
+                    where: { id: transaction.id },
+                    data: {
+                        status: 'SUCCESS',
+                        transaction_id_3rd_party: String(dto.data.paymentLinkId),
+                        raw_response: this.mergeTelemetry(transaction.raw_response, {
+                            webhook: this.buildWebhookTelemetry(dto, dto.signature),
+                        }) as Prisma.JsonObject,
+                    },
+                });
+
+                await tx.order.update({
+                    where: { id: transaction.order_id },
+                    data: ({
+                        status: 'CANCELLED',
+                        ticket_metadata: refundMetadata,
+                    } as any),
+                });
+            });
+
+            this.logger.warn(`[Late Payment] Payment succeeded for already CANCELLED order ${transaction.order_id}. Refund required.`);
+
+            return new PaymentWebhookResponseDto({
+                order_status: 'CANCELLED',
+                payment_status: 'SUCCESS',
+                ticket_count: 0,
+                message: 'Payment received for cancelled order. Ticket not created. Refund pending.',
+                ticket_ids: [],
+            });
+        }
+
         const breakdown = this.resolveTicketBreakdown(dto, transaction.order);
         const ticketIds: string[] = [];
 
@@ -399,6 +442,26 @@ export class PaymentService {
                         },
                     });
                     ticketIds.push(ticket.id);
+                }
+            }
+
+            // Check if sold out and update TicketCategory status in DB
+            for (const item of breakdown) {
+                const category = await tx.ticketCategory.findUnique({
+                    where: { id: item.category_id },
+                    select: { total_quantity: true, status: true },
+                });
+                if (category) {
+                    const soldCount = await tx.ticket.count({
+                        where: { category_id: item.category_id },
+                    });
+                    if (soldCount >= category.total_quantity && category.status !== 'sold_out') {
+                        await tx.ticketCategory.update({
+                            where: { id: item.category_id },
+                            data: { status: 'sold_out' },
+                        });
+                        this.logger.log(`[Sold Out] Category ${item.category_id} marked as sold_out in DB`);
+                    }
                 }
             }
         });
@@ -499,11 +562,21 @@ export class PaymentService {
     }
 
     private extractTicketBreakdown(value: Prisma.JsonValue | null): PaymentTicketBreakdownDto[] {
-        if (!value || typeof value !== 'object' || Array.isArray(value)) {
-            return [];
+        if (!value) return [];
+        let record: Record<string, unknown> | null = null;
+        if (typeof value === 'string') {
+            try {
+                record = JSON.parse(value);
+            } catch {
+                return [];
+            }
+        } else if (typeof value === 'object' && !Array.isArray(value)) {
+            record = value as Record<string, unknown>;
         }
 
-        const record = value as Record<string, unknown>;
+        if (!record) {
+            return [];
+        }
 
         if (typeof record.category_id === 'string' && typeof record.quantity === 'number' && record.quantity > 0) {
             return [{ category_id: record.category_id, quantity: record.quantity }];
