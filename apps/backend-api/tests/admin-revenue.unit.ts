@@ -84,6 +84,8 @@ test('getByConcert returns revenue metrics for each concert', async () => {
             name: 'Music Night',
             status: 'PUBLISHED',
             start_time: startTime,
+            poster_url: 'https://example.com/poster.png',
+            location: 'Hanoi',
             orders: [
                 {
                     total_amount: '200000',
@@ -120,6 +122,8 @@ test('getByConcert returns revenue metrics for each concert', async () => {
                 concert_name: 'Music Night',
                 status: 'PUBLISHED',
                 start_time: startTime,
+                poster_url: 'https://example.com/poster.png',
+                location: 'Hanoi',
                 revenue: 350000,
                 paid_orders: 2,
                 tickets_sold: 3,
@@ -137,6 +141,8 @@ test('getConcertDetail returns summary and ticket tier breakdown', async () => {
         name: 'Music Night',
         status: 'PUBLISHED',
         start_time: startTime,
+        poster_url: 'https://example.com/poster.png',
+        location: 'Hanoi Stadium',
         ticket_categories: [
             {
                 id: 'category-vip',
@@ -187,6 +193,8 @@ test('getConcertDetail returns summary and ticket tier breakdown', async () => {
             name: 'Music Night',
             status: 'PUBLISHED',
             start_time: startTime,
+            poster_url: 'https://example.com/poster.png',
+            location: 'Hanoi Stadium',
         },
         total_revenue: 1200000,
         paid_orders: 2,
