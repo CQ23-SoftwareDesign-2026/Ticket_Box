@@ -28,6 +28,7 @@ interface PaginationProps {
   itemsPerPage: number;
   onPageChange: (page: number) => void;
   itemLabel?: string;
+  onLimitChange?: (limit: number) => void;
 }
 
 export function Pagination({
@@ -36,56 +37,104 @@ export function Pagination({
   totalItems,
   itemsPerPage,
   onPageChange,
-  itemLabel = "items",
+  itemLabel = "dòng",
+  onLimitChange,
 }: PaginationProps) {
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-border/50 text-xs">
-      <span className="text-muted-foreground font-semibold">
-        Showing {(page - 1) * itemsPerPage + 1} to{" "}
-        {Math.min(page * itemsPerPage, totalItems)} of {totalItems} {itemLabel}
-      </span>
-      <div className="flex items-center gap-1">
+    <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-border/50 text-xs select-none">
+      <div className="flex items-center gap-4 flex-wrap">
+        <span className="text-xs text-muted-foreground font-body">
+          Trang <span className="font-bold text-foreground">{page}</span> trên{" "}
+          <span className="font-bold text-foreground">{totalPages}</span>
+          {" · "}
+          Tổng số:{" "}
+          <span className="font-bold text-foreground">{totalItems}</span>{" "}
+          {itemLabel}
+        </span>
+
+        {onLimitChange && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+              Hiển thị:
+            </span>
+            <div className="relative">
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  onLimitChange(Number(e.target.value));
+                  onPageChange(1);
+                }}
+                className="appearance-none pl-2.5 pr-7 py-1 border border-border rounded-lg bg-background font-body text-xs focus:outline-none focus:border-primary text-foreground font-semibold cursor-pointer"
+              >
+                <option value={10}>10 {itemLabel}</option>
+                <option value={20}>20 {itemLabel}</option>
+                <option value={50}>50 {itemLabel}</option>
+                <option value={100}>100 {itemLabel}</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-muted-foreground">
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2">
         <button
           disabled={page <= 1}
           onClick={() => onPageChange(Math.max(page - 1, 1))}
-          className="p-1.5 border border-border rounded-lg bg-background hover:bg-surface-low text-foreground disabled:opacity-40 disabled:hover:bg-background disabled:hover:border-border disabled:hover:translate-y-0 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200 cursor-pointer"
+          className="p-1.5 border border-border rounded-lg hover:border-primary/50 hover:text-primary transition-all disabled:opacity-30 disabled:hover:border-border disabled:hover:text-muted-foreground cursor-pointer"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft size={16} />
         </button>
 
-        {getPageNumbers(page, totalPages).map((pageNumber, idx) => {
-          if (pageNumber === "...") {
+        <div className="flex items-center gap-1.5">
+          {getPageNumbers(page, totalPages).map((pageNumber, idx) => {
+            if (pageNumber === "...") {
+              return (
+                <span
+                  key={`ellipsis-${idx}`}
+                  className="px-2 text-muted-foreground text-xs font-semibold select-none"
+                >
+                  ...
+                </span>
+              );
+            }
+            const isSelected = pageNumber === page;
             return (
-              <span
-                key={`ellipsis-${idx}`}
-                className="px-2 font-bold text-muted-foreground"
+              <button
+                key={pageNumber}
+                onClick={() => onPageChange(pageNumber as number)}
+                className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                  isSelected
+                    ? "bg-primary border-primary text-white"
+                    : "border-border hover:border-primary/50 text-foreground hover:text-primary"
+                }`}
               >
-                ...
-              </span>
+                {pageNumber}
+              </button>
             );
-          }
-          const isSelected = pageNumber === page;
-          return (
-            <button
-              key={pageNumber}
-              onClick={() => onPageChange(pageNumber as number)}
-              className={`w-8 h-8 font-bold border rounded-lg transition-all active:scale-95 duration-150 ${
-                isSelected
-                  ? "bg-primary text-white border-primary shadow-sm shadow-primary/20"
-                  : "border-border bg-background hover:bg-surface-low text-foreground hover:border-primary/50 hover:-translate-y-0.5"
-              }`}
-            >
-              {pageNumber}
-            </button>
-          );
-        })}
+          })}
+        </div>
 
         <button
           disabled={page >= totalPages}
           onClick={() => onPageChange(Math.min(page + 1, totalPages))}
-          className="p-1.5 border border-border rounded-lg bg-background hover:bg-surface-low text-foreground disabled:opacity-40 disabled:hover:bg-background disabled:hover:border-border disabled:hover:translate-y-0 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200 cursor-pointer"
+          className="p-1.5 border border-border rounded-lg hover:border-primary/50 hover:text-primary transition-all disabled:opacity-30 disabled:hover:border-border disabled:hover:text-muted-foreground cursor-pointer"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight size={16} />
         </button>
       </div>
     </div>

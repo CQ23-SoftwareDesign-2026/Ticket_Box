@@ -62,7 +62,13 @@ const STATUS_MAP: Record<
 };
 
 // ── Utility components ──────────────────────────────────────────
-function CopyIdButton({ id }: { id: string }) {
+function CopyIdButton({
+  id,
+  title = "Sao chép ID đầy đủ",
+}: {
+  id: string;
+  title?: string;
+}) {
   const [copied, setCopied] = useState(false);
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -75,7 +81,7 @@ function CopyIdButton({ id }: { id: string }) {
   return (
     <button
       onClick={handleCopy}
-      title="Sao chép ID đầy đủ"
+      title={title}
       className="p-0.5 rounded text-muted-foreground hover:text-foreground transition-all active:scale-90 cursor-pointer shrink-0"
     >
       {copied ? (
@@ -84,6 +90,26 @@ function CopyIdButton({ id }: { id: string }) {
         <Copy className="w-3 h-3" />
       )}
     </button>
+  );
+}
+
+function ExpandableError({ message }: { message: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = message.length > 80;
+  return (
+    <div className="text-rose-400 text-[10px] leading-snug">
+      <span className={!expanded && isLong ? "line-clamp-2" : ""}>
+        {message}
+      </span>
+      {isLong && (
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="ml-1 text-[9px] font-bold text-rose-300 hover:text-rose-100 underline cursor-pointer"
+        >
+          {expanded ? "Thu gọn" : "Xem thêm"}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -98,7 +124,7 @@ function MiniProgressBar({ value, status }: { value: number; status: string }) {
           : "bg-amber-500";
   return (
     <div className="flex items-center gap-2 w-full min-w-[80px]">
-      <div className="flex-1 bg-border rounded-full h-1.5 overflow-hidden">
+      <div className="flex-1 bg-border rounded-full h-2 overflow-hidden">
         <div
           className={`${barColor} h-full rounded-full transition-all duration-500`}
           style={{ width: `${value}%` }}
@@ -358,24 +384,25 @@ export default function AdminJobsPage() {
       {/* Table */}
       <div className="bg-surface rounded-xl border border-border shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="w-full text-left border-collapse text-sm">
             <thead>
-              <tr className="border-b border-border bg-surface-high/40 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider select-none">
-                <th className="px-4 py-3">ID Tác vụ</th>
-                <th className="px-4 py-3">Loại</th>
-                <th className="px-4 py-3">Sự kiện</th>
-                <th className="px-4 py-3">Người tạo</th>
-                <th className="px-4 py-3 text-center">Trạng thái</th>
-                <th className="px-4 py-3 w-36">Tiến trình</th>
-                <th className="px-4 py-3 whitespace-nowrap">Tạo lúc</th>
-                <th className="px-4 py-3 whitespace-nowrap">Hoàn thành lúc</th>
-                <th className="px-4 py-3">Lỗi</th>
+              <tr className="border-b border-border bg-surface-high/40 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider select-none">
+                <th className="px-4 py-3.5">Loại</th>
+                <th className="px-4 py-3.5">Sự kiện</th>
+                <th className="px-4 py-3.5">Người tạo</th>
+                <th className="px-4 py-3.5 text-center">Trạng thái</th>
+                <th className="px-4 py-3.5 w-40">Tiến trình</th>
+                <th className="px-4 py-3.5 whitespace-nowrap">Tạo lúc</th>
+                <th className="px-4 py-3.5 whitespace-nowrap">
+                  Hoàn thành lúc
+                </th>
+                <th className="px-4 py-3.5">Lỗi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="p-10 text-center select-none">
+                  <td colSpan={8} className="p-10 text-center select-none">
                     <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">
                       Đang tải dữ liệu…
@@ -384,7 +411,7 @@ export default function AdminJobsPage() {
                 </tr>
               ) : jobs.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="p-10 text-center select-none">
+                  <td colSpan={8} className="p-10 text-center select-none">
                     <Cpu className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">
                       Không tìm thấy tác vụ nào.
@@ -409,35 +436,37 @@ export default function AdminJobsPage() {
                       key={job.id}
                       className="hover:bg-surface/50 transition-colors"
                     >
-                      {/* Job ID */}
-                      <td className="px-4 py-3">
+                      {/* Loại + copy ID tác vụ */}
+                      <td className="px-4 py-4">
                         <div className="flex items-center gap-1.5">
-                          <code className="font-mono text-[10px] text-muted-foreground select-all">
-                            {job.id.slice(0, 8)}…
-                          </code>
-                          <CopyIdButton id={job.id} />
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${typeInfo.className}`}
+                          >
+                            {typeInfo.label}
+                          </span>
+                          <CopyIdButton
+                            id={job.id}
+                            title="Sao chép ID tác vụ"
+                          />
                         </div>
                       </td>
 
-                      {/* Job type */}
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${typeInfo.className}`}
-                        >
-                          {typeInfo.label}
-                        </span>
-                      </td>
-
-                      {/* Concert name */}
-                      <td className="px-4 py-3 max-w-[200px]">
+                      {/* Sự kiện + copy ID sự kiện */}
+                      <td className="px-4 py-4 max-w-[200px]">
                         {job.concert_name ? (
-                          <Link
-                            href={`/admin/create-event?id=${job.target_id}`}
-                            className="text-primary hover:underline font-semibold line-clamp-2 leading-snug"
-                            title={job.concert_name}
-                          >
-                            {job.concert_name}
-                          </Link>
+                          <div className="flex items-center gap-1.5">
+                            <Link
+                              href={`/admin/create-event?edit=${job.target_id}`}
+                              className="text-primary hover:underline font-semibold line-clamp-2 leading-snug"
+                              title={job.concert_name}
+                            >
+                              {job.concert_name}
+                            </Link>
+                            <CopyIdButton
+                              id={job.target_id}
+                              title="Sao chép ID sự kiện"
+                            />
+                          </div>
                         ) : (
                           <span className="text-muted-foreground/40 italic">
                             —
@@ -445,8 +474,8 @@ export default function AdminJobsPage() {
                         )}
                       </td>
 
-                      {/* Triggered by */}
-                      <td className="px-4 py-3">
+                      {/* Người tạo */}
+                      <td className="px-4 py-4">
                         {job.triggered_by_name ? (
                           <div>
                             <p className="font-semibold text-foreground">
@@ -463,8 +492,8 @@ export default function AdminJobsPage() {
                         )}
                       </td>
 
-                      {/* Status */}
-                      <td className="px-4 py-3 text-center">
+                      {/* Trạng thái */}
+                      <td className="px-4 py-4 text-center">
                         <span
                           className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${statusInfo.className}`}
                         >
@@ -473,33 +502,28 @@ export default function AdminJobsPage() {
                         </span>
                       </td>
 
-                      {/* Progress */}
-                      <td className="px-4 py-3">
+                      {/* Tiến trình */}
+                      <td className="px-4 py-4 w-40">
                         <MiniProgressBar
                           value={job.progress_percentage}
                           status={job.status}
                         />
                       </td>
 
-                      {/* Created at */}
-                      <td className="px-4 py-3 text-muted-foreground tabular-nums whitespace-nowrap">
+                      {/* Tạo lúc */}
+                      <td className="px-4 py-4 text-muted-foreground tabular-nums whitespace-nowrap">
                         {formatDt(job.created_at)}
                       </td>
 
-                      {/* Completed at */}
-                      <td className="px-4 py-3 text-muted-foreground tabular-nums whitespace-nowrap">
+                      {/* Hoàn thành lúc */}
+                      <td className="px-4 py-4 text-muted-foreground tabular-nums whitespace-nowrap">
                         {formatDt(job.completed_at)}
                       </td>
 
-                      {/* Error */}
-                      <td className="px-4 py-3 max-w-[180px]">
+                      {/* Lỗi */}
+                      <td className="px-4 py-4 max-w-[180px]">
                         {job.error_message ? (
-                          <span
-                            className="text-rose-400 text-[10px] leading-snug line-clamp-2"
-                            title={job.error_message}
-                          >
-                            {job.error_message}
-                          </span>
+                          <ExpandableError message={job.error_message} />
                         ) : (
                           <span className="text-muted-foreground/30">—</span>
                         )}

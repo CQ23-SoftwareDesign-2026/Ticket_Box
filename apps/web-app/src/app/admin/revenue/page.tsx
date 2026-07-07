@@ -17,8 +17,6 @@ export default function AdminRevenuePage() {
     setTempToDate,
     tempGroupBy,
     setTempGroupBy,
-    tempStatus,
-    setTempStatus,
     fromDateRef,
     toDateRef,
     trendItems,
@@ -49,10 +47,10 @@ export default function AdminRevenuePage() {
       {/* Title */}
       <div>
         <h1 className="font-display text-3xl font-bold text-foreground">
-          Revenue
+          Doanh thu
         </h1>
         <p className="text-muted-foreground font-body text-sm mt-1">
-          Overview of revenue performance across the platform
+          Tổng quan doanh thu trên toàn nền tảng
         </p>
       </div>
 
@@ -60,13 +58,11 @@ export default function AdminRevenuePage() {
         tempFromDate={tempFromDate}
         tempToDate={tempToDate}
         tempGroupBy={tempGroupBy}
-        tempStatus={tempStatus}
         fromDateRef={fromDateRef}
         toDateRef={toDateRef}
         onFromDateChange={setTempFromDate}
         onToDateChange={setTempToDate}
         onGroupByChange={setTempGroupBy}
-        onStatusChange={setTempStatus}
         onApply={handleApply}
         onReset={handleReset}
       />

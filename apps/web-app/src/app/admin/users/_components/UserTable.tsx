@@ -16,8 +16,9 @@ interface UserTableProps {
   page: number;
   totalPages: number;
   totalItems: number;
-  itemsPerPage: number;
+  limit: number;
   onPageChange: (p: number) => void;
+  onLimitChange: (l: number) => void;
   onViewDetail: (id: string) => void;
 }
 
@@ -27,8 +28,9 @@ export function UserTable({
   page,
   totalPages,
   totalItems,
-  itemsPerPage,
+  limit,
   onPageChange,
+  onLimitChange,
   onViewDetail,
 }: UserTableProps) {
   return (
@@ -39,7 +41,7 @@ export function UserTable({
             <Activity className="w-5 h-5" />
           </div>
           <h3 className="font-display text-lg font-bold text-foreground">
-            User Accounts
+            Danh sách tài khoản
           </h3>
         </div>
       </div>
@@ -49,24 +51,26 @@ export function UserTable({
           <div className="py-20 text-center text-muted-foreground">
             <div className="flex flex-col items-center justify-center gap-3">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-              <span className="font-body text-xs">Loading user list...</span>
+              <span className="font-body text-xs">
+                Đang tải danh sách người dùng...
+              </span>
             </div>
           </div>
         ) : users.length === 0 ? (
           <div className="py-20 text-center text-muted-foreground font-body text-sm border border-border/50 rounded-xl bg-background/20">
-            No users found matching query filters.
+            Không tìm thấy người dùng nào khớp bộ lọc.
           </div>
         ) : (
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-border bg-background/50 font-body text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                <th className="p-4 rounded-tl-xl">User Profile</th>
-                <th className="p-4 text-center">Status</th>
-                <th className="p-4">Roles</th>
-                <th className="p-4 text-center">Orders</th>
-                <th className="p-4 text-center">Tickets Purchased</th>
-                <th className="p-4">Joined Date</th>
-                <th className="p-4 text-center rounded-tr-xl">Action</th>
+                <th className="p-4 rounded-tl-xl">Người dùng</th>
+                <th className="p-4 text-center">Trạng thái</th>
+                <th className="p-4">Vai trò</th>
+                <th className="p-4 text-center">Đơn hàng</th>
+                <th className="p-4 text-center">Vé đã mua</th>
+                <th className="p-4">Ngày tham gia</th>
+                <th className="p-4 text-center rounded-tr-xl">Thao tác</th>
               </tr>
             </thead>
             <tbody className="font-body text-xs divide-y divide-border/50">
@@ -129,7 +133,7 @@ export function UserTable({
                       onClick={() => onViewDetail(item.id)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border hover:border-primary hover:bg-primary hover:text-white font-body text-xs font-bold rounded-lg transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-95 duration-200 cursor-pointer"
                     >
-                      View detail
+                      Xem chi tiết
                     </button>
                   </td>
                 </tr>
@@ -139,14 +143,15 @@ export function UserTable({
         )}
       </div>
 
-      {!isLoading && totalPages > 1 && (
+      {!isLoading && (totalPages > 1 || totalItems > 0) && (
         <Pagination
           page={page}
           totalPages={totalPages}
           totalItems={totalItems}
-          itemsPerPage={itemsPerPage}
+          itemsPerPage={limit}
           onPageChange={onPageChange}
-          itemLabel="users"
+          onLimitChange={onLimitChange}
+          itemLabel="tài khoản"
         />
       )}
     </section>

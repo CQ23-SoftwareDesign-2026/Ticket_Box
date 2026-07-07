@@ -1,6 +1,13 @@
-"use client";
-
-import { X, ShieldAlert, User as UserIcon, Mail, Lock } from "lucide-react";
+import { useState } from "react";
+import {
+  X,
+  ShieldAlert,
+  User as UserIcon,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface CreateUserModalProps {
@@ -9,7 +16,6 @@ interface CreateUserModalProps {
   newEmail: string;
   newPassword: string;
   newRoles: string[];
-  newStatus: string;
   createError: string | null;
   isCreating: boolean;
   onClose: () => void;
@@ -18,7 +24,6 @@ interface CreateUserModalProps {
   onEmailChange: (v: string) => void;
   onPasswordChange: (v: string) => void;
   onRolesChange: (roles: string[]) => void;
-  onStatusChange: (v: string) => void;
 }
 
 export function CreateUserModal({
@@ -27,7 +32,6 @@ export function CreateUserModal({
   newEmail,
   newPassword,
   newRoles,
-  newStatus,
   createError,
   isCreating,
   onClose,
@@ -36,8 +40,31 @@ export function CreateUserModal({
   onEmailChange,
   onPasswordChange,
   onRolesChange,
-  onStatusChange,
 }: CreateUserModalProps) {
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLocalError(null);
+
+    if (newPassword.length < 6) {
+      setLocalError("Mật khẩu phải chứa ít nhất 6 ký tự.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setLocalError("Mật khẩu nhập lại không trùng khớp.");
+      return;
+    }
+
+    onSubmit(e);
+  };
+
+  const activeError = localError || createError;
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -62,7 +89,7 @@ export function CreateUserModal({
                 <div className="flex items-center gap-2 text-primary">
                   <UserIcon className="w-5 h-5" />
                   <h3 className="font-display text-base font-bold text-foreground">
-                    Create User Account
+                    Tạo tài khoản người dùng
                   </h3>
                 </div>
                 <button
@@ -75,27 +102,27 @@ export function CreateUserModal({
 
               {/* Form */}
               <form
-                onSubmit={onSubmit}
+                onSubmit={handleSubmit}
                 className="p-5 space-y-4 font-body text-xs"
               >
-                {createError && (
+                {activeError && (
                   <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl font-bold flex items-center gap-2">
                     <ShieldAlert className="w-4 h-4 shrink-0" />
-                    <span>{createError}</span>
+                    <span>{activeError}</span>
                   </div>
                 )}
 
                 {/* Full Name */}
                 <div className="space-y-1.5">
                   <label className="font-bold text-muted-foreground uppercase tracking-wider block">
-                    Full Name *
+                    Họ và tên *
                   </label>
                   <div className="relative">
                     <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       type="text"
                       required
-                      placeholder="John Doe"
+                      placeholder="Nguyễn Văn A"
                       value={newFullName}
                       onChange={(e) => onFullNameChange(e.target.value)}
                       className="pl-9 pr-3 py-2.5 border border-border rounded-xl bg-background focus:outline-none focus:border-primary w-full transition-all text-foreground"
@@ -106,14 +133,14 @@ export function CreateUserModal({
                 {/* Email */}
                 <div className="space-y-1.5">
                   <label className="font-bold text-muted-foreground uppercase tracking-wider block">
-                    Email Address *
+                    Địa chỉ Email *
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       type="email"
                       required
-                      placeholder="john.doe@example.com"
+                      placeholder="example@email.com"
                       value={newEmail}
                       onChange={(e) => onEmailChange(e.target.value)}
                       className="pl-9 pr-3 py-2.5 border border-border rounded-xl bg-background focus:outline-none focus:border-primary w-full transition-all text-foreground"
@@ -124,68 +151,76 @@ export function CreateUserModal({
                 {/* Password */}
                 <div className="space-y-1.5">
                   <label className="font-bold text-muted-foreground uppercase tracking-wider block">
-                    Password *
+                    Mật khẩu *
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       required
                       placeholder="••••••••"
                       value={newPassword}
                       onChange={(e) => onPasswordChange(e.target.value)}
-                      className="pl-9 pr-3 py-2.5 border border-border rounded-xl bg-background focus:outline-none focus:border-primary w-full transition-all text-foreground"
+                      className="pl-9 pr-10 py-2.5 border border-border rounded-xl bg-background focus:outline-none focus:border-primary w-full transition-all text-foreground"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((p) => !p)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
                 </div>
 
-                {/* Status & Roles */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="font-bold text-muted-foreground uppercase tracking-wider block">
-                      Status
-                    </label>
-                    <select
-                      value={newStatus}
-                      onChange={(e) => onStatusChange(e.target.value)}
-                      className="bg-background border border-border rounded-xl px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:border-primary w-full h-11 transition-all cursor-pointer"
+                {/* Confirm Password */}
+                <div className="space-y-1.5">
+                  <label className="font-bold text-muted-foreground uppercase tracking-wider block">
+                    Nhập lại mật khẩu *
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      required
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="pl-9 pr-10 py-2.5 border border-border rounded-xl bg-background focus:outline-none focus:border-primary w-full transition-all text-foreground"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((p) => !p)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                     >
-                      <option value="ACTIVE">ACTIVE</option>
-                      <option value="INACTIVE">INACTIVE</option>
-                      <option value="BANNED">BANNED</option>
-                      <option value="PENDING">PENDING</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="font-bold text-muted-foreground uppercase tracking-wider block">
-                      Roles
-                    </label>
-                    <div className="flex flex-col gap-2 pt-1">
-                      {["Audience", "Admin", "Checker", "Organizer"].map(
-                        (roleName) => (
-                          <label
-                            key={roleName}
-                            className="flex items-center gap-1.5 text-xs font-bold text-foreground cursor-pointer select-none"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={newRoles.includes(roleName)}
-                              onChange={(e) => {
-                                onRolesChange(
-                                  e.target.checked
-                                    ? [...newRoles, roleName]
-                                    : newRoles.filter((r) => r !== roleName),
-                                );
-                              }}
-                              className="w-4 h-4 rounded border-border text-primary focus:ring-primary bg-background cursor-pointer"
-                            />
-                            {roleName}
-                          </label>
-                        ),
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
                       )}
-                    </div>
+                    </button>
                   </div>
+                </div>
+
+                {/* Roles (Select 1 only) */}
+                <div className="space-y-1.5">
+                  <label className="font-bold text-muted-foreground uppercase tracking-wider block">
+                    Vai trò *
+                  </label>
+                  <select
+                    value={newRoles[0] || "Audience"}
+                    onChange={(e) => onRolesChange([e.target.value])}
+                    className="bg-background border border-border rounded-xl px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:border-primary w-full h-11 transition-all cursor-pointer"
+                  >
+                    <option value="Audience">Audience</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Checker">Checker</option>
+                    <option value="Organizer">Organizer</option>
+                  </select>
                 </div>
 
                 {/* Actions */}
@@ -195,14 +230,14 @@ export function CreateUserModal({
                     onClick={onClose}
                     className="bg-background hover:bg-surface-low border border-border text-foreground font-body text-xs font-bold py-2.5 px-4 rounded-xl transition-all active:scale-95 duration-200"
                   >
-                    Cancel
+                    Hủy
                   </button>
                   <button
                     type="submit"
                     disabled={isCreating}
                     className="bg-primary hover:bg-primary-container text-white font-body text-xs font-bold py-2.5 px-5 rounded-xl transition-all hover:shadow-lg hover:shadow-primary/20 active:scale-95 duration-200 disabled:opacity-50"
                   >
-                    {isCreating ? "Creating..." : "Save User"}
+                    {isCreating ? "Đang tạo..." : "Lưu người dùng"}
                   </button>
                 </div>
               </form>

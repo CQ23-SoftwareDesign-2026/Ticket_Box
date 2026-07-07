@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useToast } from "@/context/ToastContext";
 import {
   getAdminUsers,
   createAdminUser,
@@ -12,12 +13,23 @@ import {
 } from "@/services/admin-user.service";
 
 export function useAdminUsers() {
+  const { success: toastSuccess, error: toastError } = useToast();
+
   // Filter States
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [status, setStatus] = useState("All");
   const [role, setRole] = useState("All");
   const [page, setPage] = useState(1);
-  const itemsPerPage = 8;
+  const [limit, setLimit] = useState(10);
+
+  // Debounce search term
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [search]);
 
   // Data States
   const [users, setUsers] = useState<AdminUserListItem[]>([]);
@@ -89,10 +101,10 @@ export function useAdminUsers() {
       setIsLoading(true);
       const res = await getAdminUsers({
         page,
-        limit: itemsPerPage,
+        limit,
         status,
         role,
-        search,
+        search: debouncedSearch,
       });
       setUsers(res.items || []);
       setTotalItems(res.meta.totalItems);
@@ -101,16 +113,23 @@ export function useAdminUsers() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, status, role, search]);
+  }, [page, limit, status, role, debouncedSearch]);
 
-  // Initial load
+  // Load stats once on mount
   useEffect(() => {
-    const timer = setTimeout(() => {
-      void fetchUsersData();
-      void fetchStatsData();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [fetchUsersData, fetchStatsData]);
+    async function loadStats() {
+      await fetchStatsData();
+    }
+    void loadStats();
+  }, [fetchStatsData]);
+
+  // Reload list on parameter changes
+  useEffect(() => {
+    async function loadUsers() {
+      await fetchUsersData();
+    }
+    void loadUsers();
+  }, [fetchUsersData]);
 
   // Fetch Detail on ID change
   useEffect(() => {
@@ -156,6 +175,7 @@ export function useAdminUsers() {
       setNewStatus("ACTIVE");
       void fetchUsersData();
       void fetchStatsData();
+      toastSuccess("Tạo người dùng thành công");
     } catch (err: unknown) {
       setCreateError(
         err instanceof Error
@@ -184,14 +204,17 @@ export function useAdminUsers() {
       setDraftRoles(updatedDetail.roles);
       void fetchUsersData();
       void fetchStatsData();
+      toastSuccess("Cập nhật thông tin người dùng thành công");
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to save user updates");
+      toastError(
+        err instanceof Error ? err.message : "Failed to save user updates",
+      );
     } finally {
       setIsSavingDraft(false);
     }
   };
 
-  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+  const totalPages = Math.ceil(totalItems / limit) || 1;
 
   return {
     // Filters
@@ -203,7 +226,8 @@ export function useAdminUsers() {
     setRole,
     page,
     setPage,
-    itemsPerPage,
+    limit,
+    setLimit,
     // Data
     users,
     totalItems,
