@@ -36,7 +36,9 @@ type TicketCategory = {
   sales_start_at: string;
 };
 
-const formatNumberString = (value: number | string | null | undefined): string => {
+const formatNumberString = (
+  value: number | string | null | undefined,
+): string => {
   if (value === null || value === undefined || value === "") return "";
   const numString = String(value).replace(/\D/g, "");
   if (!numString) return "";
@@ -49,7 +51,6 @@ const parseFormattedNumber = (value: string): number => {
   const num = parseInt(cleanString, 10);
   return isNaN(num) ? 0 : num;
 };
-
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -74,8 +75,12 @@ function ConfirmModal({
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[250] flex items-center justify-center p-4 select-none">
       <div className="bg-surface border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
-        <h3 className="font-display text-lg font-bold text-foreground">{title}</h3>
-        <p className="font-body text-sm text-muted-foreground leading-relaxed">{message}</p>
+        <h3 className="font-display text-lg font-bold text-foreground">
+          {title}
+        </h3>
+        <p className="font-body text-sm text-muted-foreground leading-relaxed">
+          {message}
+        </p>
         <div className="flex justify-end gap-3 pt-2">
           <button
             onClick={onCancel}
@@ -94,7 +99,6 @@ function ConfirmModal({
     </div>
   );
 }
-
 
 function EventForm() {
   const router = useRouter();
@@ -133,18 +137,22 @@ function EventForm() {
     performers: [] as string[],
   });
 
-  const [ticketCategories, setTicketCategories] = useState<TicketCategory[]>(() => [
-    {
-      name: "Vé Phổ Thông",
-      price: 500000,
-      total_quantity: 1000,
-      max_per_user: 4,
-      gate_number: 1,
-      position: 1,
-      status: "book_now",
-      sales_start_at: new Date(Date.now() + 3600 * 24 * 7 * 1000).toISOString().slice(0, 16),
-    },
-  ]);
+  const [ticketCategories, setTicketCategories] = useState<TicketCategory[]>(
+    () => [
+      {
+        name: "Vé Phổ Thông",
+        price: 500000,
+        total_quantity: 1000,
+        max_per_user: 4,
+        gate_number: 1,
+        position: 1,
+        status: "book_now",
+        sales_start_at: new Date(Date.now() + 3600 * 24 * 7 * 1000)
+          .toISOString()
+          .slice(0, 16),
+      },
+    ],
+  );
 
   const [isGeneratingBio, setIsGeneratingBio] = useState(false);
   const [bioProgress, setBioProgress] = useState<number | null>(null);
@@ -172,7 +180,8 @@ function EventForm() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const isSvg = file.type === "image/svg+xml" || file.name.toLowerCase().endsWith(".svg");
+    const isSvg =
+      file.type === "image/svg+xml" || file.name.toLowerCase().endsWith(".svg");
 
     try {
       setIsUploadingSvg(true);
@@ -244,7 +253,9 @@ function EventForm() {
                 gate_number: t.gate_number ?? null,
                 position: t.position ?? 1,
                 status: t.status || "book_now",
-                sales_start_at: t.sales_start_at ? new Date(t.sales_start_at).toISOString().slice(0, 16) : "",
+                sales_start_at: t.sales_start_at
+                  ? new Date(t.sales_start_at).toISOString().slice(0, 16)
+                  : "",
               })),
             );
           }
@@ -260,7 +271,9 @@ function EventForm() {
 
   const handleSave = async () => {
     if (!formData.name || !formData.location || !formData.start_time) {
-      warning("Vui lòng điền đầy đủ Tên sự kiện, Địa điểm và Thời gian bắt đầu.");
+      warning(
+        "Vui lòng điền đầy đủ Tên sự kiện, Địa điểm và Thời gian bắt đầu.",
+      );
       return;
     }
 
@@ -291,7 +304,9 @@ function EventForm() {
           gate_number: tc.gate_number ? Number(tc.gate_number) : null,
           position: Number(tc.position),
           status: tc.status,
-          sales_start_at: tc.sales_start_at ? new Date(tc.sales_start_at).toISOString() : null,
+          sales_start_at: tc.sales_start_at
+            ? new Date(tc.sales_start_at).toISOString()
+            : null,
         })),
       };
 
@@ -323,7 +338,9 @@ function EventForm() {
         gate_number: 1,
         position: nextPos,
         status: "book_now",
-        sales_start_at: new Date(Date.now() + 3600 * 24 * 7 * 1000).toISOString().slice(0, 16),
+        sales_start_at: new Date(Date.now() + 3600 * 24 * 7 * 1000)
+          .toISOString()
+          .slice(0, 16),
       },
     ]);
   };
@@ -334,7 +351,9 @@ function EventForm() {
 
   const confirmDeleteTier = () => {
     if (confirmDeleteIdx !== null) {
-      setTicketCategories(ticketCategories.filter((_, i) => i !== confirmDeleteIdx));
+      setTicketCategories(
+        ticketCategories.filter((_, i) => i !== confirmDeleteIdx),
+      );
       setConfirmDeleteIdx(null);
       success("Đã xóa hạng vé thành công.");
     }
@@ -414,7 +433,9 @@ function EventForm() {
             clearInterval(pollInterval);
             setIsGeneratingBio(false);
             setBioProgress(null);
-            toastError(`Sinh tiểu sử AI thất bại: ${job.error_message || "Lỗi không xác định"}`);
+            toastError(
+              `Sinh tiểu sử AI thất bại: ${job.error_message || "Lỗi không xác định"}`,
+            );
           }
         } catch (err) {
           console.error("Error checking bio job status:", err);
@@ -510,7 +531,7 @@ function EventForm() {
                   }
                 />
               </div>
-              
+
               {/* Performers Input chips */}
               <div>
                 <label className="block font-body text-xs font-semibold text-foreground mb-1">
@@ -557,7 +578,9 @@ function EventForm() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground italic">Chưa cấu hình nghệ sĩ nào cho sự kiện.</p>
+                  <p className="text-xs text-muted-foreground italic">
+                    Chưa cấu hình nghệ sĩ nào cho sự kiện.
+                  </p>
                 )}
               </div>
 
@@ -606,7 +629,7 @@ function EventForm() {
                   </select>
                 </div>
               </div>
-              
+
               <div>
                 <label className="block font-body text-xs font-semibold text-foreground mb-1">
                   Ảnh bìa sự kiện{" "}
@@ -640,9 +663,13 @@ function EventForm() {
                     <ImagePlus className="w-10 h-10 mx-auto text-muted-foreground group-hover:text-primary transition-colors mb-2" />
                     <div className="mt-4 flex text-sm leading-6 text-muted-foreground justify-center">
                       <span className="font-semibold text-primary hover:text-primary/80">
-                        {isUploadingImage ? "Đang tải ảnh lên..." : "Tải ảnh lên"}
+                        {isUploadingImage
+                          ? "Đang tải ảnh lên..."
+                          : "Tải ảnh lên"}
                       </span>
-                      {!isUploadingImage && <p className="pl-1">hoặc kéo thả vào đây</p>}
+                      {!isUploadingImage && (
+                        <p className="pl-1">hoặc kéo thả vào đây</p>
+                      )}
                     </div>
                     <p className="text-xs leading-5 text-muted-foreground">
                       Hỗ trợ PNG, JPG, WEBP dung lượng tối đa 5MB
@@ -686,9 +713,13 @@ function EventForm() {
                     <ImagePlus className="w-10 h-10 mx-auto text-muted-foreground group-hover:text-primary transition-colors mb-2" />
                     <div className="mt-4 flex text-sm leading-6 text-muted-foreground justify-center">
                       <span className="font-semibold text-primary hover:text-primary/80">
-                        {isUploadingSvg ? "Đang tải sơ đồ lên..." : "Tải sơ đồ lên"}
+                        {isUploadingSvg
+                          ? "Đang tải sơ đồ lên..."
+                          : "Tải sơ đồ lên"}
                       </span>
-                      {!isUploadingSvg && <p className="pl-1">hoặc kéo thả vào đây</p>}
+                      {!isUploadingSvg && (
+                        <p className="pl-1">hoặc kéo thả vào đây</p>
+                      )}
                     </div>
                     <p className="text-xs leading-5 text-muted-foreground">
                       Hỗ trợ SVG, PNG, JPG, WEBP dung lượng tối đa 5MB
@@ -710,10 +741,13 @@ function EventForm() {
               <div className="p-6 rounded-xl bg-surface-low border border-dashed border-border text-center flex flex-col items-center justify-center gap-3 select-none">
                 <Bot className="w-12 h-12 text-muted-foreground animate-pulse" />
                 <p className="font-body text-sm text-muted-foreground font-semibold">
-                  Tính năng sinh thông tin tiểu sử bằng AI khả dụng sau khi sự kiện được khởi tạo.
+                  Tính năng sinh thông tin tiểu sử bằng AI khả dụng sau khi sự
+                  kiện được khởi tạo.
                 </p>
                 <p className="font-body text-xs text-muted-foreground/70 max-w-md leading-relaxed">
-                  Sau khi tạo sự kiện dưới dạng **DRAFT**, bạn có thể cập nhật sự kiện để tải lên Press Kit (PDF) và sử dụng AI sinh tự động mô tả sự kiện chi tiết.
+                  Sau khi tạo sự kiện dưới dạng **DRAFT**, bạn có thể cập nhật
+                  sự kiện để tải lên Press Kit (PDF) và sử dụng AI sinh tự động
+                  mô tả sự kiện chi tiết.
                 </p>
               </div>
             ) : (
@@ -825,7 +859,7 @@ function EventForm() {
                     <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pl-2 mb-4">
                   <div>
                     <label className="block font-body text-xs font-semibold text-muted-foreground mb-1">
@@ -903,7 +937,11 @@ function EventForm() {
                       type="number"
                       value={tier.position}
                       onChange={(e) =>
-                        handleTierChange(index, "position", Number(e.target.value))
+                        handleTierChange(
+                          index,
+                          "position",
+                          Number(e.target.value),
+                        )
                       }
                     />
                   </div>
@@ -916,7 +954,11 @@ function EventForm() {
                       type="datetime-local"
                       value={tier.sales_start_at}
                       onChange={(e) =>
-                        handleTierChange(index, "sales_start_at", e.target.value)
+                        handleTierChange(
+                          index,
+                          "sales_start_at",
+                          e.target.value,
+                        )
                       }
                     />
                   </div>
@@ -956,7 +998,11 @@ function EventForm() {
           disabled={isSaving}
           className="px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-body text-xs font-semibold hover:bg-primary-hover active:scale-95 transition-all shadow-sm disabled:opacity-50 cursor-pointer"
         >
-          {isSaving ? "Đang lưu..." : isEditing ? "Lưu thay đổi" : "Tạo sự kiện"}
+          {isSaving
+            ? "Đang lưu..."
+            : isEditing
+              ? "Lưu thay đổi"
+              : "Tạo sự kiện"}
         </button>
       </div>
 

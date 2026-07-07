@@ -1,6 +1,13 @@
 "use client";
 
-import { Suspense, useEffect, useState, useRef, Fragment, useCallback } from "react";
+import {
+  Suspense,
+  useEffect,
+  useState,
+  useRef,
+  Fragment,
+  useCallback,
+} from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -106,25 +113,31 @@ function ConcertList() {
     router.push(`/concerts?${params.toString()}`);
   };
 
-  const handleSearchChange = useCallback((value: string) => {
-    const params = new URLSearchParams(searchParams?.toString() || "");
-    if (value) {
-      params.set("q", value);
-    } else {
-      params.delete("q");
-    }
-    params.set("page", "1");
-    router.push(`/concerts?${params.toString()}`);
-  }, [searchParams, router]);
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      const params = new URLSearchParams(searchParams?.toString() || "");
+      if (value) {
+        params.set("q", value);
+      } else {
+        params.delete("q");
+      }
+      params.set("page", "1");
+      router.push(`/concerts?${params.toString()}`);
+    },
+    [searchParams, router],
+  );
 
   // Debounced search logic
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
-  const debouncedSearch = useCallback((val: string) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      handleSearchChange(val);
-    }, 450);
-  }, [handleSearchChange]);
+  const debouncedSearch = useCallback(
+    (val: string) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        handleSearchChange(val);
+      }, 450);
+    },
+    [handleSearchChange],
+  );
 
   useEffect(() => {
     return () => {
@@ -157,7 +170,9 @@ function ConcertList() {
         } catch (e) {
           if (!isActive) return;
           setItems([]);
-          showErrorToast(e instanceof Error ? e.message : "Không thể tải concert.");
+          showErrorToast(
+            e instanceof Error ? e.message : "Không thể tải concert.",
+          );
         } finally {
           if (isActive) setLoading(false);
         }
@@ -189,7 +204,9 @@ function ConcertList() {
           </h1>
           {search && (
             <p className="mt-1 text-sm text-on-surface-variant/60">
-              Tìm thấy <span className="font-bold text-primary">{meta.totalItems}</span> kết quả cho &ldquo;{search}&rdquo;
+              Tìm thấy{" "}
+              <span className="font-bold text-primary">{meta.totalItems}</span>{" "}
+              kết quả cho &ldquo;{search}&rdquo;
             </p>
           )}
         </div>

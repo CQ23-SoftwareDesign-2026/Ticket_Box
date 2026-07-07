@@ -37,14 +37,22 @@ export default function AccessDeniedPage() {
         </h1>
 
         <p className="mt-4 text-sm text-on-surface-variant/70 leading-relaxed">
-          Tài khoản của bạn <span className="font-semibold text-on-surface">{user?.fullName || "hiện tại"}</span> không được phân quyền truy cập trang này. Vui lòng kiểm tra lại đường dẫn hoặc đăng nhập tài khoản khác.
+          Tài khoản của bạn{" "}
+          <span className="font-semibold text-on-surface">
+            {user?.fullName || "hiện tại"}
+          </span>{" "}
+          không được phân quyền truy cập trang này. Vui lòng kiểm tra lại đường
+          dẫn hoặc đăng nhập tài khoản khác.
         </p>
 
         {/* Action button container */}
         <div className="mt-8 flex flex-col gap-3">
           {isAuthenticated ? (
             <>
-              <Button href="/my-tickets" className="w-full justify-center gap-2 py-3">
+              <Button
+                href="/my-tickets"
+                className="w-full justify-center gap-2 py-3"
+              >
                 <Ticket size={16} />
                 Xem vé của tôi
               </Button>
@@ -64,7 +72,11 @@ export default function AccessDeniedPage() {
             </Button>
           )}
 
-          <Button href="/" variant="soft" className="w-full justify-center gap-2 py-3">
+          <Button
+            href="/"
+            variant="soft"
+            className="w-full justify-center gap-2 py-3"
+          >
             <Home size={16} />
             Quay lại trang chủ
           </Button>

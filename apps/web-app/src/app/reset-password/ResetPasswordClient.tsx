@@ -32,7 +32,9 @@ export default function ResetPasswordClient() {
     e.preventDefault();
 
     if (!token) {
-      showErrorToast("Không tìm thấy mã khôi phục. Vui lòng yêu cầu liên kết mới.");
+      showErrorToast(
+        "Không tìm thấy mã khôi phục. Vui lòng yêu cầu liên kết mới.",
+      );
       return;
     }
 
@@ -73,12 +75,10 @@ export default function ResetPasswordClient() {
       >
         <div className="flex flex-col items-center justify-center space-y-4 py-8 text-center">
           <p className="text-on-surface-variant/80 text-sm leading-relaxed">
-            Mật khẩu mới của bạn đã được lưu lại thành công. Bạn sẽ tự động được chuyển hướng về trang đăng nhập sau vài giây.
+            Mật khẩu mới của bạn đã được lưu lại thành công. Bạn sẽ tự động được
+            chuyển hướng về trang đăng nhập sau vài giây.
           </p>
-          <Button
-            href="/login?reset=1"
-            className="mt-4 w-full sm:w-auto"
-          >
+          <Button href="/login?reset=1" className="mt-4 w-full sm:w-auto">
             Đăng nhập ngay
           </Button>
         </div>
@@ -98,10 +98,7 @@ export default function ResetPasswordClient() {
           <p className="text-sm text-on-surface-variant/70">
             Vui lòng yêu cầu một liên kết đặt lại mật khẩu mới và thử lại.
           </p>
-          <Button
-            href="/forgot-password"
-            className="w-full"
-          >
+          <Button href="/forgot-password" className="w-full">
             Yêu cầu liên kết mới
           </Button>
         </div>
@@ -117,9 +114,11 @@ export default function ResetPasswordClient() {
       footerLinks={[{ label: "Quay lại đăng nhập", href: "/login" }]}
     >
       <form className="space-y-5" onSubmit={onSubmit}>
-
         <div className="space-y-1">
-          <label className="ticketbox-label text-on-surface-variant/90" htmlFor="password">
+          <label
+            className="ticketbox-label text-on-surface-variant/90"
+            htmlFor="password"
+          >
             Mật khẩu mới
           </label>
           <div className="relative">
@@ -143,7 +142,10 @@ export default function ResetPasswordClient() {
         </div>
 
         <div className="space-y-1">
-          <label className="ticketbox-label text-on-surface-variant/90" htmlFor="confirmPassword">
+          <label
+            className="ticketbox-label text-on-surface-variant/90"
+            htmlFor="confirmPassword"
+          >
             Xác nhận mật khẩu
           </label>
           <div className="relative">
@@ -163,11 +165,7 @@ export default function ResetPasswordClient() {
           </div>
         </div>
 
-        <Button
-          type="submit"
-          className="mt-6 w-full py-3.5"
-          loading={loading}
-        >
+        <Button type="submit" className="mt-6 w-full py-3.5" loading={loading}>
           Đặt lại mật khẩu
         </Button>
       </form>

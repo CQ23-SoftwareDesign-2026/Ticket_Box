@@ -43,7 +43,8 @@ function ResendVerificationForm() {
       >
         <div className="flex flex-col items-center justify-center space-y-4 py-8 text-center">
           <p className="max-w-sm text-on-surface-variant/80 text-sm leading-relaxed">
-            Vui lòng kiểm tra hộp thư đến và nhấn vào liên kết để xác thực tài khoản của bạn.
+            Vui lòng kiểm tra hộp thư đến và nhấn vào liên kết để xác thực tài
+            khoản của bạn.
           </p>
         </div>
       </TicketBoxAuthShell>
@@ -58,9 +59,11 @@ function ResendVerificationForm() {
       footerLinks={[{ label: "Quay lại đăng nhập", href: "/login" }]}
     >
       <form className="space-y-5" onSubmit={onSubmit}>
-
         <div className="space-y-1">
-          <label className="ticketbox-label text-on-surface-variant/90" htmlFor="email">
+          <label
+            className="ticketbox-label text-on-surface-variant/90"
+            htmlFor="email"
+          >
             Địa chỉ Email
           </label>
           <div className="relative">

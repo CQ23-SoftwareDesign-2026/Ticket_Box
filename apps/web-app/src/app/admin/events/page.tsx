@@ -36,7 +36,10 @@ export default function AdminEventsPage() {
   const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [selectedWorkerConcert, setSelectedWorkerConcert] =
     useState<ConcertCardItem | null>(null);
   const [isWorkerDrawerOpen, setIsWorkerDrawerOpen] = useState(false);
@@ -79,7 +82,14 @@ export default function AdminEventsPage() {
       if (page <= 3) {
         pages.push(1, 2, 3, 4, "...", totalPages);
       } else if (page >= totalPages - 2) {
-        pages.push(1, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+        pages.push(
+          1,
+          "...",
+          totalPages - 3,
+          totalPages - 2,
+          totalPages - 1,
+          totalPages,
+        );
       } else {
         pages.push(1, "...", page - 1, page, page + 1, "...", totalPages);
       }
@@ -113,7 +123,15 @@ export default function AdminEventsPage() {
       warning("Không có dữ liệu để xuất.");
       return;
     }
-    const headers = ["ID", "Tên sự kiện", "Địa điểm", "Thành phố", "Ngày", "Giờ", "Trạng thái"];
+    const headers = [
+      "ID",
+      "Tên sự kiện",
+      "Địa điểm",
+      "Thành phố",
+      "Ngày",
+      "Giờ",
+      "Trạng thái",
+    ];
     const csvContent = [
       headers.join(","),
       ...concerts.map((c) =>
@@ -151,7 +169,8 @@ export default function AdminEventsPage() {
             Quản lý Sự kiện
           </h2>
           <p className="text-muted-foreground font-body text-sm">
-            Theo dõi, chỉnh sửa và quản lý tất cả các sự kiện bán vé trên hệ thống.
+            Theo dõi, chỉnh sửa và quản lý tất cả các sự kiện bán vé trên hệ
+            thống.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -244,7 +263,9 @@ export default function AdminEventsPage() {
                   >
                     <div className="flex flex-col items-center justify-center gap-3">
                       <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      <p className="text-sm font-medium">Đang tải danh sách sự kiện...</p>
+                      <p className="text-sm font-medium">
+                        Đang tải danh sách sự kiện...
+                      </p>
                     </div>
                   </td>
                 </tr>
@@ -369,7 +390,8 @@ export default function AdminEventsPage() {
           <div className="px-6 py-4 bg-background border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 select-none">
             <div className="flex items-center gap-4 flex-wrap">
               <span className="text-xs text-muted-foreground font-body">
-                Trang <span className="font-bold text-foreground">{page}</span> trên{" "}
+                Trang <span className="font-bold text-foreground">{page}</span>{" "}
+                trên{" "}
                 <span className="font-bold text-foreground">{totalPages}</span>
               </span>
 
@@ -393,8 +415,18 @@ export default function AdminEventsPage() {
                     <option value={100}>100 dòng</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-muted-foreground">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                      />
                     </svg>
                   </div>
                 </div>
@@ -414,7 +446,10 @@ export default function AdminEventsPage() {
                 {getPageNumbers().map((p: number | string, idx: number) => {
                   if (p === "...") {
                     return (
-                      <span key={`dots-${idx}`} className="px-2 text-muted-foreground text-xs font-semibold select-none">
+                      <span
+                        key={`dots-${idx}`}
+                        className="px-2 text-muted-foreground text-xs font-semibold select-none"
+                      >
                         ...
                       </span>
                     );
@@ -502,8 +537,12 @@ function ConfirmModal({
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[250] flex items-center justify-center p-4 select-none animate-in fade-in duration-200">
       <div className="bg-surface border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
-        <h3 className="font-display text-lg font-bold text-foreground">{title}</h3>
-        <p className="font-body text-sm text-muted-foreground leading-relaxed">{message}</p>
+        <h3 className="font-display text-lg font-bold text-foreground">
+          {title}
+        </h3>
+        <p className="font-body text-sm text-muted-foreground leading-relaxed">
+          {message}
+        </p>
         <div className="flex justify-end gap-3 pt-2">
           <button
             onClick={onCancel}
@@ -522,4 +561,3 @@ function ConfirmModal({
     </div>
   );
 }
-

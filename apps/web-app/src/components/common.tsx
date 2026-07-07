@@ -27,11 +27,14 @@ type ButtonProps = {
 };
 
 const buttonStyles = {
-  primary: "bg-primary text-on-primary hover:bg-primary-container shadow-md hover:shadow-primary/20",
-  secondary: "bg-secondary text-on-secondary hover:bg-secondary-container shadow-md hover:shadow-secondary/20",
+  primary:
+    "bg-primary text-on-primary hover:bg-primary-container shadow-md hover:shadow-primary/20",
+  secondary:
+    "bg-secondary text-on-secondary hover:bg-secondary-container shadow-md hover:shadow-secondary/20",
   ghost: "bg-transparent text-on-surface hover:bg-surface-high/60",
   soft: "bg-primary/10 text-primary hover:bg-primary/20",
-  outline: "border border-outline bg-transparent text-on-surface hover:bg-surface hover:border-on-surface-variant/50",
+  outline:
+    "border border-outline bg-transparent text-on-surface hover:bg-surface hover:border-on-surface-variant/50",
 } as const;
 
 export function Button({
@@ -55,9 +58,24 @@ export function Button({
   const content = (
     <>
       {loading && (
-        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        <svg
+          className="animate-spin -ml-1 mr-2 h-4 w-4 text-current"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          />
         </svg>
       )}
       {children}
@@ -157,8 +175,6 @@ export function Input({
     />
   );
 }
-
-
 
 export function Tabs({
   items,
@@ -324,11 +340,11 @@ function HeaderSearchInput() {
       } else {
         params.delete("q");
       }
-      
+
       const newUrl = pathname?.startsWith("/concerts")
         ? `/concerts?${params.toString()}`
         : `/?${params.toString()}#upcoming-concerts`;
-      
+
       router.push(newUrl);
     }, 450); // 450ms debounce delay
 
@@ -348,7 +364,6 @@ function HeaderSearchInput() {
   );
 }
 
-
 export function SiteShell({
   children,
   action,
@@ -360,13 +375,15 @@ export function SiteShell({
   const { user, isAuthenticated, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const isAdmin = user?.roles?.some(role => ["admin", "organizer", "checker"].includes(role.toLowerCase())) || false;
+  const isAdmin =
+    user?.roles?.some((role) =>
+      ["admin", "organizer", "checker"].includes(role.toLowerCase()),
+    ) || false;
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950 text-on-surface">
       <header className="sticky top-0 z-50 border-b border-slate-900 bg-slate-950/80 backdrop-blur-md shadow-sm">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
-          
           {/* Brand & Left Navigation */}
           <div className="flex items-center gap-8">
             <Link
@@ -494,11 +511,10 @@ export function SiteShell({
             )}
           </div>
         </div>
-
       </header>
-      
+
       <main className="flex-1">{children}</main>
-      
+
       <footer className="border-t border-slate-900 bg-slate-950">
         <div className="mx-auto flex w-full max-w-7xl flex-col items-start justify-between gap-8 px-4 py-12 sm:flex-row sm:px-6 lg:px-8">
           <div className="flex flex-col space-y-4">
@@ -644,7 +660,9 @@ export function SiteShell({
               key={item.href}
               href={item.href}
               className={`flex flex-1 flex-col items-center gap-1 rounded-xl px-2 py-1 text-[10px] font-bold ${
-                pathname === item.href ? "text-primary" : "text-on-surface-variant/75"
+                pathname === item.href
+                  ? "text-primary"
+                  : "text-on-surface-variant/75"
               }`}
             >
               <span className="material-symbols-outlined text-[20px]">

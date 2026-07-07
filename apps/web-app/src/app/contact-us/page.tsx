@@ -43,7 +43,9 @@ export default function ContactUsPage() {
     // Simulate sending message
     setTimeout(() => {
       setLoading(false);
-      showSuccessToast("Cảm ơn bạn đã liên hệ! Lời nhắn của bạn đã được gửi thành công.");
+      showSuccessToast(
+        "Cảm ơn bạn đã liên hệ! Lời nhắn của bạn đã được gửi thành công.",
+      );
       setName("");
       setEmail("");
       setMessage("");
@@ -56,9 +58,10 @@ export default function ContactUsPage() {
         <div className="mb-16 text-center">
           <SectionHeading title="Liên hệ với chúng tôi" />
           <p className="mx-auto mt-4 max-w-2xl text-base text-on-surface-variant/80 leading-relaxed">
-            Chào mừng bạn đến với TicketBox, nền tảng đặt vé ca nhạc an toàn và nhanh chóng. 
-            Chúng tôi tận tâm mang đến cho bạn những trải nghiệm giải trí trực tiếp tuyệt vời nhất. 
-            Gặp gỡ đội ngũ đứng sau TicketBox dưới đây.
+            Chào mừng bạn đến với TicketBox, nền tảng đặt vé ca nhạc an toàn và
+            nhanh chóng. Chúng tôi tận tâm mang đến cho bạn những trải nghiệm
+            giải trí trực tiếp tuyệt vời nhất. Gặp gỡ đội ngũ đứng sau TicketBox
+            dưới đây.
           </p>
         </div>
 
@@ -107,18 +110,26 @@ export default function ContactUsPage() {
                     <MapPin size={16} />
                   </div>
                   <div>
-                    <p className="font-bold text-sm text-on-surface">Trụ sở chính</p>
-                    <p className="text-xs mt-1 text-on-surface-variant/80">Dĩ An, Thành phố Hồ Chí Minh, Việt Nam</p>
+                    <p className="font-bold text-sm text-on-surface">
+                      Trụ sở chính
+                    </p>
+                    <p className="text-xs mt-1 text-on-surface-variant/80">
+                      Dĩ An, Thành phố Hồ Chí Minh, Việt Nam
+                    </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-4 text-on-surface-variant">
                   <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary">
                     <Phone size={16} />
                   </div>
                   <div>
-                    <p className="font-bold text-sm text-on-surface">Số điện thoại</p>
-                    <p className="text-xs mt-1 text-on-surface-variant/80">+84 853 223 225</p>
+                    <p className="font-bold text-sm text-on-surface">
+                      Số điện thoại
+                    </p>
+                    <p className="text-xs mt-1 text-on-surface-variant/80">
+                      +84 853 223 225
+                    </p>
                   </div>
                 </div>
 
@@ -127,8 +138,12 @@ export default function ContactUsPage() {
                     <Mail size={16} />
                   </div>
                   <div>
-                    <p className="font-bold text-sm text-on-surface">Hỗ trợ chung</p>
-                    <p className="text-xs mt-1 text-on-surface-variant/80">support@ticketbox.retrobit.io.vn</p>
+                    <p className="font-bold text-sm text-on-surface">
+                      Hỗ trợ chung
+                    </p>
+                    <p className="text-xs mt-1 text-on-surface-variant/80">
+                      support@ticketbox.retrobit.io.vn
+                    </p>
                   </div>
                 </div>
               </div>
@@ -141,7 +156,10 @@ export default function ContactUsPage() {
               </h3>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-on-surface-variant" htmlFor="contactName">
+                  <label
+                    className="text-xs font-semibold text-on-surface-variant"
+                    htmlFor="contactName"
+                  >
                     Họ và tên
                   </label>
                   <Input
@@ -155,7 +173,10 @@ export default function ContactUsPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-on-surface-variant" htmlFor="contactEmail">
+                  <label
+                    className="text-xs font-semibold text-on-surface-variant"
+                    htmlFor="contactEmail"
+                  >
                     Địa chỉ Email
                   </label>
                   <Input
@@ -169,7 +190,10 @@ export default function ContactUsPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-on-surface-variant" htmlFor="contactMessage">
+                  <label
+                    className="text-xs font-semibold text-on-surface-variant"
+                    htmlFor="contactMessage"
+                  >
                     Nội dung lời nhắn
                   </label>
                   <textarea

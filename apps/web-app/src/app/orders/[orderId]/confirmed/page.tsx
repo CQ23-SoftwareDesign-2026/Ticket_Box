@@ -26,7 +26,10 @@ export default function ConfirmedPage() {
           />
           <div className="grid gap-4">
             {[
-              ["Thời gian đến", "Cổng soát vé sẽ mở trước giờ biểu diễn 90 phút."],
+              [
+                "Thời gian đến",
+                "Cổng soát vé sẽ mở trước giờ biểu diễn 90 phút.",
+              ],
               [
                 "Lưu trữ vé",
                 "Chụp lại màn hình mã QR hoặc lưu mã vào thiết bị di động của bạn để quét nhanh hơn.",

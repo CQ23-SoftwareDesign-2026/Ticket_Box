@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { PaymentMethodPicker, OrderSummaryCard, ConfirmModal } from "@/components/screens";
+import {
+  PaymentMethodPicker,
+  OrderSummaryCard,
+  ConfirmModal,
+} from "@/components/screens";
 import { Loader2, Ban } from "lucide-react";
 import { processPayment } from "@/services/payment.service";
 import { getCheckoutReservationState } from "@/utils/checkout-state.utils";
@@ -158,7 +162,8 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
           }
           window.location.href = result.checkout_url;
         } else {
-          const errMsg = "Cổng thanh toán không trả về thông tin. Vui lòng thử lại.";
+          const errMsg =
+            "Cổng thanh toán không trả về thông tin. Vui lòng thử lại.";
           setError(errMsg);
           showErrorToast(errMsg);
           setLoadingSource(null);
@@ -170,7 +175,8 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
             err.message.toLowerCase().includes("fetch") ||
             err.message.toLowerCase().includes("network")
           ) {
-            message = "Lỗi kết nối — vui lòng kiểm tra mạng của bạn và thử lại.";
+            message =
+              "Lỗi kết nối — vui lòng kiểm tra mạng của bạn và thử lại.";
           } else {
             message = err.message;
           }
@@ -235,7 +241,8 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
               Quét mã QR để Thanh toán
             </h2>
             <p className="text-sm text-on-surface-variant">
-              Vui lòng sử dụng ứng dụng Mobile Banking của bạn để quét mã VietQR bên dưới.
+              Vui lòng sử dụng ứng dụng Mobile Banking của bạn để quét mã VietQR
+              bên dưới.
             </p>
           </div>
 

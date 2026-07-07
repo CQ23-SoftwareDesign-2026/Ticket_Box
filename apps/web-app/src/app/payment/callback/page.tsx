@@ -119,7 +119,8 @@ function CallbackContent() {
           Đang xác thực giao dịch
         </h2>
         <p className="text-sm text-on-surface-variant/80 max-w-sm">
-          Vui lòng chờ trong giây lát để chúng tôi kết nối an toàn và xác minh trạng thái thanh toán từ hệ thống.
+          Vui lòng chờ trong giây lát để chúng tôi kết nối an toàn và xác minh
+          trạng thái thanh toán từ hệ thống.
         </p>
       </div>
     );
@@ -141,7 +142,11 @@ function CallbackContent() {
           <Button href="/my-tickets" className="w-full justify-center py-3">
             Đi tới lịch sử đặt vé
           </Button>
-          <Button href="/" variant="soft" className="w-full justify-center py-3">
+          <Button
+            href="/"
+            variant="soft"
+            className="w-full justify-center py-3"
+          >
             Quay lại trang chủ
           </Button>
         </div>
@@ -163,7 +168,8 @@ function CallbackContent() {
               Thanh toán thành công!
             </h2>
             <p className="mt-2 text-sm text-on-surface-variant/80">
-              Vé của bạn đã sẵn sàng và được xác nhận. Chúng tôi đã xử lý thành công giao dịch thanh toán của bạn.
+              Vé của bạn đã sẵn sàng và được xác nhận. Chúng tôi đã xử lý thành
+              công giao dịch thanh toán của bạn.
             </p>
           </div>
 
@@ -189,10 +195,17 @@ function CallbackContent() {
           </div>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button href={`/orders/${order.id}`} className="w-full justify-center py-3">
+            <Button
+              href={`/orders/${order.id}`}
+              className="w-full justify-center py-3"
+            >
               Xem vé & mã QR
             </Button>
-            <Button href="/my-tickets" variant="soft" className="w-full justify-center py-3">
+            <Button
+              href="/my-tickets"
+              variant="soft"
+              className="w-full justify-center py-3"
+            >
               Lịch sử đặt vé
             </Button>
           </div>
@@ -213,7 +226,8 @@ function CallbackContent() {
             Thanh toán đã hủy
           </h2>
           <p className="mt-2 text-sm text-on-surface-variant/80">
-            Giao dịch thanh toán của bạn đã bị hủy hoặc không thành công. Bạn chưa bị trừ tiền cho đơn hàng này.
+            Giao dịch thanh toán của bạn đã bị hủy hoặc không thành công. Bạn
+            chưa bị trừ tiền cho đơn hàng này.
           </p>
         </div>
 
@@ -239,10 +253,17 @@ function CallbackContent() {
         </div>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Button href={`/checkout/${order.id}`} className="w-full justify-center py-3">
+          <Button
+            href={`/checkout/${order.id}`}
+            className="w-full justify-center py-3"
+          >
             Thử thanh toán lại
           </Button>
-          <Button href="/" variant="soft" className="w-full justify-center py-3">
+          <Button
+            href="/"
+            variant="soft"
+            className="w-full justify-center py-3"
+          >
             Quay lại trang chủ
           </Button>
         </div>

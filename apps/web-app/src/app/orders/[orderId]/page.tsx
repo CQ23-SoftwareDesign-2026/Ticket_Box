@@ -87,10 +87,16 @@ export default function OrderDetailsPage({ params }: PageProps) {
     if (orderData.ticket_metadata) {
       const metadata = orderData.ticket_metadata as Record<string, unknown>;
       if (metadata.quantity) return Number(metadata.quantity);
-      if (metadata.ticket_breakdown && Array.isArray(metadata.ticket_breakdown)) {
-        return (metadata.ticket_breakdown as Array<Record<string, unknown>>).reduce(
-          (sum: number, item: Record<string, unknown>) => sum + (Number(item.quantity) || 0),
-          0
+      if (
+        metadata.ticket_breakdown &&
+        Array.isArray(metadata.ticket_breakdown)
+      ) {
+        return (
+          metadata.ticket_breakdown as Array<Record<string, unknown>>
+        ).reduce(
+          (sum: number, item: Record<string, unknown>) =>
+            sum + (Number(item.quantity) || 0),
+          0,
         );
       }
     }
@@ -187,7 +193,7 @@ export default function OrderDetailsPage({ params }: PageProps) {
             <div className="h-8 w-48 bg-outline-variant/30 rounded-lg" />
             <div className="h-10 w-24 bg-outline-variant/30 rounded-xl" />
           </div>
-          
+
           {/* Two Column */}
           <div className="grid gap-8 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
@@ -254,7 +260,10 @@ export default function OrderDetailsPage({ params }: PageProps) {
               className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/40 text-on-surface-variant hover:bg-slate-800 hover:border-slate-700 transition-all disabled:opacity-50 cursor-pointer active:scale-95"
               title="Cập nhật trạng thái đơn hàng"
             >
-              <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+              <RefreshCw
+                size={16}
+                className={refreshing ? "animate-spin" : ""}
+              />
             </button>
             {isPending && (
               <>
@@ -291,11 +300,11 @@ export default function OrderDetailsPage({ params }: PageProps) {
                 <div className="flex gap-3">
                   <AlertTriangle className="shrink-0 text-amber-500" />
                   <div>
-                    <h4 className="font-bold text-amber-300">
-                      Chờ thanh toán
-                    </h4>
+                    <h4 className="font-bold text-amber-300">Chờ thanh toán</h4>
                     <p className="mt-1 text-sm text-on-surface-variant/90 leading-relaxed">
-                      Lượt giữ vé này đã được đăng ký, nhưng thanh toán chưa được xác nhận. Vui lòng hoàn tất thanh toán trước khi hết hạn giữ vé.
+                      Lượt giữ vé này đã được đăng ký, nhưng thanh toán chưa
+                      được xác nhận. Vui lòng hoàn tất thanh toán trước khi hết
+                      hạn giữ vé.
                     </p>
                   </div>
                 </div>
@@ -311,7 +320,8 @@ export default function OrderDetailsPage({ params }: PageProps) {
                       Đơn hàng đã hủy
                     </h4>
                     <p className="mt-1 text-sm text-on-surface-variant/90 leading-relaxed">
-                      Đơn hàng này đã bị hủy và các vé giữ chỗ đã được giải phóng trở lại hệ thống để người khác đăng ký.
+                      Đơn hàng này đã bị hủy và các vé giữ chỗ đã được giải
+                      phóng trở lại hệ thống để người khác đăng ký.
                     </p>
                   </div>
                 </div>
@@ -359,7 +369,9 @@ export default function OrderDetailsPage({ params }: PageProps) {
 
                 <div className="grid gap-6 sm:grid-cols-2">
                   {order.tickets.map((ticket, index) => {
-                    const ticketNotchClass = isPaid ? "border-emerald-500/30" : "border-slate-800";
+                    const ticketNotchClass = isPaid
+                      ? "border-emerald-500/30"
+                      : "border-slate-800";
                     return (
                       <div
                         key={ticket.id}
@@ -411,11 +423,17 @@ export default function OrderDetailsPage({ params }: PageProps) {
                         {/* Perforation Divider Line and Notches */}
                         <div className="relative w-full py-1">
                           {/* Skeuomorphic Die-cut Notches */}
-                          <div className={`absolute top-1/2 -translate-y-1/2 -left-3.5 w-7 h-7 rounded-full bg-background border-r ${ticketNotchClass} z-10`} />
-                          <div className={`absolute top-1/2 -translate-y-1/2 -right-3.5 w-7 h-7 rounded-full bg-background border-l ${ticketNotchClass} z-10`} />
+                          <div
+                            className={`absolute top-1/2 -translate-y-1/2 -left-3.5 w-7 h-7 rounded-full bg-background border-r ${ticketNotchClass} z-10`}
+                          />
+                          <div
+                            className={`absolute top-1/2 -translate-y-1/2 -right-3.5 w-7 h-7 rounded-full bg-background border-l ${ticketNotchClass} z-10`}
+                          />
 
                           {/* Perforation Divider Line */}
-                          <div className={`border-t-2 border-dashed ${isPaid ? "border-emerald-500/20" : "border-slate-800"}`} />
+                          <div
+                            className={`border-t-2 border-dashed ${isPaid ? "border-emerald-500/20" : "border-slate-800"}`}
+                          />
                         </div>
 
                         {/* QR Code stub section (bottom) */}
@@ -468,39 +486,78 @@ export default function OrderDetailsPage({ params }: PageProps) {
 
               <div className="space-y-4 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-on-surface-variant/80">Trạng thái đơn</span>
-                  <span className={`font-bold uppercase tracking-wider text-xs ${
-                    isPaid ? "text-emerald-400" : isPending ? "text-amber-400 animate-pulse" : "text-slate-400"
-                  }`}>
-                    {isPaid ? "Đã thanh toán" : isPending ? "Chờ thanh toán" : "Đã hủy"}
+                  <span className="text-on-surface-variant/80">
+                    Trạng thái đơn
+                  </span>
+                  <span
+                    className={`font-bold uppercase tracking-wider text-xs ${
+                      isPaid
+                        ? "text-emerald-400"
+                        : isPending
+                          ? "text-amber-400 animate-pulse"
+                          : "text-slate-400"
+                    }`}
+                  >
+                    {isPaid
+                      ? "Đã thanh toán"
+                      : isPending
+                        ? "Chờ thanh toán"
+                        : "Đã hủy"}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-on-surface-variant/80">Số lượng đặt</span>
-                  <span className="font-semibold text-on-surface">{getTicketCount(order)}x</span>
+                  <span className="text-on-surface-variant/80">
+                    Số lượng đặt
+                  </span>
+                  <span className="font-semibold text-on-surface">
+                    {getTicketCount(order)}x
+                  </span>
                 </div>
 
                 {/* Detailed Ticket breakdown list */}
-                {order.ticket_metadata && !!(order.ticket_metadata as Record<string, unknown>).ticket_breakdown && (
-                  <div className="border-t border-slate-700 pt-3.5 space-y-2.5 text-xs text-on-surface-variant/80">
-                    {((order.ticket_metadata as Record<string, unknown>).ticket_breakdown as Array<Record<string, unknown>>).map((item, idx) => {
-                      const metadata = order.ticket_metadata as Record<string, unknown>;
-                      const name = (item.category_name as string) || (metadata.category_name as string) || "General Admission";
-                      const price = Number(item.unit_price) || Number(metadata.unit_price) || 0;
-                      const qty = Number(item.quantity) || Number(metadata.quantity) || 1;
-                      return (
-                        <div key={idx} className="flex justify-between">
-                          <span>{name} (x{qty})</span>
-                          <span className="font-semibold text-on-surface">{formatConcertCurrency(price * qty)}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                {order.ticket_metadata &&
+                  !!(order.ticket_metadata as Record<string, unknown>)
+                    .ticket_breakdown && (
+                    <div className="border-t border-slate-700 pt-3.5 space-y-2.5 text-xs text-on-surface-variant/80">
+                      {(
+                        (order.ticket_metadata as Record<string, unknown>)
+                          .ticket_breakdown as Array<Record<string, unknown>>
+                      ).map((item, idx) => {
+                        const metadata = order.ticket_metadata as Record<
+                          string,
+                          unknown
+                        >;
+                        const name =
+                          (item.category_name as string) ||
+                          (metadata.category_name as string) ||
+                          "General Admission";
+                        const price =
+                          Number(item.unit_price) ||
+                          Number(metadata.unit_price) ||
+                          0;
+                        const qty =
+                          Number(item.quantity) ||
+                          Number(metadata.quantity) ||
+                          1;
+                        return (
+                          <div key={idx} className="flex justify-between">
+                            <span>
+                              {name} (x{qty})
+                            </span>
+                            <span className="font-semibold text-on-surface">
+                              {formatConcertCurrency(price * qty)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
                 <div className="flex justify-between border-t border-slate-700 pt-4 text-base font-black">
                   <span className="text-on-surface">Tổng cộng</span>
-                  <span className="text-primary">{formatConcertCurrency(Number(order.total_amount))}</span>
+                  <span className="text-primary">
+                    {formatConcertCurrency(Number(order.total_amount))}
+                  </span>
                 </div>
               </div>
             </div>

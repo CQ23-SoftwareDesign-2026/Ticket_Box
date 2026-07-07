@@ -75,7 +75,11 @@ function TicketQrCode({ hash, width = 96 }: { hash: string; width?: number }) {
 
   return (
     /* eslint-disable-next-line @next/next/no-img-element */
-    <img src={qrUrl} alt="Mã QR soát vé" className="w-full h-full object-contain" />
+    <img
+      src={qrUrl}
+      alt="Mã QR soát vé"
+      className="w-full h-full object-contain"
+    />
   );
 }
 
@@ -101,14 +105,34 @@ function CopyButton({ text }: { text: string }) {
     >
       {copied ? (
         <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-0.5 select-none">
-          <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          <svg
+            className="w-3.5 h-3.5 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4.5 12.75l6 6 9-13.5"
+            />
           </svg>
           Đã chép
         </span>
       ) : (
-        <svg className="w-3.5 h-3.5 shrink-0 select-none" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
+        <svg
+          className="w-3.5 h-3.5 shrink-0 select-none"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"
+          />
         </svg>
       )}
     </button>
@@ -162,7 +186,9 @@ export default function AdminOrderDetailPage({ params }: PageProps) {
   if (error || !order) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
-        <p className="font-body text-sm text-rose-400 font-semibold">{error || "Đã xảy ra lỗi"}</p>
+        <p className="font-body text-sm text-rose-400 font-semibold">
+          {error || "Đã xảy ra lỗi"}
+        </p>
         <Link
           href="/admin/dashboard"
           className="flex items-center gap-2 px-4 py-2 bg-surface hover:bg-surface-high border border-border rounded-xl text-xs font-semibold text-foreground transition-all"
@@ -216,7 +242,13 @@ export default function AdminOrderDetailPage({ params }: PageProps) {
       {/* Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column (2/3 if customer info exists, otherwise full width 3/3) */}
-        <div className={hasCustomerInfo ? "lg:col-span-2 space-y-6" : "lg:col-span-3 space-y-6"}>
+        <div
+          className={
+            hasCustomerInfo
+              ? "lg:col-span-2 space-y-6"
+              : "lg:col-span-3 space-y-6"
+          }
+        >
           {/* Concert Info */}
           <div className="bg-surface border border-border rounded-xl p-6 space-y-4 shadow-sm relative overflow-hidden group">
             <div className="absolute inset-0 bg-linear-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
@@ -265,93 +297,125 @@ export default function AdminOrderDetailPage({ params }: PageProps) {
           </div>
 
           {/* Ticket categories breakdown */}
-          {order.ticket_metadata && (() => {
-            const metadata = order.ticket_metadata as unknown as TicketMetadata;
-            return (
-              <div className="bg-surface border border-border rounded-xl p-6 space-y-4 shadow-sm">
-                <div className="flex items-center gap-2 pb-3 border-b border-border">
-                  <FileText className="w-5 h-5 text-indigo-400" />
-                  <h3 className="font-display text-base font-bold text-foreground select-none">
-                    Chi tiết Hạng vé Đặt
-                  </h3>
-                </div>
-                <div className="space-y-4 font-body">
-                  {/* Check if ticket_breakdown is an array */}
-                  {Array.isArray(metadata.ticket_breakdown) ? (
-                    <div className="space-y-3">
-                      {metadata.ticket_breakdown.map((item: TicketBreakdownItem, idx: number) => (
-                        <div
-                          key={idx}
-                          className="p-4 bg-background border border-border rounded-xl flex flex-col sm:flex-row justify-between sm:items-center gap-3 text-xs"
-                        >
-                          <div className="min-w-0">
-                            <p className="font-bold text-foreground text-sm">
-                              {item.category_name || "Hạng vé mặc định"}
-                            </p>
-                            <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1 flex-wrap">
-                              <span>Mã phân hạng:</span>
-                              <span className="font-mono font-bold break-all">{item.category_id}</span>
-                              {item.category_id && <CopyButton text={item.category_id} />}
+          {order.ticket_metadata &&
+            (() => {
+              const metadata =
+                order.ticket_metadata as unknown as TicketMetadata;
+              return (
+                <div className="bg-surface border border-border rounded-xl p-6 space-y-4 shadow-sm">
+                  <div className="flex items-center gap-2 pb-3 border-b border-border">
+                    <FileText className="w-5 h-5 text-indigo-400" />
+                    <h3 className="font-display text-base font-bold text-foreground select-none">
+                      Chi tiết Hạng vé Đặt
+                    </h3>
+                  </div>
+                  <div className="space-y-4 font-body">
+                    {/* Check if ticket_breakdown is an array */}
+                    {Array.isArray(metadata.ticket_breakdown) ? (
+                      <div className="space-y-3">
+                        {metadata.ticket_breakdown.map(
+                          (item: TicketBreakdownItem, idx: number) => (
+                            <div
+                              key={idx}
+                              className="p-4 bg-background border border-border rounded-xl flex flex-col sm:flex-row justify-between sm:items-center gap-3 text-xs"
+                            >
+                              <div className="min-w-0">
+                                <p className="font-bold text-foreground text-sm">
+                                  {item.category_name || "Hạng vé mặc định"}
+                                </p>
+                                <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1 flex-wrap">
+                                  <span>Mã phân hạng:</span>
+                                  <span className="font-mono font-bold break-all">
+                                    {item.category_id}
+                                  </span>
+                                  {item.category_id && (
+                                    <CopyButton text={item.category_id} />
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-left sm:text-right shrink-0">
+                                <p className="text-muted-foreground">
+                                  {item.quantity} vé ×{" "}
+                                  {formatConcertCurrency(
+                                    Number(item.unit_price || 0),
+                                  )}
+                                </p>
+                                <p className="font-black text-primary text-sm mt-0.5">
+                                  {formatConcertCurrency(
+                                    Number(item.quantity || 0) *
+                                      Number(item.unit_price || 0),
+                                  )}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                          <div className="text-left sm:text-right shrink-0">
-                            <p className="text-muted-foreground">
-                              {item.quantity} vé × {formatConcertCurrency(Number(item.unit_price || 0))}
-                            </p>
-                            <p className="font-black text-primary text-sm mt-0.5">
-                              {formatConcertCurrency(Number(item.quantity || 0) * Number(item.unit_price || 0))}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    // Fallback for single object metadata
-                    <div className="p-4 bg-background border border-border rounded-xl flex flex-col sm:flex-row justify-between sm:items-center gap-3 text-xs">
-                      <div className="min-w-0">
-                        <p className="font-bold text-foreground text-sm">
-                          {String(metadata.category_name || "Hạng vé mặc định")}
-                        </p>
-                        {metadata.category_id && (
-                          <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1 flex-wrap">
-                            <span>Mã phân hạng:</span>
-                            <span className="font-mono font-bold break-all">{String(metadata.category_id)}</span>
-                            <CopyButton text={String(metadata.category_id)} />
-                          </div>
+                          ),
                         )}
                       </div>
-                      <div className="text-left sm:text-right shrink-0">
-                        <p className="text-muted-foreground">
-                          {Number(metadata.quantity || 0)} vé × {formatConcertCurrency(Number(metadata.unit_price || 0))}
-                        </p>
-                        <p className="font-black text-primary text-sm mt-0.5">
-                          {formatConcertCurrency(Number(order.total_amount))}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Collapsible raw json for tech review */}
-                  <div className="pt-2">
-                    <button
-                      onClick={() => setOpenJsonTx((prev) => ({ ...prev, metadata: !prev.metadata }))}
-                      className="flex items-center gap-1.5 text-[10px] font-bold text-primary hover:underline cursor-pointer select-none"
-                    >
-                      {openJsonTx.metadata ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                      {openJsonTx.metadata ? "Ẩn cấu trúc JSON thô" : "Xem cấu trúc JSON thô của vé"}
-                    </button>
-                    {openJsonTx.metadata && (
-                      <div className="mt-2 bg-background border border-border rounded-xl p-3 max-h-48 overflow-y-auto">
-                        <pre className="font-mono text-[9px] text-indigo-400 whitespace-pre-wrap">
-                          {JSON.stringify(metadata, null, 2)}
-                        </pre>
+                    ) : (
+                      // Fallback for single object metadata
+                      <div className="p-4 bg-background border border-border rounded-xl flex flex-col sm:flex-row justify-between sm:items-center gap-3 text-xs">
+                        <div className="min-w-0">
+                          <p className="font-bold text-foreground text-sm">
+                            {String(
+                              metadata.category_name || "Hạng vé mặc định",
+                            )}
+                          </p>
+                          {metadata.category_id && (
+                            <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1 flex-wrap">
+                              <span>Mã phân hạng:</span>
+                              <span className="font-mono font-bold break-all">
+                                {String(metadata.category_id)}
+                              </span>
+                              <CopyButton text={String(metadata.category_id)} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-left sm:text-right shrink-0">
+                          <p className="text-muted-foreground">
+                            {Number(metadata.quantity || 0)} vé ×{" "}
+                            {formatConcertCurrency(
+                              Number(metadata.unit_price || 0),
+                            )}
+                          </p>
+                          <p className="font-black text-primary text-sm mt-0.5">
+                            {formatConcertCurrency(Number(order.total_amount))}
+                          </p>
+                        </div>
                       </div>
                     )}
+
+                    {/* Collapsible raw json for tech review */}
+                    <div className="pt-2">
+                      <button
+                        onClick={() =>
+                          setOpenJsonTx((prev) => ({
+                            ...prev,
+                            metadata: !prev.metadata,
+                          }))
+                        }
+                        className="flex items-center gap-1.5 text-[10px] font-bold text-primary hover:underline cursor-pointer select-none"
+                      >
+                        {openJsonTx.metadata ? (
+                          <ChevronUp size={12} />
+                        ) : (
+                          <ChevronDown size={12} />
+                        )}
+                        {openJsonTx.metadata
+                          ? "Ẩn cấu trúc JSON thô"
+                          : "Xem cấu trúc JSON thô của vé"}
+                      </button>
+                      {openJsonTx.metadata && (
+                        <div className="mt-2 bg-background border border-border rounded-xl p-3 max-h-48 overflow-y-auto">
+                          <pre className="font-mono text-[9px] text-indigo-400 whitespace-pre-wrap">
+                            {JSON.stringify(metadata, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
 
           {/* Detailed tickets code list */}
           <div className="bg-surface border border-border rounded-xl p-6 space-y-4 shadow-sm">
@@ -362,7 +426,9 @@ export default function AdminOrderDetailPage({ params }: PageProps) {
               </h3>
             </div>
             {order.tickets.length === 0 ? (
-              <p className="text-xs text-muted-foreground font-body select-none">Không có thông tin vé lẻ.</p>
+              <p className="text-xs text-muted-foreground font-body select-none">
+                Không có thông tin vé lẻ.
+              </p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {order.tickets.map((t) => (
@@ -404,7 +470,9 @@ export default function AdminOrderDetailPage({ params }: PageProps) {
                       </div>
                       <div className="pt-1.5 border-t border-border/50 flex flex-col gap-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[9px] font-bold text-muted-foreground select-none">Trạng thái soát:</span>
+                          <span className="text-[9px] font-bold text-muted-foreground select-none">
+                            Trạng thái soát:
+                          </span>
                           <span
                             className={`inline-flex items-center px-1.5 py-0.5 rounded-full font-body text-[9px] font-semibold border select-none ${
                               t.is_scanned
@@ -417,7 +485,8 @@ export default function AdminOrderDetailPage({ params }: PageProps) {
                         </div>
                         {t.is_scanned && t.scanned_at && (
                           <span className="text-[9px] text-muted-foreground">
-                            Lúc: {new Date(t.scanned_at).toLocaleString("vi-VN")}
+                            Lúc:{" "}
+                            {new Date(t.scanned_at).toLocaleString("vi-VN")}
                           </span>
                         )}
                       </div>
@@ -426,7 +495,10 @@ export default function AdminOrderDetailPage({ params }: PageProps) {
                           Mã hash QR Code
                         </span>
                         <div className="flex items-center gap-1 min-w-0">
-                          <span className="font-mono text-[9px] text-muted-foreground truncate" title={t.qr_code_hash}>
+                          <span
+                            className="font-mono text-[9px] text-muted-foreground truncate"
+                            title={t.qr_code_hash}
+                          >
                             {t.qr_code_hash}
                           </span>
                           <CopyButton text={t.qr_code_hash} />
@@ -511,7 +583,9 @@ export default function AdminOrderDetailPage({ params }: PageProps) {
                           <span className="font-mono text-xs text-foreground font-semibold break-all">
                             {tx.transaction_id_3rd_party || "Chưa ghi nhận"}
                           </span>
-                          {tx.transaction_id_3rd_party && <CopyButton text={tx.transaction_id_3rd_party} />}
+                          {tx.transaction_id_3rd_party && (
+                            <CopyButton text={tx.transaction_id_3rd_party} />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -541,7 +615,9 @@ export default function AdminOrderDetailPage({ params }: PageProps) {
                           Idempotency Key
                         </span>
                         <div className="flex items-center gap-1">
-                          <span className="font-mono text-muted-foreground break-all">{tx.idempotency_key}</span>
+                          <span className="font-mono text-muted-foreground break-all">
+                            {tx.idempotency_key}
+                          </span>
                           <CopyButton text={tx.idempotency_key} />
                         </div>
                       </div>
@@ -554,8 +630,14 @@ export default function AdminOrderDetailPage({ params }: PageProps) {
                           onClick={() => toggleJson(tx.id)}
                           className="flex items-center gap-1.5 text-[10px] font-bold text-primary hover:underline cursor-pointer select-none"
                         >
-                          {openJsonTx[tx.id] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                          {openJsonTx[tx.id] ? "Ẩn phản hồi RAW từ Cổng thanh toán" : "Xem phản hồi RAW từ Cổng thanh toán (PayOS / 3rd Party)"}
+                          {openJsonTx[tx.id] ? (
+                            <ChevronUp size={12} />
+                          ) : (
+                            <ChevronDown size={12} />
+                          )}
+                          {openJsonTx[tx.id]
+                            ? "Ẩn phản hồi RAW từ Cổng thanh toán"
+                            : "Xem phản hồi RAW từ Cổng thanh toán (PayOS / 3rd Party)"}
                         </button>
                         {openJsonTx[tx.id] && (
                           <div className="mt-2 bg-surface border border-border/80 rounded-xl p-3 max-h-60 overflow-y-auto">

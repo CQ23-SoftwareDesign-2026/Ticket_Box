@@ -40,7 +40,9 @@ type TabKey = (typeof TABS)[number]["key"];
 function FakeBarcode() {
   return (
     <div className="flex items-center justify-center gap-[2px] h-8 w-full opacity-35 group-hover:opacity-55 transition-opacity">
-      {[1, 3, 1, 2, 4, 1, 3, 2, 1, 4, 2, 1, 3, 1, 2, 4, 1, 2, 1, 3, 2, 1, 4, 1].map((width, idx) => (
+      {[
+        1, 3, 1, 2, 4, 1, 3, 2, 1, 4, 2, 1, 3, 1, 2, 4, 1, 2, 1, 3, 2, 1, 4, 1,
+      ].map((width, idx) => (
         <div
           key={idx}
           className="bg-on-surface h-full"
@@ -98,7 +100,9 @@ export default function MyTicketsPage() {
     };
   }, [currentPage, activeTab]);
 
-  const [pendingTicketCounts, setPendingTicketCounts] = useState<Record<string, number>>({});
+  const [pendingTicketCounts, setPendingTicketCounts] = useState<
+    Record<string, number>
+  >({});
   const fetchedIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -112,13 +116,22 @@ export default function MyTicketsPage() {
               if (details.ticket_count > 0) {
                 count = details.ticket_count;
               } else if (details.ticket_metadata) {
-                const metadata = details.ticket_metadata as Record<string, unknown>;
+                const metadata = details.ticket_metadata as Record<
+                  string,
+                  unknown
+                >;
                 if (metadata.quantity) {
                   count = Number(metadata.quantity);
-                } else if (metadata.ticket_breakdown && Array.isArray(metadata.ticket_breakdown)) {
-                  count = (metadata.ticket_breakdown as Array<Record<string, unknown>>).reduce(
-                    (sum: number, item: Record<string, unknown>) => sum + (Number(item.quantity) || 0),
-                    0
+                } else if (
+                  metadata.ticket_breakdown &&
+                  Array.isArray(metadata.ticket_breakdown)
+                ) {
+                  count = (
+                    metadata.ticket_breakdown as Array<Record<string, unknown>>
+                  ).reduce(
+                    (sum: number, item: Record<string, unknown>) =>
+                      sum + (Number(item.quantity) || 0),
+                    0,
                   );
                 }
               }
@@ -225,7 +238,8 @@ export default function MyTicketsPage() {
                 Vé Của Tôi
               </h1>
               <p className="max-w-xl text-sm leading-relaxed text-on-surface-variant/85">
-                Quản lý các vé concert đã xác nhận, các lượt giữ chỗ thanh toán và lịch sử giao dịch của bạn ở một nơi tập trung.
+                Quản lý các vé concert đã xác nhận, các lượt giữ chỗ thanh toán
+                và lịch sử giao dịch của bạn ở một nơi tập trung.
               </p>
             </div>
 
@@ -327,7 +341,10 @@ export default function MyTicketsPage() {
                 ? "Chúng tôi không tìm thấy đơn hàng nào khớp với từ khóa tìm kiếm của bạn. Vui lòng kiểm tra chính tả."
                 : "Bạn chưa có đơn đặt vé nào trong phân mục này. Hãy đặt giữ chỗ sự kiện ngay."}
             </p>
-            <Button href="/concerts" className="mt-6 border-0 bg-primary hover:bg-primary-container text-white px-6 py-2.5 text-xs font-bold">
+            <Button
+              href="/concerts"
+              className="mt-6 border-0 bg-primary hover:bg-primary-container text-white px-6 py-2.5 text-xs font-bold"
+            >
               Khám phá Sự kiện
             </Button>
           </div>
@@ -341,9 +358,13 @@ export default function MyTicketsPage() {
             )}
 
             {/* Content Feed with overlay loading indicators */}
-            <div className={`mt-8 space-y-6 transition-all duration-300 ${
-              loading ? "opacity-60 blur-[0.5px] pointer-events-none" : "opacity-100 blur-0"
-            }`}>
+            <div
+              className={`mt-8 space-y-6 transition-all duration-300 ${
+                loading
+                  ? "opacity-60 blur-[0.5px] pointer-events-none"
+                  : "opacity-100 blur-0"
+              }`}
+            >
               {filteredOrders.map((order) => {
                 const isPaid = order.status === "PAID";
                 const isPending = order.status === "PENDING";
@@ -370,17 +391,29 @@ export default function MyTicketsPage() {
                     {/* Desktop top/bottom notches */}
                     {/* Skeuomorphic Perforation Notches */}
                     {/* Desktop top/bottom notches */}
-                    <div className={`absolute -top-3.5 md:right-[266px] w-7 h-7 rounded-full bg-background border-b ${notchBorderClass} hidden md:block z-10 transition-colors duration-300`} />
-                    <div className={`absolute -bottom-3.5 md:right-[266px] w-7 h-7 rounded-full bg-background border-t ${notchBorderClass} hidden md:block z-10 transition-colors duration-300`} />
+                    <div
+                      className={`absolute -top-3.5 md:right-[266px] w-7 h-7 rounded-full bg-background border-b ${notchBorderClass} hidden md:block z-10 transition-colors duration-300`}
+                    />
+                    <div
+                      className={`absolute -bottom-3.5 md:right-[266px] w-7 h-7 rounded-full bg-background border-t ${notchBorderClass} hidden md:block z-10 transition-colors duration-300`}
+                    />
                     {/* Mobile left/right notches */}
-                    <div className={`absolute -left-3.5 top-2/3 w-7 h-7 rounded-full bg-background border-r ${notchBorderClass} md:hidden z-10 transition-colors duration-300`} />
-                    <div className={`absolute -right-3.5 top-2/3 w-7 h-7 rounded-full bg-background border-l ${notchBorderClass} md:hidden z-10 transition-colors duration-300`} />
+                    <div
+                      className={`absolute -left-3.5 top-2/3 w-7 h-7 rounded-full bg-background border-r ${notchBorderClass} md:hidden z-10 transition-colors duration-300`}
+                    />
+                    <div
+                      className={`absolute -right-3.5 top-2/3 w-7 h-7 rounded-full bg-background border-l ${notchBorderClass} md:hidden z-10 transition-colors duration-300`}
+                    />
 
                     {/* Perforation Line */}
                     {/* Desktop vertical dashed line */}
-                    <div className={`absolute top-0 bottom-0 md:right-[280px] border-l-2 border-dashed ${isPaid ? "border-emerald-500/30 group-hover:border-emerald-400/50" : isPending ? "border-amber-500/35 group-hover:border-amber-400/50" : "border-slate-700/50 group-hover:border-slate-500/50"} hidden md:block transition-colors duration-300`} />
+                    <div
+                      className={`absolute top-0 bottom-0 md:right-[280px] border-l-2 border-dashed ${isPaid ? "border-emerald-500/30 group-hover:border-emerald-400/50" : isPending ? "border-amber-500/35 group-hover:border-amber-400/50" : "border-slate-700/50 group-hover:border-slate-500/50"} hidden md:block transition-colors duration-300`}
+                    />
                     {/* Mobile horizontal dashed line */}
-                    <div className={`absolute left-0 right-0 top-2/3 border-t-2 border-dashed ${isPaid ? "border-emerald-500/30 group-hover:border-emerald-400/50" : isPending ? "border-amber-500/35 group-hover:border-amber-400/50" : "border-slate-700/50 group-hover:border-slate-500/50"} md:hidden transition-colors duration-300`} />
+                    <div
+                      className={`absolute left-0 right-0 top-2/3 border-t-2 border-dashed ${isPaid ? "border-emerald-500/30 group-hover:border-emerald-400/50" : isPending ? "border-amber-500/35 group-hover:border-amber-400/50" : "border-slate-700/50 group-hover:border-slate-500/50"} md:hidden transition-colors duration-300`}
+                    />
 
                     {/* LEFT COLUMN: Main Ticket Stub Info */}
                     <div className="flex-1 p-5 md:p-6 space-y-4 md:pr-12">
@@ -414,13 +447,15 @@ export default function MyTicketsPage() {
                     </div>
 
                     {/* RIGHT COLUMN: Settlement stub, barcode, and Actions */}
-                    <div className={`w-full md:w-[280px] p-5 md:p-6 flex flex-row md:flex-col justify-between items-center md:pl-8 md:pr-8 z-0 ${
-                      isPaid
-                        ? "bg-emerald-500/[0.04]"
-                        : isPending
-                          ? "bg-amber-500/[0.04]"
-                          : "bg-slate-950/20"
-                    }`}>
+                    <div
+                      className={`w-full md:w-[280px] p-5 md:p-6 flex flex-row md:flex-col justify-between items-center md:pl-8 md:pr-8 z-0 ${
+                        isPaid
+                          ? "bg-emerald-500/[0.04]"
+                          : isPending
+                            ? "bg-amber-500/[0.04]"
+                            : "bg-slate-950/20"
+                      }`}
+                    >
                       {/* Price information */}
                       <div className="text-left md:text-center md:w-full space-y-0.5">
                         <p className="text-[10px] uppercase tracking-wider text-on-surface-variant/60 font-semibold">
@@ -455,7 +490,7 @@ export default function MyTicketsPage() {
                             >
                               Thanh toán ngay
                             </Link>
-                             <button
+                            <button
                               type="button"
                               disabled={cancelLoadingId !== null}
                               onClick={(e) => {
@@ -517,20 +552,22 @@ export default function MyTicketsPage() {
                 className="inline-flex h-9 items-center justify-center rounded-xl border border-outline-variant px-4 text-xs font-semibold text-on-surface-variant hover:bg-surface-low disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
               >
                 Sau
-                  </button>
-                </div>
-              </div>
-            )}
-      <ConfirmModal
-        isOpen={cancelConfirmId !== null}
-        onClose={() => setCancelConfirmId(null)}
-        onConfirm={() => cancelConfirmId && handleCancelOrder(cancelConfirmId)}
-        title="Xác nhận hủy đặt vé"
-        message="Bạn có chắc chắn muốn hủy lượt giữ chỗ này? Các vé đã chọn của bạn sẽ được giải phóng hoàn toàn và không thể thanh toán tiếp."
-        confirmText="Xác nhận hủy"
-        cancelText="Quay lại"
-        isLoading={cancelLoadingId !== null}
-      />
+              </button>
+            </div>
+          </div>
+        )}
+        <ConfirmModal
+          isOpen={cancelConfirmId !== null}
+          onClose={() => setCancelConfirmId(null)}
+          onConfirm={() =>
+            cancelConfirmId && handleCancelOrder(cancelConfirmId)
+          }
+          title="Xác nhận hủy đặt vé"
+          message="Bạn có chắc chắn muốn hủy lượt giữ chỗ này? Các vé đã chọn của bạn sẽ được giải phóng hoàn toàn và không thể thanh toán tiếp."
+          confirmText="Xác nhận hủy"
+          cancelText="Quay lại"
+          isLoading={cancelLoadingId !== null}
+        />
       </section>
     </SiteShell>
   );

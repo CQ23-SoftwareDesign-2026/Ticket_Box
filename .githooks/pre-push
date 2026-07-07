@@ -1,13 +1,66 @@
 #!/usr/bin/env sh
 
-echo "[pre-push] Running local quality gate: lint + unit tests"
-npm run verify:push
-status=$?
+echo ""
+echo "╔══════════════════════════════════════════════════════╗"
+echo "║         [pre-push] Running quality gate              ║"
+echo "╚══════════════════════════════════════════════════════╝"
+echo ""
 
-if [ $status -ne 0 ]; then
-  echo "[pre-push] Push blocked. Fix errors and push again."
-  exit $status
+# Step 1: Prettier check (web-app)
+echo "→ Step 1/4: Prettier format check (web-app)..."
+npm run prettier:check:web
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "✖ Prettier check failed. Run the following to auto-fix:"
+  echo "    npm run prettier:fix:web"
+  echo ""
+  echo "✖ [pre-push] Push blocked. Fix formatting and push again."
+  exit 1
 fi
+echo "  ✔ Prettier check passed."
+echo ""
 
-echo "[pre-push] Quality gate passed. Proceeding with push."
-exit 0
+# Step 2: ESLint (backend + prisma)
+echo "→ Step 2/4: ESLint (backend)..."
+npm run lint
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "✖ ESLint found errors. Fix them and push again."
+  echo ""
+  echo "✖ [pre-push] Push blocked."
+  exit 1
+fi
+echo "  ✔ ESLint passed."
+echo ""
+
+# Step 3: TypeScript check (backend)
+echo "→ Step 3/4: TypeScript type check (backend)..."
+npm run typecheck:api
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "✖ TypeScript type errors found. Fix them and push again."
+  echo ""
+  echo "✖ [pre-push] Push blocked."
+  exit 1
+fi
+echo "  ✔ TypeScript passed."
+echo ""
+
+# Step 4: Unit tests (backend)
+echo "→ Step 4/4: Unit tests (backend)..."
+npm run test:api:unit
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "✖ Unit tests failed. Fix them and push again."
+  echo ""
+  echo "✖ [pre-push] Push blocked."
+  exit 1
+fi
+echo "  ✔ Unit tests passed."
+echo ""
+
+echo "╔══════════════════════════════════════════════════════╗"
+echo "║   ✔ All checks passed! Proceeding with push.        ║"
+echo "╚══════════════════════════════════════════════════════╝"
+echo ""
+exit 0

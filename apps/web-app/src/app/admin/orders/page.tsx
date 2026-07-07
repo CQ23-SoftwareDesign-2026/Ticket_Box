@@ -5,7 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { formatConcertCurrency } from "@/services/concert.service";
-import { getAdminOrders, type AdminOrderListItem } from "@/services/order.service";
+import {
+  getAdminOrders,
+  type AdminOrderListItem,
+} from "@/services/order.service";
 
 const ORDER_STATUS_CLASSES: Record<string, string> = {
   PAID: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
@@ -35,14 +38,34 @@ function CopyButton({ text }: { text: string }) {
     >
       {copied ? (
         <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-0.5 select-none">
-          <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          <svg
+            className="w-3.5 h-3.5 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4.5 12.75l6 6 9-13.5"
+            />
           </svg>
           Đã chép
         </span>
       ) : (
-        <svg className="w-3.5 h-3.5 shrink-0 select-none" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
+        <svg
+          className="w-3.5 h-3.5 shrink-0 select-none"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"
+          />
         </svg>
       )}
     </button>
@@ -98,7 +121,14 @@ export default function AdminOrdersListPage() {
       if (page <= 3) {
         pages.push(1, 2, 3, 4, "...", totalPages);
       } else if (page >= totalPages - 2) {
-        pages.push(1, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+        pages.push(
+          1,
+          "...",
+          totalPages - 3,
+          totalPages - 2,
+          totalPages - 1,
+          totalPages,
+        );
       } else {
         pages.push(1, "...", page - 1, page, page + 1, "...", totalPages);
       }
@@ -151,14 +181,44 @@ export default function AdminOrdersListPage() {
               }}
               className="appearance-none pl-3 pr-8 py-1.5 border border-border rounded-lg bg-background font-body text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-foreground font-semibold cursor-pointer"
             >
-              <option value="" className="bg-surface text-foreground font-semibold">Tất cả Trạng thái</option>
-              <option value="PAID" className="bg-surface text-foreground font-semibold">ĐÃ THANH TOÁN</option>
-              <option value="PENDING" className="bg-surface text-foreground font-semibold">CHỜ THANH TOÁN</option>
-              <option value="CANCELLED" className="bg-surface text-foreground font-semibold">ĐÃ HỦY</option>
+              <option
+                value=""
+                className="bg-surface text-foreground font-semibold"
+              >
+                Tất cả Trạng thái
+              </option>
+              <option
+                value="PAID"
+                className="bg-surface text-foreground font-semibold"
+              >
+                ĐÃ THANH TOÁN
+              </option>
+              <option
+                value="PENDING"
+                className="bg-surface text-foreground font-semibold"
+              >
+                CHỜ THANH TOÁN
+              </option>
+              <option
+                value="CANCELLED"
+                className="bg-surface text-foreground font-semibold"
+              >
+                ĐÃ HỦY
+              </option>
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                />
               </svg>
             </div>
           </div>
@@ -188,11 +248,15 @@ export default function AdminOrdersListPage() {
                   <th className="p-4 border-b border-border">Mã đơn hàng</th>
                   <th className="p-4 border-b border-border">Khách hàng</th>
                   <th className="p-4 border-b border-border">Sự kiện</th>
-                  <th className="p-4 border-b border-border text-center">Số vé</th>
+                  <th className="p-4 border-b border-border text-center">
+                    Số vé
+                  </th>
                   <th className="p-4 border-b border-border">Số tiền</th>
                   <th className="p-4 border-b border-border">Trạng thái</th>
                   <th className="p-4 border-b border-border">Ngày tạo</th>
-                  <th className="p-4 border-b border-border text-center">Hành động</th>
+                  <th className="p-4 border-b border-border text-center">
+                    Hành động
+                  </th>
                 </tr>
               </thead>
               <tbody className="font-body text-sm divide-y divide-border/60">
@@ -215,10 +279,15 @@ export default function AdminOrdersListPage() {
                         {order.user_name || "Khách hàng ẩn danh"}
                       </p>
                       {order.user_email && (
-                        <p className="text-muted-foreground text-xs">{order.user_email}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {order.user_email}
+                        </p>
                       )}
                     </td>
-                    <td className="p-4 font-semibold text-foreground max-w-xs truncate" title={order.concert_name}>
+                    <td
+                      className="p-4 font-semibold text-foreground max-w-xs truncate"
+                      title={order.concert_name}
+                    >
                       {order.concert_name}
                     </td>
                     <td className="p-4 text-center font-bold text-foreground">
@@ -261,7 +330,8 @@ export default function AdminOrdersListPage() {
           <div className="p-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 bg-background/30 select-none">
             <div className="flex items-center gap-4 flex-wrap">
               <span className="text-xs text-muted-foreground font-body">
-                Trang <span className="font-bold text-foreground">{page}</span> trên{" "}
+                Trang <span className="font-bold text-foreground">{page}</span>{" "}
+                trên{" "}
                 <span className="font-bold text-foreground">{totalPages}</span>
               </span>
 
@@ -285,8 +355,18 @@ export default function AdminOrdersListPage() {
                     <option value={100}>100 dòng</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-muted-foreground">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                      />
                     </svg>
                   </div>
                 </div>
@@ -306,7 +386,10 @@ export default function AdminOrdersListPage() {
                 {getPageNumbers().map((p, idx) => {
                   if (p === "...") {
                     return (
-                      <span key={`dots-${idx}`} className="px-2 text-muted-foreground text-xs font-semibold select-none">
+                      <span
+                        key={`dots-${idx}`}
+                        className="px-2 text-muted-foreground text-xs font-semibold select-none"
+                      >
                         ...
                       </span>
                     );

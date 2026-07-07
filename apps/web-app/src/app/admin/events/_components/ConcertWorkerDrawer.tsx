@@ -114,7 +114,11 @@ export function ConcertWorkerDrawer({
       setImportJob(job);
       pollImportJob(job.id);
     } catch (err: unknown) {
-      toastError(err instanceof Error ? err.message : "Đăng tải danh sách khách mời thất bại.");
+      toastError(
+        err instanceof Error
+          ? err.message
+          : "Đăng tải danh sách khách mời thất bại.",
+      );
       setIsImporting(false);
     }
   };
@@ -140,7 +144,9 @@ export function ConcertWorkerDrawer({
           if (importIntervalRef.current)
             clearInterval(importIntervalRef.current);
           setIsImporting(false);
-          toastError(job.error_message || "Tiến trình nhập danh sách thất bại.");
+          toastError(
+            job.error_message || "Tiến trình nhập danh sách thất bại.",
+          );
         }
       } catch (err) {
         console.error("Failed to check import job status:", err);
@@ -159,7 +165,13 @@ export function ConcertWorkerDrawer({
       if (guestPage <= 2) {
         pages.push(1, 2, 3, "...", guestTotalPages);
       } else if (guestPage >= guestTotalPages - 1) {
-        pages.push(1, "...", guestTotalPages - 2, guestTotalPages - 1, guestTotalPages);
+        pages.push(
+          1,
+          "...",
+          guestTotalPages - 2,
+          guestTotalPages - 1,
+          guestTotalPages,
+        );
       } else {
         pages.push(1, "...", guestPage, "...", guestTotalPages);
       }
@@ -305,7 +317,9 @@ export function ConcertWorkerDrawer({
                     {importJob.status === "COMPLETED" &&
                       importJob.result_data && (
                         <span className="text-emerald-500 font-semibold">
-                          Đã thêm: {String(importJob.result_data.processed || 0)} khách mời
+                          Đã thêm:{" "}
+                          {String(importJob.result_data.processed || 0)} khách
+                          mời
                         </span>
                       )}
                     {importJob.error_message && (
@@ -364,7 +378,10 @@ export function ConcertWorkerDrawer({
                       <tbody className="divide-y divide-border text-xs">
                         {isGuestsLoading ? (
                           <tr>
-                            <td colSpan={3} className="p-8 text-center select-none">
+                            <td
+                              colSpan={3}
+                              className="p-8 text-center select-none"
+                            >
                               <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-2" />
                               Đang tải danh sách khách mời...
                             </td>
@@ -417,9 +434,11 @@ export function ConcertWorkerDrawer({
                         <span className="text-[10px] text-muted-foreground font-semibold">
                           Tổng số: {totalGuests} khách mời
                         </span>
-                        
+
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-muted-foreground font-semibold">Hiển thị:</span>
+                          <span className="text-[10px] text-muted-foreground font-semibold">
+                            Hiển thị:
+                          </span>
                           <select
                             value={guestLimit}
                             onChange={(e) => {
@@ -439,7 +458,9 @@ export function ConcertWorkerDrawer({
                       <div className="flex justify-center gap-1">
                         <button
                           disabled={guestPage === 1}
-                          onClick={() => setGuestPage((p) => Math.max(1, p - 1))}
+                          onClick={() =>
+                            setGuestPage((p) => Math.max(1, p - 1))
+                          }
                           className="p-1 rounded border border-border bg-background hover:bg-surface-high disabled:opacity-40 transition-all cursor-pointer"
                         >
                           <ChevronLeft className="w-3.5 h-3.5" />
@@ -475,7 +496,11 @@ export function ConcertWorkerDrawer({
 
                         <button
                           disabled={guestPage === guestTotalPages}
-                          onClick={() => setGuestPage((p) => Math.min(guestTotalPages, p + 1))}
+                          onClick={() =>
+                            setGuestPage((p) =>
+                              Math.min(guestTotalPages, p + 1),
+                            )
+                          }
                           className="p-1 rounded border border-border bg-background hover:bg-surface-high disabled:opacity-40 transition-all cursor-pointer"
                         >
                           <ChevronRight className="w-3.5 h-3.5" />

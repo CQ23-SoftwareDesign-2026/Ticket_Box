@@ -142,20 +142,32 @@ function StatCard({
         <p className="text-2xl font-black font-display text-foreground tabular-nums">
           {value}
         </p>
-        <p className="text-xs font-semibold text-muted-foreground mt-0.5">{label}</p>
+        <p className="text-xs font-semibold text-muted-foreground mt-0.5">
+          {label}
+        </p>
       </div>
     </div>
   );
 }
 
-function computePageNumbers(page: number, totalPages: number): (number | "...")[] {
+function computePageNumbers(
+  page: number,
+  totalPages: number,
+): (number | "...")[] {
   const pages: (number | "...")[] = [];
   if (totalPages <= 7) {
     for (let i = 1; i <= totalPages; i++) pages.push(i);
   } else if (page <= 3) {
     pages.push(1, 2, 3, 4, "...", totalPages);
   } else if (page >= totalPages - 2) {
-    pages.push(1, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+    pages.push(
+      1,
+      "...",
+      totalPages - 3,
+      totalPages - 2,
+      totalPages - 1,
+      totalPages,
+    );
   } else {
     pages.push(1, "...", page - 1, page, page + 1, "...", totalPages);
   }
@@ -164,7 +176,9 @@ function computePageNumbers(page: number, totalPages: number): (number | "...")[
 
 // ── Main Page ───────────────────────────────────────────────────
 export default function AdminJobsPage() {
-  const [response, setResponse] = useState<BackgroundJobsListResponse | null>(null);
+  const [response, setResponse] = useState<BackgroundJobsListResponse | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -244,7 +258,8 @@ export default function AdminJobsPage() {
             Tác vụ nền
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Theo dõi tất cả background jobs trong hệ thống (AI Bio, Import khách mời…)
+            Theo dõi tất cả background jobs trong hệ thống (AI Bio, Import khách
+            mời…)
           </p>
         </div>
         <button
@@ -252,7 +267,9 @@ export default function AdminJobsPage() {
           disabled={isLoading || isRefreshing}
           className="flex items-center gap-2 px-4 py-2 text-xs font-semibold border border-border rounded-lg text-foreground hover:bg-surface-high transition-all disabled:opacity-50 cursor-pointer select-none"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`}
+          />
           {isRefreshing ? "Đang cập nhật..." : "Làm mới"}
         </button>
       </div>
@@ -299,7 +316,10 @@ export default function AdminJobsPage() {
         </div>
         <select
           value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setPage(1);
+          }}
           className="px-3 py-2 border border-border bg-background rounded-lg text-sm font-semibold cursor-pointer focus:outline-none"
         >
           <option value="">Tất cả trạng thái</option>
@@ -310,7 +330,10 @@ export default function AdminJobsPage() {
         </select>
         <select
           value={typeFilter}
-          onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+          onChange={(e) => {
+            setTypeFilter(e.target.value);
+            setPage(1);
+          }}
           className="px-3 py-2 border border-border bg-background rounded-lg text-sm font-semibold cursor-pointer focus:outline-none"
         >
           <option value="">Tất cả loại tác vụ</option>
@@ -341,25 +364,31 @@ export default function AdminJobsPage() {
                 <tr>
                   <td colSpan={9} className="p-10 text-center select-none">
                     <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Đang tải dữ liệu…</p>
+                    <p className="text-sm text-muted-foreground">
+                      Đang tải dữ liệu…
+                    </p>
                   </td>
                 </tr>
               ) : jobs.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="p-10 text-center select-none">
                     <Cpu className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Không tìm thấy tác vụ nào.</p>
+                    <p className="text-sm text-muted-foreground">
+                      Không tìm thấy tác vụ nào.
+                    </p>
                   </td>
                 </tr>
               ) : (
                 jobs.map((job) => {
                   const typeInfo = JOB_TYPE_MAP[job.job_type] ?? {
                     label: job.job_type,
-                    className: "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20",
+                    className:
+                      "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20",
                   };
                   const statusInfo = STATUS_MAP[job.status] ?? {
                     label: job.status,
-                    className: "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20",
+                    className:
+                      "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20",
                     icon: null,
                   };
                   return (
@@ -397,7 +426,9 @@ export default function AdminJobsPage() {
                             {job.concert_name}
                           </Link>
                         ) : (
-                          <span className="text-muted-foreground/40 italic">—</span>
+                          <span className="text-muted-foreground/40 italic">
+                            —
+                          </span>
                         )}
                       </td>
 
@@ -413,7 +444,9 @@ export default function AdminJobsPage() {
                             </p>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground/40 italic">—</span>
+                          <span className="text-muted-foreground/40 italic">
+                            —
+                          </span>
                         )}
                       </td>
 
@@ -479,7 +512,10 @@ export default function AdminJobsPage() {
                 </span>
                 <select
                   value={limit}
-                  onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value));
+                    setPage(1);
+                  }}
                   className="px-1.5 py-0.5 border border-border bg-background rounded text-[10px] font-semibold cursor-pointer focus:outline-none"
                 >
                   <option value={10}>10</option>

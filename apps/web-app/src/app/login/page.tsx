@@ -22,7 +22,11 @@ function LoginForm() {
   const reset = searchParams?.get("reset") === "1";
   const registered = searchParams?.get("registered") === "1";
   const { login } = useAuth();
-  const { success: showSuccessToast, error: showErrorToast, info: showInfoToast } = useToast();
+  const {
+    success: showSuccessToast,
+    error: showErrorToast,
+    info: showInfoToast,
+  } = useToast();
 
   const [email, setEmail] = useState(searchParams?.get("email") ?? "");
   const [password, setPassword] = useState("");
@@ -31,13 +35,19 @@ function LoginForm() {
 
   useEffect(() => {
     if (verified) {
-      showSuccessToast("Email của bạn đã được xác minh thành công. Bạn có thể đăng nhập ngay.");
+      showSuccessToast(
+        "Email của bạn đã được xác minh thành công. Bạn có thể đăng nhập ngay.",
+      );
     }
     if (reset) {
-      showSuccessToast("Mật khẩu của bạn đã được cập nhật. Vui lòng đăng nhập bằng mật khẩu mới.");
+      showSuccessToast(
+        "Mật khẩu của bạn đã được cập nhật. Vui lòng đăng nhập bằng mật khẩu mới.",
+      );
     }
     if (registered) {
-      showInfoToast("Tài khoản đã được tạo. Vui lòng kiểm tra email để xác thực trước khi đăng nhập.");
+      showInfoToast(
+        "Tài khoản đã được tạo. Vui lòng kiểm tra email để xác thực trước khi đăng nhập.",
+      );
     }
   }, [verified, reset, registered, showSuccessToast, showInfoToast]);
 
@@ -83,7 +93,10 @@ function LoginForm() {
         ) : null}
 
         <div className="space-y-1">
-          <label className="ticketbox-label text-on-surface-variant/90" htmlFor="email">
+          <label
+            className="ticketbox-label text-on-surface-variant/90"
+            htmlFor="email"
+          >
             Địa chỉ Email
           </label>
           <Input
@@ -99,7 +112,10 @@ function LoginForm() {
 
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <label className="ticketbox-label text-on-surface-variant/90 mb-0" htmlFor="password">
+            <label
+              className="ticketbox-label text-on-surface-variant/90 mb-0"
+              htmlFor="password"
+            >
               Mật khẩu
             </label>
             <Link
@@ -120,11 +136,7 @@ function LoginForm() {
           />
         </div>
 
-        <Button
-          type="submit"
-          className="mt-4 w-full py-3.5"
-          loading={loading}
-        >
+        <Button type="submit" className="mt-4 w-full py-3.5" loading={loading}>
           Đăng nhập
         </Button>
       </form>

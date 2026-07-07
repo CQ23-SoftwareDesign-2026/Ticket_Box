@@ -124,7 +124,9 @@ function ConcertsFullList() {
         } catch (e) {
           if (!isActive) return;
           setItems([]);
-          showErrorToast(e instanceof Error ? e.message : "Không thể tải concert.");
+          showErrorToast(
+            e instanceof Error ? e.message : "Không thể tải concert.",
+          );
         } finally {
           if (isActive) setLoading(false);
         }

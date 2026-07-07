@@ -80,10 +80,13 @@ export default function AccountSecurityPage() {
               <Lock size={18} className="text-primary" />
               Đổi mật khẩu
             </h2>
-            
+
             <form onSubmit={onChangePassword} className="space-y-4">
               <div className="space-y-1">
-                <label className="ticketbox-label text-on-surface-variant/80" htmlFor="currentPassword">
+                <label
+                  className="ticketbox-label text-on-surface-variant/80"
+                  htmlFor="currentPassword"
+                >
                   Mật khẩu hiện tại
                 </label>
                 <Input
@@ -98,7 +101,10 @@ export default function AccountSecurityPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="ticketbox-label text-on-surface-variant/80" htmlFor="newPassword">
+                <label
+                  className="ticketbox-label text-on-surface-variant/80"
+                  htmlFor="newPassword"
+                >
                   Mật khẩu mới
                 </label>
                 <Input
@@ -110,11 +116,16 @@ export default function AccountSecurityPage() {
                   required
                   disabled={loading}
                 />
-                <p className="text-[11px] text-on-surface-variant/50">Mật khẩu cần dài ít nhất 8 ký tự.</p>
+                <p className="text-[11px] text-on-surface-variant/50">
+                  Mật khẩu cần dài ít nhất 8 ký tự.
+                </p>
               </div>
 
               <div className="space-y-1">
-                <label className="ticketbox-label text-on-surface-variant/80" htmlFor="confirmPassword">
+                <label
+                  className="ticketbox-label text-on-surface-variant/80"
+                  htmlFor="confirmPassword"
+                >
                   Xác nhận mật khẩu mới
                 </label>
                 <Input

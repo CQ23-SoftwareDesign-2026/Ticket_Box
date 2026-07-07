@@ -67,7 +67,11 @@ export function HeroCarousel() {
 
     const loadFeaturedConcerts = async () => {
       try {
-        const response = await getConcerts({ page: 1, limit: 4, status: "PUBLISHED" });
+        const response = await getConcerts({
+          page: 1,
+          limit: 4,
+          status: "PUBLISHED",
+        });
 
         if (!isActive) return;
 
@@ -141,7 +145,6 @@ export function HeroCarousel() {
 
   return (
     <section className="group relative overflow-hidden bg-slate-950 text-white min-h-[500px] sm:min-h-[550px] lg:min-h-[600px] flex items-center py-16">
-      
       {/* Background ambient glow blur */}
       {previousConcert && (
         /* eslint-disable-next-line @next/next/no-img-element */
@@ -194,7 +197,6 @@ export function HeroCarousel() {
       {/* Main Grid Content */}
       <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 z-10">
         <div className="grid gap-10 lg:grid-cols-12 items-center">
-          
           {/* Left Column: Info Block */}
           <div
             key={featuredConcert?.id ?? "empty"}
@@ -206,9 +208,13 @@ export function HeroCarousel() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-secondary"></span>
                 </span>
-                {badge === "PUBLISHED" ? "ĐANG BÁN VÉ" : badge === "COMPLETED" ? "ĐÃ KẾT THÚC" : badge}
+                {badge === "PUBLISHED"
+                  ? "ĐANG BÁN VÉ"
+                  : badge === "COMPLETED"
+                    ? "ĐÃ KẾT THÚC"
+                    : badge}
               </Badge>
-              
+
               <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight drop-shadow-md">
                 {title}
               </h1>
@@ -223,7 +229,9 @@ export function HeroCarousel() {
               <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs sm:text-sm text-on-surface-variant/80 font-medium">
                 <div className="flex items-center gap-1.5">
                   <Calendar size={14} className="text-primary shrink-0" />
-                  <span>{featuredConcert.time} • {featuredConcert.date}</span>
+                  <span>
+                    {featuredConcert.time} • {featuredConcert.date}
+                  </span>
                 </div>
                 {featuredConcert.venue && (
                   <div className="flex items-center gap-1.5 min-w-0">
@@ -280,7 +288,6 @@ export function HeroCarousel() {
               </div>
             )}
           </div>
-
         </div>
       </div>
 
@@ -577,7 +584,10 @@ export function InteractiveTicketSelector({
   });
   const selectedTier = tiers[selectedIdx];
   const maxQty = selectedTier
-    ? Math.min(selectedTier.max_per_user, selectedTier.remaining_quantity ?? selectedTier.total_quantity ?? 0)
+    ? Math.min(
+        selectedTier.max_per_user,
+        selectedTier.remaining_quantity ?? selectedTier.total_quantity ?? 0,
+      )
     : 0;
 
   const handleConfirm = async () => {
@@ -658,7 +668,8 @@ export function InteractiveTicketSelector({
           {tiers.length > 0 ? (
             tiers.map((tier, index) => {
               const isSelected = selectedIdx === index;
-              const isSoldOut = tier.status === "sold_out" || tier.remaining_quantity === 0;
+              const isSoldOut =
+                tier.status === "sold_out" || tier.remaining_quantity === 0;
               const remaining = tier.remaining_quantity ?? 0;
 
               return (
@@ -680,7 +691,9 @@ export function InteractiveTicketSelector({
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2.5">
-                        <p className={`text-sm font-semibold uppercase tracking-[0.2em] font-bold ${isSoldOut ? 'text-on-surface/50' : 'text-on-surface'}`}>
+                        <p
+                          className={`text-sm font-semibold uppercase tracking-[0.2em] font-bold ${isSoldOut ? "text-on-surface/50" : "text-on-surface"}`}
+                        >
                           {tier.name}
                         </p>
                         {isSoldOut ? (
@@ -697,12 +710,17 @@ export function InteractiveTicketSelector({
                           </span>
                         )}
                       </div>
-                      <p className={`text-xs leading-6 ${isSoldOut ? 'text-on-surface-variant/40' : 'text-on-surface-variant/80'}`}>
-                        Mua tối đa: {tier.max_per_user} vé • Tổng số chỗ: {tier.total_quantity}
+                      <p
+                        className={`text-xs leading-6 ${isSoldOut ? "text-on-surface-variant/40" : "text-on-surface-variant/80"}`}
+                      >
+                        Mua tối đa: {tier.max_per_user} vé • Tổng số chỗ:{" "}
+                        {tier.total_quantity}
                       </p>
                     </div>
                     <div className="text-right">
-                      <div className={`text-2xl font-black ${isSoldOut ? 'text-on-surface/40 line-through' : 'text-on-surface'}`}>
+                      <div
+                        className={`text-2xl font-black ${isSoldOut ? "text-on-surface/40 line-through" : "text-on-surface"}`}
+                      >
                         {formatConcertCurrency(tier.price)}
                       </div>
                       {!isSoldOut && tier.remaining_quantity !== undefined && (
@@ -781,10 +799,10 @@ export function InteractiveTicketSelector({
               disabled={isReserving || maxQty < 1}
               className="ticketbox-button-primary w-full justify-center py-4 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isReserving 
-                ? "Đang đặt giữ vé..." 
-                : maxQty < 1 
-                  ? "Hạng vé đã hết" 
+              {isReserving
+                ? "Đang đặt giữ vé..."
+                : maxQty < 1
+                  ? "Hạng vé đã hết"
                   : "Xác nhận và Thanh toán"}
             </button>
             {error ? (
@@ -1533,8 +1551,7 @@ export function OrderSummaryCard({
       ) {
         seatsText = metadata.ticket_breakdown
           .map(
-            (item) =>
-              `${item.quantity ?? 0}x Vé ${item.category_name || ""}`,
+            (item) => `${item.quantity ?? 0}x Vé ${item.category_name || ""}`,
           )
           .join(", ");
       } else if (metadata.quantity) {
@@ -1698,10 +1715,7 @@ export function CountdownTimer({ orderId }: { orderId?: string }) {
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 via-rose-500 to-red-500" />
             <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-red-500/10 text-red-500 border border-red-500/15 relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-b from-red-500/10 to-transparent opacity-50" />
-              <TimerOff
-                size={36}
-                className="relative z-10 animate-pulse"
-              />
+              <TimerOff size={36} className="relative z-10 animate-pulse" />
             </div>
             <h2 className="font-display text-2xl font-black tracking-tight text-on-surface mb-3">
               Đã Hết Thời Gian Giữ Chỗ
@@ -2170,76 +2184,79 @@ export function SeatMapViewer({ mapUrl }: { mapUrl?: string }) {
         </div>
       </div>
 
-      {isOpen && mounted && typeof document !== "undefined" && createPortal(
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#090d16]/98 backdrop-blur-md select-none"
-          onClick={onMouseUp}
-          style={{
-            backgroundImage: `
+      {isOpen &&
+        mounted &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#090d16]/98 backdrop-blur-md select-none"
+            onClick={onMouseUp}
+            style={{
+              backgroundImage: `
               linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
               linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px)
             `,
-            backgroundSize: "24px 24px"
-          }}
-        >
-          <button
-            onClick={() => setIsOpen(false)}
-            className="absolute top-6 right-6 text-white/70 hover:text-white p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors z-50 border border-white/10"
-          >
-            <X size={24} />
-          </button>
-
-          <div className="absolute bottom-10 flex items-center gap-2 bg-slate-900/60 backdrop-blur-xl p-2 rounded-2xl z-50 border border-white/10 shadow-2xl">
-            <button
-              onClick={handleZoomOut}
-              className="p-3 text-white hover:bg-white/10 rounded-xl transition-colors active:scale-95"
-            >
-              <ZoomOut size={24} />
-            </button>
-            <div className="w-px h-8 bg-white/10 mx-2" />
-            <button
-              onClick={handleZoomIn}
-              className="p-3 text-white hover:bg-white/10 rounded-xl transition-colors active:scale-95"
-            >
-              <ZoomIn size={24} />
-            </button>
-          </div>
-
-          <div
-            className={`w-full h-full overflow-hidden flex items-center justify-center ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
-            onMouseDown={onMouseDown}
-            onMouseMove={onMouseMove}
-            onMouseUp={onMouseUp}
-            onMouseLeave={() => setIsDragging(false)}
-            onDoubleClick={() => {
-              setScale(1);
-              setPosition({ x: 0, y: 0 });
-            }}
-            onWheel={(e) => {
-              const zoomIntensity = 0.08;
-              if (e.deltaY < 0) {
-                setScale((s) => Math.min(s + zoomIntensity, 4));
-              } else {
-                setScale((s) => Math.max(s - zoomIntensity, 0.5));
-              }
+              backgroundSize: "24px 24px",
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={effectiveUrl}
-              alt="Seat Map Fullscreen"
-              style={{
-                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                transition: isDragging
-                  ? "none"
-                  : "transform 0.2s cubic-bezier(0.2, 0, 0, 1)",
+            <button
+              onClick={() => setIsOpen(false)}
+              className="absolute top-6 right-6 text-white/70 hover:text-white p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors z-50 border border-white/10"
+            >
+              <X size={24} />
+            </button>
+
+            <div className="absolute bottom-10 flex items-center gap-2 bg-slate-900/60 backdrop-blur-xl p-2 rounded-2xl z-50 border border-white/10 shadow-2xl">
+              <button
+                onClick={handleZoomOut}
+                className="p-3 text-white hover:bg-white/10 rounded-xl transition-colors active:scale-95"
+              >
+                <ZoomOut size={24} />
+              </button>
+              <div className="w-px h-8 bg-white/10 mx-2" />
+              <button
+                onClick={handleZoomIn}
+                className="p-3 text-white hover:bg-white/10 rounded-xl transition-colors active:scale-95"
+              >
+                <ZoomIn size={24} />
+              </button>
+            </div>
+
+            <div
+              className={`w-full h-full overflow-hidden flex items-center justify-center ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+              onMouseDown={onMouseDown}
+              onMouseMove={onMouseMove}
+              onMouseUp={onMouseUp}
+              onMouseLeave={() => setIsDragging(false)}
+              onDoubleClick={() => {
+                setScale(1);
+                setPosition({ x: 0, y: 0 });
               }}
-              className="w-full h-full object-contain pointer-events-none select-none drop-shadow-2xl"
-            />
-          </div>
-        </div>,
-        document.body
-      )}
+              onWheel={(e) => {
+                const zoomIntensity = 0.08;
+                if (e.deltaY < 0) {
+                  setScale((s) => Math.min(s + zoomIntensity, 4));
+                } else {
+                  setScale((s) => Math.max(s - zoomIntensity, 0.5));
+                }
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={effectiveUrl}
+                alt="Seat Map Fullscreen"
+                style={{
+                  transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                  transition: isDragging
+                    ? "none"
+                    : "transform 0.2s cubic-bezier(0.2, 0, 0, 1)",
+                }}
+                className="w-full h-full object-contain pointer-events-none select-none drop-shadow-2xl"
+              />
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
@@ -2335,7 +2352,7 @@ export function ConfirmModal({
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/80 backdrop-blur-md select-none animate-in fade-in duration-200">
       <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-slate-800 bg-[#0c101b] p-8 text-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] animate-in zoom-in-95 duration-200">
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 via-rose-500 to-red-500" />
-        
+
         <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 text-red-500 border border-red-500/15">
           <Ban size={24} />
         </div>
@@ -2367,6 +2384,6 @@ export function ConfirmModal({
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

@@ -30,7 +30,9 @@ export default function RegisterPage() {
     try {
       await authService.register(email, password, fullName);
       setSuccess(true);
-      showSuccessToast("Đăng ký tài khoản thành công! Vui lòng xác thực email.");
+      showSuccessToast(
+        "Đăng ký tài khoản thành công! Vui lòng xác thực email.",
+      );
     } catch (requestError: unknown) {
       const errorMsg = getAuthErrorMessage(requestError, "register");
       showErrorToast(errorMsg);
@@ -47,7 +49,9 @@ export default function RegisterPage() {
       >
         <div className="flex flex-col items-center justify-center space-y-4 py-8 text-center">
           <p className="text-on-surface-variant/85 text-sm leading-relaxed">
-            Hệ thống đã gửi liên kết xác thực tới hòm thư của bạn. Vui lòng kiểm tra hộp thư và nhấn vào liên kết để kích hoạt tài khoản của bạn trước khi đăng nhập.
+            Hệ thống đã gửi liên kết xác thực tới hòm thư của bạn. Vui lòng kiểm
+            tra hộp thư và nhấn vào liên kết để kích hoạt tài khoản của bạn
+            trước khi đăng nhập.
           </p>
           <Button
             href={`/login?registered=1&email=${encodeURIComponent(email)}`}
@@ -76,9 +80,11 @@ export default function RegisterPage() {
       ]}
     >
       <form className="space-y-5" onSubmit={onSubmit}>
-
         <div className="space-y-1">
-          <label className="ticketbox-label text-on-surface-variant/90" htmlFor="fullName">
+          <label
+            className="ticketbox-label text-on-surface-variant/90"
+            htmlFor="fullName"
+          >
             Họ và tên
           </label>
           <Input
@@ -93,7 +99,10 @@ export default function RegisterPage() {
         </div>
 
         <div className="space-y-1">
-          <label className="ticketbox-label text-on-surface-variant/90" htmlFor="email">
+          <label
+            className="ticketbox-label text-on-surface-variant/90"
+            htmlFor="email"
+          >
             Địa chỉ Email
           </label>
           <Input
@@ -108,7 +117,10 @@ export default function RegisterPage() {
         </div>
 
         <div className="space-y-1">
-          <label className="ticketbox-label text-on-surface-variant/90" htmlFor="password">
+          <label
+            className="ticketbox-label text-on-surface-variant/90"
+            htmlFor="password"
+          >
             Mật khẩu
           </label>
           <Input
@@ -127,7 +139,10 @@ export default function RegisterPage() {
         </div>
 
         <div className="space-y-1">
-          <label className="ticketbox-label text-on-surface-variant/90" htmlFor="confirmPassword">
+          <label
+            className="ticketbox-label text-on-surface-variant/90"
+            htmlFor="confirmPassword"
+          >
             Nhập lại mật khẩu
           </label>
           <Input
@@ -142,11 +157,7 @@ export default function RegisterPage() {
           />
         </div>
 
-        <Button
-          type="submit"
-          className="mt-6 w-full py-3.5"
-          loading={loading}
-        >
+        <Button type="submit" className="mt-6 w-full py-3.5" loading={loading}>
           Đăng ký tài khoản
         </Button>
       </form>

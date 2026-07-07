@@ -21,7 +21,9 @@ export default function ForgotPasswordPage() {
     try {
       await authService.forgotPassword(email);
       setSuccess(true);
-      showSuccessToast("Liên kết đặt lại mật khẩu đã được gửi đến email của bạn.");
+      showSuccessToast(
+        "Liên kết đặt lại mật khẩu đã được gửi đến email của bạn.",
+      );
     } catch (err: unknown) {
       const errorMsg = getAuthErrorMessage(err, "forgot-password");
       showErrorToast(errorMsg);
@@ -40,7 +42,8 @@ export default function ForgotPasswordPage() {
       >
         <div className="flex flex-col items-center justify-center space-y-4 py-8 text-center">
           <p className="text-on-surface-variant/80 text-sm leading-relaxed max-w-sm">
-            Vui lòng kiểm tra hộp thư đến và click vào liên kết để thiết lập lại mật khẩu của bạn.
+            Vui lòng kiểm tra hộp thư đến và click vào liên kết để thiết lập lại
+            mật khẩu của bạn.
           </p>
         </div>
       </TicketBoxAuthShell>
@@ -55,9 +58,11 @@ export default function ForgotPasswordPage() {
       footerLinks={[{ label: "Quay lại đăng nhập", href: "/login" }]}
     >
       <form className="space-y-5" onSubmit={onSubmit}>
-
         <div className="space-y-1">
-          <label className="ticketbox-label text-on-surface-variant/90" htmlFor="email">
+          <label
+            className="ticketbox-label text-on-surface-variant/90"
+            htmlFor="email"
+          >
             Địa chỉ Email
           </label>
           <div className="relative">

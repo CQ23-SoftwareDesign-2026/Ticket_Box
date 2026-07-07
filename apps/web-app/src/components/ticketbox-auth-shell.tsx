@@ -88,9 +88,7 @@ export function TicketBoxAuthShell({
               </p>
             </div>
 
-            <div className="flex-1">
-              {children}
-            </div>
+            <div className="flex-1">{children}</div>
 
             {footerLinks?.length ? (
               <div className="mt-6 flex flex-col items-center gap-4 sm:flex-row sm:justify-between border-t border-outline-variant/50 pt-5 text-sm text-on-surface-variant/80">

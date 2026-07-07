@@ -56,7 +56,8 @@ export default function VerifyClient() {
         }
 
         setStatus("success");
-        const msg = data.message ?? "Email của bạn đã được xác minh thành công.";
+        const msg =
+          data.message ?? "Email của bạn đã được xác minh thành công.";
         setMessage(msg);
         showSuccessToast(msg);
 
@@ -107,18 +108,36 @@ export default function VerifyClient() {
       <div className="space-y-5">
         {status === "loading" && (
           <div className="flex flex-col items-center justify-center py-6 gap-4">
-            <svg className="animate-spin h-10 w-10 text-primary" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            <svg
+              className="animate-spin h-10 w-10 text-primary"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
             </svg>
-            <p className="text-sm text-on-surface-variant/60">Vui lòng chờ trong giây lát...</p>
+            <p className="text-sm text-on-surface-variant/60">
+              Vui lòng chờ trong giây lát...
+            </p>
           </div>
         )}
 
         {status === "success" && (
           <div className="py-6 text-center">
             <p className="text-sm text-on-surface-variant/80 leading-relaxed">
-              Email của bạn đã được xác minh thành công. Đang tự động chuyển hướng về trang đăng nhập...
+              Email của bạn đã được xác minh thành công. Đang tự động chuyển
+              hướng về trang đăng nhập...
             </p>
           </div>
         )}
@@ -126,7 +145,8 @@ export default function VerifyClient() {
         {status === "error" && (
           <div className="py-6 text-center">
             <p className="text-sm text-on-surface-variant/80 leading-relaxed">
-              Xác thực email thất bại hoặc liên kết đã hết hạn. Vui lòng yêu cầu liên kết mới.
+              Xác thực email thất bại hoặc liên kết đã hết hạn. Vui lòng yêu cầu
+              liên kết mới.
             </p>
           </div>
         )}

@@ -1,7 +1,13 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback } from "react";
-import { CheckCircle2, AlertCircle, Info, AlertTriangle, X } from "lucide-react";
+import {
+  CheckCircle2,
+  AlertCircle,
+  Info,
+  AlertTriangle,
+  X,
+} from "lucide-react";
 
 export type ToastType = "success" | "error" | "info" | "warning";
 
@@ -40,13 +46,25 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         }, duration);
       }
     },
-    [removeToast]
+    [removeToast],
   );
 
-  const success = useCallback((msg: string, dur?: number) => toast(msg, "success", dur), [toast]);
-  const error = useCallback((msg: string, dur?: number) => toast(msg, "error", dur), [toast]);
-  const info = useCallback((msg: string, dur?: number) => toast(msg, "info", dur), [toast]);
-  const warning = useCallback((msg: string, dur?: number) => toast(msg, "warning", dur), [toast]);
+  const success = useCallback(
+    (msg: string, dur?: number) => toast(msg, "success", dur),
+    [toast],
+  );
+  const error = useCallback(
+    (msg: string, dur?: number) => toast(msg, "error", dur),
+    [toast],
+  );
+  const info = useCallback(
+    (msg: string, dur?: number) => toast(msg, "info", dur),
+    [toast],
+  );
+  const warning = useCallback(
+    (msg: string, dur?: number) => toast(msg, "warning", dur),
+    [toast],
+  );
 
   const styles = {
     success: "bg-emerald-950/90 border-emerald-500/20 text-emerald-300",
@@ -72,7 +90,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             className={`pointer-events-auto flex items-start gap-3 rounded-2xl border p-4 text-sm shadow-2xl backdrop-blur-md transition-all duration-300 ease-out animate-in fade-in slide-in-from-top-5 ${styles[t.type]}`}
           >
             {icons[t.type]}
-            <div className="flex-1 pr-6 leading-relaxed text-left">{t.message}</div>
+            <div className="flex-1 pr-6 leading-relaxed text-left">
+              {t.message}
+            </div>
             <button
               type="button"
               onClick={() => removeToast(t.id)}

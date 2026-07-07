@@ -107,7 +107,6 @@ export default function SupportPage() {
   return (
     <SiteShell active="/support">
       <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 text-on-surface">
-        
         {/* Banner Hero */}
         <div className="relative overflow-hidden py-16 border-b border-slate-800 bg-[#0f172a]/20">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(99,102,241,0.1),transparent_50%)] pointer-events-none" />
@@ -122,7 +121,8 @@ export default function SupportPage() {
               Chúng tôi có thể giúp gì cho bạn?
             </h1>
             <p className="mt-4 text-base sm:text-lg text-on-surface-variant/80 max-w-2xl mx-auto leading-relaxed">
-              Tìm kiếm câu trả lời nhanh chóng cho các thắc mắc thường gặp hoặc liên hệ trực tiếp với bộ phận chăm sóc khách hàng 24/7.
+              Tìm kiếm câu trả lời nhanh chóng cho các thắc mắc thường gặp hoặc
+              liên hệ trực tiếp với bộ phận chăm sóc khách hàng 24/7.
             </p>
           </div>
         </div>
@@ -130,7 +130,6 @@ export default function SupportPage() {
         {/* Main Grid Content */}
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-3">
-            
             {/* FAQ Accordion Section (Left/Center Column) */}
             <div className="lg:col-span-2 space-y-6">
               <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
@@ -149,7 +148,9 @@ export default function SupportPage() {
                       className="group overflow-hidden rounded-2xl border border-slate-800 bg-[#16222f]/50 hover:border-slate-700/80 hover:bg-[#16222f]/70 transition-all duration-200"
                     >
                       <button
-                        onClick={() => setExpandedFAQ(isExpanded ? null : index)}
+                        onClick={() =>
+                          setExpandedFAQ(isExpanded ? null : index)
+                        }
                         className="flex w-full items-center justify-between p-5 text-left text-on-surface hover:text-primary transition-colors focus:outline-none"
                       >
                         <div className="space-y-1">
@@ -229,7 +230,9 @@ export default function SupportPage() {
 
               <div className="rounded-3xl border border-slate-800 bg-[#16222f]/50 p-6 shadow-md space-y-6">
                 <p className="text-sm text-on-surface-variant/80 leading-relaxed">
-                  Đội ngũ CSKH kỹ thuật của TicketBox luôn sẵn sàng túc trực 24/7 để xử lý nhanh chóng mọi phản hồi và sự cố liên quan đến đặt vé & soát vé.
+                  Đội ngũ CSKH kỹ thuật của TicketBox luôn sẵn sàng túc trực
+                  24/7 để xử lý nhanh chóng mọi phản hồi và sự cố liên quan đến
+                  đặt vé & soát vé.
                 </p>
 
                 {/* Email Option Card */}
@@ -270,7 +273,9 @@ export default function SupportPage() {
                       <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider block">
                         Hotline khẩn cấp 24/7
                       </span>
-                      <p className="text-sm font-bold text-on-surface mt-0.5">{phone}</p>
+                      <p className="text-sm font-bold text-on-surface mt-0.5">
+                        {phone}
+                      </p>
                     </div>
                   </div>
                   <a
@@ -284,12 +289,13 @@ export default function SupportPage() {
                 <div className="flex items-start gap-2.5 text-xs text-on-surface-variant/60 pt-2 border-t border-slate-800">
                   <Info size={14} className="text-primary/80 shrink-0 mt-0.5" />
                   <span className="leading-normal">
-                    Đối với các thắc mắc phát sinh trực tiếp tại khu vực check-in của liveshow, vui lòng di chuyển tới **Quầy Kỹ Thuật (Technical Gate)** để được hỗ trợ nhanh nhất.
+                    Đối với các thắc mắc phát sinh trực tiếp tại khu vực
+                    check-in của liveshow, vui lòng di chuyển tới **Quầy Kỹ
+                    Thuật (Technical Gate)** để được hỗ trợ nhanh nhất.
                   </span>
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>

@@ -25,7 +25,12 @@ import { getOrders, getOrderById } from "@/services/order.service";
 
 const roleConfig: Record<
   string,
-  { label: string; icon: React.ComponentType<{ size?: number; className?: string }>; badgeClass: string; iconClass: string }
+  {
+    label: string;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+    badgeClass: string;
+    iconClass: string;
+  }
 > = {
   admin: {
     label: "Quản trị viên",
@@ -61,7 +66,8 @@ const permissionMap: Record<string, string> = {
   scan_ticket: "Soát vé (Quét QR)",
 };
 
-const getPermissionLabel = (perm: string) => permissionMap[perm.toLowerCase()] || perm;
+const getPermissionLabel = (perm: string) =>
+  permissionMap[perm.toLowerCase()] || perm;
 
 function ProfileContent() {
   const { user } = useAuth();
@@ -111,7 +117,9 @@ function ProfileContent() {
           for (const detail of details) {
             if (detail && detail.tickets) {
               // Count tickets that are paid and not yet scanned
-              activeTickets += detail.tickets.filter((t) => !t.is_scanned).length;
+              activeTickets += detail.tickets.filter(
+                (t) => !t.is_scanned,
+              ).length;
             }
           }
         }
@@ -161,7 +169,7 @@ function ProfileContent() {
       setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      
+
       // Auto close modal after 1.5 seconds on success
       setTimeout(() => {
         closeModal();
@@ -170,8 +178,8 @@ function ProfileContent() {
       const errorMsg =
         (err as { response?: { data?: { message?: string } } })?.response?.data
           ?.message ||
-          (err as Error)?.message ||
-          "Đổi mật khẩu thất bại. Vui lòng thử lại.";
+        (err as Error)?.message ||
+        "Đổi mật khẩu thất bại. Vui lòng thử lại.";
       showErrorToast(errorMsg);
     } finally {
       setLoading(false);
@@ -199,7 +207,6 @@ function ProfileContent() {
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-12 sm:px-6 lg:px-8 space-y-8">
-      
       {/* Profile Header Card */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -223,7 +230,8 @@ function ProfileContent() {
                   {user?.fullName || "Người dùng"}
                 </h1>
                 {user?.roles?.map((role) => {
-                  const config = roleConfig[role.toLowerCase()] || roleConfig.audience;
+                  const config =
+                    roleConfig[role.toLowerCase()] || roleConfig.audience;
                   const Icon = config.icon;
                   return (
                     <span
@@ -257,7 +265,10 @@ function ProfileContent() {
               </p>
               <p className="mt-1 text-2xl font-black text-primary">
                 {statsLoading ? (
-                  <Loader2 size={20} className="animate-spin mx-auto text-primary/70 mt-1" />
+                  <Loader2
+                    size={20}
+                    className="animate-spin mx-auto text-primary/70 mt-1"
+                  />
                 ) : (
                   ticketsOwned
                 )}
@@ -276,7 +287,10 @@ function ProfileContent() {
               </p>
               <p className="mt-1 text-2xl font-black text-primary">
                 {statsLoading ? (
-                  <Loader2 size={20} className="animate-spin mx-auto text-primary/70 mt-1" />
+                  <Loader2
+                    size={20}
+                    className="animate-spin mx-auto text-primary/70 mt-1"
+                  />
                 ) : (
                   eventsAttended
                 )}
@@ -324,7 +338,8 @@ function ProfileContent() {
             <div className="flex flex-wrap gap-1.5 mt-2">
               {user?.roles && user.roles.length > 0 ? (
                 user.roles.map((role) => {
-                  const config = roleConfig[role.toLowerCase()] || roleConfig.audience;
+                  const config =
+                    roleConfig[role.toLowerCase()] || roleConfig.audience;
                   const Icon = config.icon;
                   return (
                     <span
@@ -337,7 +352,9 @@ function ProfileContent() {
                   );
                 })
               ) : (
-                <span className="text-sm font-semibold text-on-surface">Khách hàng</span>
+                <span className="text-sm font-semibold text-on-surface">
+                  Khách hàng
+                </span>
               )}
             </div>
           </div>
@@ -397,7 +414,6 @@ function ProfileContent() {
         {isModalOpen && (
           <div className="fixed inset-0 z-[150] overflow-y-auto">
             <div className="flex min-h-screen items-center justify-center p-4 text-center">
-              
               {/* Overlay backdrop */}
               <motion.div
                 initial={{ opacity: 0 }}
@@ -438,7 +454,6 @@ function ProfileContent() {
                 </div>
 
                 <form onSubmit={handlePasswordChange} className="space-y-4">
-                  
                   {/* Current Password Field */}
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/80 block">
@@ -461,7 +476,11 @@ function ProfileContent() {
                         onClick={() => setShowOldPassword(!showOldPassword)}
                         className="absolute right-3.5 top-3.5 text-on-surface-variant/60 hover:text-primary transition-colors"
                       >
-                        {showOldPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                        {showOldPassword ? (
+                          <EyeOff size={15} />
+                        ) : (
+                          <Eye size={15} />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -488,7 +507,11 @@ function ProfileContent() {
                         onClick={() => setShowNewPassword(!showNewPassword)}
                         className="absolute right-3.5 top-3.5 text-on-surface-variant/60 hover:text-primary transition-colors"
                       >
-                        {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                        {showNewPassword ? (
+                          <EyeOff size={15} />
+                        ) : (
+                          <Eye size={15} />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -517,7 +540,11 @@ function ProfileContent() {
                         }
                         className="absolute right-3.5 top-3.5 text-on-surface-variant/60 hover:text-primary transition-colors"
                       >
-                        {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                        {showConfirmPassword ? (
+                          <EyeOff size={15} />
+                        ) : (
+                          <Eye size={15} />
+                        )}
                       </button>
                     </div>
                   </div>

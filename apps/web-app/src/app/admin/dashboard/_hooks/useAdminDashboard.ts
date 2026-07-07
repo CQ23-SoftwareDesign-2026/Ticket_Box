@@ -11,7 +11,6 @@ import {
   type RecentOrder,
 } from "@/services/dashboard.service";
 
-
 export function useAdminDashboard() {
   // Summary & orders
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -36,8 +35,6 @@ export function useAdminDashboard() {
 
   // Chart hover
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-
-
 
   // Load summary and recent orders
   useEffect(() => {
@@ -84,8 +81,6 @@ export function useAdminDashboard() {
     loadRevenue();
   }, [groupBy, fromDate, toDate]);
 
-
-
   const handleApply = () => {
     setFromDate(tempFromDate);
     setToDate(tempToDate);
@@ -127,7 +122,8 @@ export function useAdminDashboard() {
   ];
 
   const formatYAxisLabel = (value: number) => {
-    if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)} tỷ đ`;
+    if (value >= 1_000_000_000)
+      return `${(value / 1_000_000_000).toFixed(1)} tỷ đ`;
     if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(0)} triệu đ`;
     if (value >= 1_000) return `${(value / 1_000).toFixed(0)}k đ`;
     return `${value} đ`;
