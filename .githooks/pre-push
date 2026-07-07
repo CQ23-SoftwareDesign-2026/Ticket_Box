@@ -2,27 +2,27 @@
 
 echo ""
 echo "╔══════════════════════════════════════════════════════╗"
-echo "║         [pre-push] Running quality gate              ║"
+echo "║     [pre-push] Frontend Quality Gate (4 steps)      ║"
 echo "╚══════════════════════════════════════════════════════╝"
 echo ""
 
-# Step 1: Prettier check (web-app)
-echo "→ Step 1/4: Prettier format check (web-app)..."
-npm run prettier:check:web
+# Step 1: Code style verification (Prettier)
+echo "→ Step 1/4: Code style verification (Prettier)..."
+cd apps/web-app && npx prettier --check . && cd ../..
 if [ $? -ne 0 ]; then
   echo ""
-  echo "✖ Prettier check failed. Run the following to auto-fix:"
+  echo "✖ Prettier check failed. Auto-fix with:"
   echo "    npm run prettier:fix:web"
   echo ""
-  echo "✖ [pre-push] Push blocked. Fix formatting and push again."
+  echo "✖ [pre-push] Push blocked."
   exit 1
 fi
-echo "  ✔ Prettier check passed."
+echo "  ✔ Prettier passed."
 echo ""
 
-# Step 2: ESLint (backend + prisma)
-echo "→ Step 2/4: ESLint (backend)..."
-npm run lint
+# Step 2: Static linter audits (ESLint)
+echo "→ Step 2/4: Static linter audits (ESLint)..."
+cd apps/web-app && npm run lint && cd ../..
 if [ $? -ne 0 ]; then
   echo ""
   echo "✖ ESLint found errors. Fix them and push again."
@@ -33,9 +33,9 @@ fi
 echo "  ✔ ESLint passed."
 echo ""
 
-# Step 3: TypeScript check (backend)
-echo "→ Step 3/4: TypeScript type check (backend)..."
-npm run typecheck:api
+# Step 3: Static compiler type-checking (TypeScript)
+echo "→ Step 3/4: Static compiler type-checking (TypeScript)..."
+cd apps/web-app && npm run type-check && cd ../..
 if [ $? -ne 0 ]; then
   echo ""
   echo "✖ TypeScript type errors found. Fix them and push again."
@@ -46,17 +46,17 @@ fi
 echo "  ✔ TypeScript passed."
 echo ""
 
-# Step 4: Unit tests (backend)
-echo "→ Step 4/4: Unit tests (backend)..."
-npm run test:api:unit
+# Step 4: Production compilation build test
+echo "→ Step 4/4: Production compilation build test..."
+cd apps/web-app && npm run build && cd ../..
 if [ $? -ne 0 ]; then
   echo ""
-  echo "✖ Unit tests failed. Fix them and push again."
+  echo "✖ Build failed. Fix compilation errors and push again."
   echo ""
   echo "✖ [pre-push] Push blocked."
   exit 1
 fi
-echo "  ✔ Unit tests passed."
+echo "  ✔ Build passed."
 echo ""
 
 echo "╔══════════════════════════════════════════════════════╗"

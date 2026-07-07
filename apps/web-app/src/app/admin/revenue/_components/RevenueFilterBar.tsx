@@ -1,7 +1,5 @@
 "use client";
 
-import { useRef } from "react";
-
 interface RevenueFilterBarProps {
   tempFromDate: string;
   tempToDate: string;

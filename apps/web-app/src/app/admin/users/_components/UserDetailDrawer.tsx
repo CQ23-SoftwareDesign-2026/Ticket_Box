@@ -3,7 +3,6 @@
 import { X, ShoppingBag, CheckCircle, Ticket, DollarSign } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { type AdminUserDetail } from "@/services/admin-user.service";
-import { StatusBadge } from "../../_components/StatusBadge";
 
 const formatVND = (value: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(

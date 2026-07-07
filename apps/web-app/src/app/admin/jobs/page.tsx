@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import {
   Cpu,
@@ -189,8 +189,11 @@ export default function AdminJobsPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
 
-  const autoRefreshRef = useRef<NodeJS.Timeout | null>(null);
+  // Auto-refresh: increment this to re-trigger the fetch effect
+  const [refreshKey, setRefreshKey] = useState(0);
+  const isAutoRefreshRef = useRef(false);
 
+  // Debounce search
   useEffect(() => {
     const t = setTimeout(() => {
       setDebouncedSearch(search);
@@ -199,8 +202,13 @@ export default function AdminJobsPage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const fetchJobs = useCallback(
-    async (silent = false) => {
+  // Main fetch effect – defines async function inline to satisfy react-hooks/set-state-in-effect
+  useEffect(() => {
+    let cancelled = false;
+    const silent = isAutoRefreshRef.current;
+    isAutoRefreshRef.current = false;
+
+    async function loadJobs() {
       if (!silent) setIsLoading(true);
       else setIsRefreshing(true);
       try {
@@ -211,35 +219,40 @@ export default function AdminJobsPage() {
           job_type: typeFilter || undefined,
           concert_id: debouncedSearch || undefined,
         });
-        setResponse(data);
+        if (!cancelled) setResponse(data);
       } catch (err) {
         console.error("Failed to fetch background jobs:", err);
       } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
+        if (!cancelled) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
       }
-    },
-    [page, limit, statusFilter, typeFilter, debouncedSearch],
-  );
+    }
 
-  useEffect(() => {
-    void fetchJobs(false);
-  }, [fetchJobs]);
+    void loadJobs();
+    return () => {
+      cancelled = true;
+    };
+  }, [page, limit, statusFilter, typeFilter, debouncedSearch, refreshKey]);
 
+  // Auto-refresh every 5s when there are active jobs
   useEffect(() => {
-    if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
     const hasActive = response?.data.some(
       (j) => j.status === "PENDING" || j.status === "PROCESSING",
     );
-    if (hasActive) {
-      autoRefreshRef.current = setInterval(() => {
-        void fetchJobs(true);
-      }, 5000);
-    }
-    return () => {
-      if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
-    };
-  }, [response, fetchJobs]);
+    if (!hasActive) return;
+    const interval = setInterval(() => {
+      isAutoRefreshRef.current = true;
+      setRefreshKey((k) => k + 1);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [response]);
+
+  const handleManualRefresh = () => {
+    isAutoRefreshRef.current = false;
+    setRefreshKey((k) => k + 1);
+  };
 
   const jobs: BackgroundJobWithMeta[] = response?.data ?? [];
   const meta = response?.meta;
@@ -263,7 +276,7 @@ export default function AdminJobsPage() {
           </p>
         </div>
         <button
-          onClick={() => void fetchJobs(false)}
+          onClick={handleManualRefresh}
           disabled={isLoading || isRefreshing}
           className="flex items-center gap-2 px-4 py-2 text-xs font-semibold border border-border rounded-lg text-foreground hover:bg-surface-high transition-all disabled:opacity-50 cursor-pointer select-none"
         >
