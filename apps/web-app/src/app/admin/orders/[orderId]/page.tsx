@@ -4,6 +4,9 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { getOrderById, type OrderDetail } from "@/services/order.service";
 import { formatConcertCurrency } from "@/services/concert.service";
+import { resolveRefund } from "@/services/payment.service";
+import { useToast } from "@/context/ToastContext";
+import { getErrorMessage } from "@/utils/error.utils";
 import {
   ChevronLeft,
   Calendar,
@@ -14,6 +17,9 @@ import {
   ChevronUp,
   Ticket,
   Loader2,
+  AlertTriangle,
+  CheckCircle,
+  X,
 } from "lucide-react";
 import QRCode from "qrcode";
 
@@ -27,6 +33,7 @@ const TX_STATUS_CLASSES: Record<string, string> = {
   SUCCESS: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
   PENDING: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   FAILED: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+  REFUNDED: "bg-purple-500/10 text-purple-400 border-purple-500/20",
 };
 
 interface TicketBreakdownItem {
@@ -42,6 +49,18 @@ interface TicketMetadata {
   category_id?: string;
   category_name?: string;
   ticket_breakdown?: TicketBreakdownItem[];
+}
+
+interface RefundInfoJson {
+  refunded_by?: string;
+  refunded_at?: string;
+  refund_tx_id?: string;
+  refund_note?: string;
+}
+
+interface RawResponseJson {
+  warning?: string;
+  refund_info?: RefundInfoJson;
 }
 
 interface PageProps {
@@ -141,10 +160,18 @@ function CopyButton({ text }: { text: string }) {
 
 export default function AdminOrderDetailPage({ params }: PageProps) {
   const { orderId } = use(params);
+  const { success: toastSuccess, error: toastError } = useToast();
+
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openJsonTx, setOpenJsonTx] = useState<Record<string, boolean>>({});
+
+  // Refund resolution states
+  const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+  const [refundTxId, setRefundTxId] = useState("");
+  const [refundNote, setRefundNote] = useState("");
+  const [isSubmittingRefund, setIsSubmittingRefund] = useState(false);
 
   useEffect(() => {
     async function loadOrder() {
@@ -168,6 +195,33 @@ export default function AdminOrderDetailPage({ params }: PageProps) {
 
   const toggleJson = (txId: string) => {
     setOpenJsonTx((prev) => ({ ...prev, [txId]: !prev[txId] }));
+  };
+
+  const handleResolveRefund = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!expiredPaidTx) return;
+
+    setIsSubmittingRefund(true);
+    try {
+      await resolveRefund(expiredPaidTx.id, {
+        refund_tx_id: refundTxId.trim() || undefined,
+        refund_note: refundNote.trim() || undefined,
+      });
+      toastSuccess("Ghi nhận thông tin hoàn tiền thành công!");
+      setIsRefundModalOpen(false);
+      setRefundTxId("");
+      setRefundNote("");
+
+      // Reload order details
+      const updatedOrder = await getOrderById(orderId, true);
+      if (updatedOrder) {
+        setOrder(updatedOrder);
+      }
+    } catch (err: unknown) {
+      toastError(getErrorMessage(err));
+    } finally {
+      setIsSubmittingRefund(false);
+    }
   };
 
   if (isLoading) {
@@ -199,11 +253,22 @@ export default function AdminOrderDetailPage({ params }: PageProps) {
     );
   }
 
+  // Detect payment transactions paid after expiration/cancellation
+  const expiredPaidTx = order.payment_transactions.find((tx) => {
+    const raw = tx.raw_response as unknown as RawResponseJson | null;
+    return raw && raw.warning === "Paid after order expiration/cancellation";
+  });
+
+  const isRefunded = expiredPaidTx?.status === "REFUNDED";
+  const refundInfo = (
+    expiredPaidTx?.raw_response as unknown as RawResponseJson | null
+  )?.refund_info;
+
   // Check if user has active name or email info
   const hasCustomerInfo = !!(order.user_name || order.user_email);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto font-body text-xs">
       {/* Back button & Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
         <div className="space-y-1 min-w-0">
@@ -213,7 +278,7 @@ export default function AdminOrderDetailPage({ params }: PageProps) {
           >
             <ChevronLeft size={14} /> Quay lại trang tổng quan
           </Link>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <h1 className="font-display text-2xl font-black text-foreground break-all">
               Đơn hàng #{order.id.toUpperCase()}
             </h1>
@@ -238,6 +303,75 @@ export default function AdminOrderDetailPage({ params }: PageProps) {
           </span>
         </div>
       </div>
+
+      {/* Warning banner for late payment (Paid after expiration/cancellation) */}
+      {expiredPaidTx && (
+        <div
+          className={`rounded-2xl border p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm transition-all duration-300 ${
+            isRefunded
+              ? "bg-purple-950/15 border-purple-500/20 text-purple-300"
+              : "bg-rose-950/15 border-rose-500/20 text-rose-300 animate-pulse"
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            {isRefunded ? (
+              <CheckCircle className="w-5 h-5 text-purple-400 shrink-0 mt-0.5 md:mt-0" />
+            ) : (
+              <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5 md:mt-0" />
+            )}
+            <div className="space-y-1">
+              <h4 className="font-bold text-sm">
+                {isRefunded
+                  ? "Giao dịch thanh toán quá hạn - ĐÃ HOÀN TIỀN"
+                  : "CẢNH BÁO: Phát hiện giao dịch thanh toán sau khi đơn hàng hết hạn/hủy"}
+              </h4>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                {isRefunded
+                  ? "Đã ghi nhận giao dịch lỗi thanh toán quá hạn này được hoàn tiền hoàn tất."
+                  : "Khách hàng đã chuyển tiền thành công nhưng đơn hàng đã bị hủy do quá thời gian chờ (10 phút). Vui lòng hoàn lại tiền."}
+              </p>
+              {isRefunded && refundInfo && (
+                <div className="mt-2 p-3 bg-surface border border-border/80 rounded-xl space-y-1 text-[10px] text-muted-foreground font-mono">
+                  <p>
+                    <strong className="text-foreground">
+                      Người thực hiện:
+                    </strong>{" "}
+                    {refundInfo.refunded_by}
+                  </p>
+                  {refundInfo.refunded_at && (
+                    <p>
+                      <strong className="text-foreground">Thời gian:</strong>{" "}
+                      {new Date(refundInfo.refunded_at).toLocaleString("vi-VN")}
+                    </p>
+                  )}
+                  {refundInfo.refund_tx_id && (
+                    <p>
+                      <strong className="text-foreground">
+                        Mã GD hoàn tiền:
+                      </strong>{" "}
+                      {refundInfo.refund_tx_id}
+                    </p>
+                  )}
+                  {refundInfo.refund_note && (
+                    <p>
+                      <strong className="text-foreground">Ghi chú:</strong>{" "}
+                      {refundInfo.refund_note}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          {!isRefunded && (
+            <button
+              onClick={() => setIsRefundModalOpen(true)}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-4 rounded-xl transition-all cursor-pointer active:scale-95 duration-200 shrink-0 hover:shadow-lg hover:shadow-rose-600/20"
+            >
+              Đánh dấu đã hoàn tiền
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -554,7 +688,9 @@ export default function AdminOrderDetailPage({ params }: PageProps) {
                           ? "THÀNH CÔNG"
                           : tx.status === "PENDING"
                             ? "CHỜ THANH TOÁN"
-                            : "THẤT BẠI"}
+                            : tx.status === "REFUNDED"
+                              ? "ĐÃ HOÀN TIỀN"
+                              : "THẤT BẠI"}
                       </span>
                     </div>
 
@@ -685,6 +821,94 @@ export default function AdminOrderDetailPage({ params }: PageProps) {
           </div>
         )}
       </div>
+
+      {/* REFUND RESOLUTION MODAL */}
+      {isRefundModalOpen && expiredPaidTx && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl p-6 space-y-4 relative z-10 font-body text-xs">
+            <div className="flex justify-between items-center pb-2 border-b border-border">
+              <h3 className="font-display text-base font-bold text-foreground">
+                Ghi nhận thông tin hoàn tiền
+              </h3>
+              <button
+                onClick={() => {
+                  setIsRefundModalOpen(false);
+                  setRefundTxId("");
+                  setRefundNote("");
+                }}
+                className="text-muted-foreground hover:text-foreground cursor-pointer rounded-lg hover:bg-surface-high p-1"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleResolveRefund} className="space-y-4">
+              <div className="p-3 bg-surface-low rounded-xl border border-border space-y-1">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+                  Thông tin giao dịch lỗi:
+                </p>
+                <p className="font-semibold text-foreground">
+                  Số tiền: {formatConcertCurrency(Number(expiredPaidTx.amount))}
+                </p>
+                <p className="text-muted-foreground">
+                  Mã GD đối tác:{" "}
+                  {expiredPaidTx.transaction_id_3rd_party || "N/A"}
+                </p>
+              </div>
+
+              <label className="space-y-1.5 block">
+                <span className="font-bold text-muted-foreground uppercase tracking-wider block">
+                  Mã giao dịch hoàn tiền (Tùy chọn)
+                </span>
+                <input
+                  type="text"
+                  value={refundTxId}
+                  onChange={(e) => setRefundTxId(e.target.value)}
+                  placeholder="Nhập mã giao dịch của ngân hàng (Ví dụ: FT123456)..."
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:border-primary h-11 transition-all"
+                />
+              </label>
+
+              <label className="space-y-1.5 block">
+                <span className="font-bold text-muted-foreground uppercase tracking-wider block">
+                  Ghi chú hoàn tiền (Tùy chọn)
+                </span>
+                <textarea
+                  value={refundNote}
+                  onChange={(e) => setRefundNote(e.target.value)}
+                  placeholder="Nhập thông tin tài khoản đã nhận hoàn tiền hoặc lý do..."
+                  rows={3}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:border-primary transition-all resize-none"
+                />
+              </label>
+
+              <div className="flex gap-3 justify-end pt-3 border-t border-border mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsRefundModalOpen(false);
+                    setRefundTxId("");
+                    setRefundNote("");
+                  }}
+                  className="bg-background hover:bg-surface-low border border-border text-foreground font-semibold py-2.5 px-4 rounded-xl transition-all cursor-pointer active:scale-95"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingRefund}
+                  className="bg-primary hover:bg-primary-container text-white font-bold py-2.5 px-5 rounded-xl transition-all flex items-center gap-1.5 hover:shadow-lg hover:shadow-primary/20 active:scale-95 disabled:opacity-50 cursor-pointer"
+                >
+                  {isSubmittingRefund && (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  )}
+                  Lưu thông tin
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
