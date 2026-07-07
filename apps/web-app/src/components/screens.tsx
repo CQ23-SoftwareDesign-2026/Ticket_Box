@@ -548,6 +548,15 @@ export function SeatMapSvg({ className = "" }: { className?: string }) {
   );
 }
 
+const getNowIso = (): string => {
+  return new Date().toISOString();
+};
+
+const getReservationExpiry = (expiresAtStr?: string | null): string => {
+  if (expiresAtStr) return expiresAtStr;
+  return new Date(Date.now() + 10 * 60 * 1000).toISOString();
+};
+
 export function InteractiveTicketSelector({
   concert,
 }: {
@@ -561,7 +570,11 @@ export function InteractiveTicketSelector({
   const [error, setError] = useState<string | null>(null);
   const [isReserving, setIsReserving] = useState(false);
 
-  const tiers = concert.ticketTiers ?? [];
+  const now = new Date();
+  const tiers = (concert.ticketTiers ?? []).filter((tier) => {
+    if (!tier.sales_start_at) return true;
+    return now >= new Date(tier.sales_start_at);
+  });
   const selectedTier = tiers[selectedIdx];
   const maxQty = selectedTier
     ? Math.min(selectedTier.max_per_user, selectedTier.remaining_quantity ?? selectedTier.total_quantity ?? 0)
@@ -601,10 +614,8 @@ export function InteractiveTicketSelector({
         price: selectedTier.price,
         quantity,
         remaining: response.items[0]?.remaining ?? 0,
-        reservedAt: new Date().toISOString(),
-        expiresAt:
-          response.expires_at ??
-          new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+        reservedAt: getNowIso(),
+        expiresAt: getReservationExpiry(response.expires_at),
       });
 
       router.push(`/checkout/${response.order_id}`);

@@ -56,6 +56,8 @@ export interface OrderDetail {
   expires_at: string;
   ticket_count: number;
   ticket_metadata: Record<string, unknown> | null;
+  user_name?: string | null;
+  user_email?: string | null;
   tickets: OrderTicket[];
   payment_transactions: OrderPaymentTransaction[];
 }

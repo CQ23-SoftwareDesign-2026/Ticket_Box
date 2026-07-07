@@ -134,14 +134,8 @@ function mapConcert(item: ConcertApiItem): ConcertCardItem {
   const { venue, city } = splitLocation(item.location);
   const { date, time } = formatDateTime(item.start_time);
   
-  const now = new Date();
   const rawTiers = item.ticketTiers ?? [];
-  const tiers = rawTiers
-    .filter((tier) => {
-      if (!tier.sales_start_at) return true;
-      return now >= new Date(tier.sales_start_at);
-    })
-    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+  const tiers = [...rawTiers].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
   const minPrice =
     tiers.length > 0 ? Math.min(...tiers.map((t) => t.price)) : undefined;
@@ -182,14 +176,8 @@ function mapConcertDetail(item: ConcertDetailResponse): ConcertDetailItem {
     ticketTiers: item.ticketTiers,
   });
 
-  const now = new Date();
   const rawTiers = item.ticketTiers ?? [];
-  const tiers = rawTiers
-    .filter((tier) => {
-      if (!tier.sales_start_at) return true;
-      return now >= new Date(tier.sales_start_at);
-    })
-    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+  const tiers = [...rawTiers].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
   return {
     ...mapped,

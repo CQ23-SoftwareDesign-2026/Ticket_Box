@@ -26,7 +26,7 @@ export function DashboardSummaryCards({
           </div>
         </div>
         <p className="text-muted-foreground font-body text-xs font-semibold uppercase tracking-wider mb-1">
-          Published Events
+          Sự kiện mở bán
         </p>
         <h3 className="font-display text-4xl font-extrabold text-primary">
           {isLoadingSummary ? (
@@ -37,7 +37,7 @@ export function DashboardSummaryCards({
         </h3>
         {!isLoadingSummary && (
           <p className="text-[10px] text-muted-foreground font-body mt-1">
-            Active on platform
+            Số sự kiện đang hoạt động
           </p>
         )}
       </div>
@@ -51,7 +51,7 @@ export function DashboardSummaryCards({
           </div>
         </div>
         <p className="text-muted-foreground font-body text-xs font-semibold uppercase tracking-wider mb-1 relative z-10">
-          Tickets Sold
+          Vé đã bán
         </p>
         <h3 className="font-display text-4xl font-extrabold text-tertiary relative z-10">
           {isLoadingSummary ? (
@@ -62,7 +62,7 @@ export function DashboardSummaryCards({
         </h3>
         {!isLoadingSummary && (
           <p className="text-[10px] text-muted-foreground font-body mt-1 relative z-10">
-            Successful bookings
+            Tích lũy toàn thời gian
           </p>
         )}
       </div>
@@ -71,15 +71,15 @@ export function DashboardSummaryCards({
       <div className="bg-surface p-6 rounded-xl shadow-sm border border-border hover:-translate-y-1 transition-transform duration-300 relative overflow-hidden group">
         <div className="absolute inset-0 bg-linear-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         <div className="flex justify-between items-start mb-4">
-          <div className="p-2 bg-emerald-100 rounded-lg text-emerald-700">
+          <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400 border border-emerald-500/20">
             <DollarSign className="w-6 h-6" />
           </div>
         </div>
         <p className="text-muted-foreground font-body text-xs font-semibold uppercase tracking-wider mb-1">
-          Total Revenue
+          Tổng Doanh thu
         </p>
         <h3
-          className="font-display text-3xl font-extrabold text-emerald-600 truncate cursor-help"
+          className="font-display text-3xl font-extrabold text-emerald-400 truncate cursor-help"
           title={summary ? formatConcertCurrency(summary.total_revenue) : ""}
         >
           {isLoadingSummary ? (
@@ -88,9 +88,9 @@ export function DashboardSummaryCards({
             formatSummaryNumber(summary?.total_revenue ?? 0, "currency")
           )}
         </h3>
-        {!isLoadingSummary && summary && (
-          <p className="text-[10px] text-muted-foreground font-mono mt-1">
-            Exact: {formatConcertCurrency(summary.total_revenue)}
+        {!isLoadingSummary && (
+          <p className="text-[10px] text-muted-foreground font-body mt-1">
+            Tích lũy toàn thời gian
           </p>
         )}
       </div>
@@ -104,7 +104,7 @@ export function DashboardSummaryCards({
           </div>
         </div>
         <p className="text-muted-foreground font-body text-xs font-semibold uppercase tracking-wider mb-1">
-          Registered Users
+          Người dùng Đăng ký
         </p>
         <h3 className="font-display text-4xl font-extrabold text-on-surface">
           {isLoadingSummary ? (
@@ -115,7 +115,7 @@ export function DashboardSummaryCards({
         </h3>
         {!isLoadingSummary && (
           <p className="text-[10px] text-muted-foreground font-body mt-1">
-            Total member accounts
+            Tổng tài khoản toàn thời gian
           </p>
         )}
       </div>

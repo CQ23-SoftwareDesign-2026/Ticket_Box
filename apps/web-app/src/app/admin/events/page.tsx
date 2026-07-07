@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useToast } from "@/context/ToastContext";
 import {
   getConcerts,
   deleteConcert,
+  getConcertPosterUrl,
   type ConcertCardItem,
 } from "@/services/concert.service";
 import {
@@ -18,60 +20,89 @@ import {
   Trash2,
   Hourglass,
   Sparkles,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { ConcertWorkerDrawer } from "./_components/ConcertWorkerDrawer";
 
 export default function AdminEventsPage() {
+  const { success, error: toastError, warning } = useToast();
   const [concerts, setConcerts] = useState<ConcertCardItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [selectedWorkerConcert, setSelectedWorkerConcert] =
     useState<ConcertCardItem | null>(null);
   const [isWorkerDrawerOpen, setIsWorkerDrawerOpen] = useState(false);
 
-  const fetchConcerts = async (search = "", status = "All") => {
-    setIsLoading(true);
-    try {
-      const { items } = await getConcerts({
-        limit: 50,
-        search,
-        status: status === "All" ? undefined : status,
-      });
-      setConcerts(items);
-    } catch (error) {
-      console.error("Failed to load concerts", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Debounce search input to prevent API spamming
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   useEffect(() => {
-    // Debounce search and status filter
-    const timer = setTimeout(() => {
-      fetchConcerts(searchQuery, statusFilter);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery, statusFilter]);
-
-  const handleDelete = async (id: string, name: string) => {
-    if (
-      !window.confirm(
-        `Are you sure you want to delete the event "${name}"? This action cannot be undone.`,
-      )
-    ) {
-      return;
+    async function fetchConcerts() {
+      setIsLoading(true);
+      try {
+        const response = await getConcerts({
+          page,
+          limit,
+          search: debouncedSearch || undefined,
+          status: statusFilter === "All" ? undefined : statusFilter,
+        });
+        setConcerts(response.items);
+        setTotalPages(response.meta.totalPages);
+      } catch (error) {
+        console.error("Failed to load concerts", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
+    void fetchConcerts();
+  }, [page, limit, debouncedSearch, statusFilter]);
 
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (page <= 3) {
+        pages.push(1, 2, 3, 4, "...", totalPages);
+      } else if (page >= totalPages - 2) {
+        pages.push(1, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pages.push(1, "...", page - 1, page, page + 1, "...", totalPages);
+      }
+    }
+    return pages;
+  };
+
+  const handleDelete = (id: string, name: string) => {
+    setDeleteTarget({ id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const { id } = deleteTarget;
     setIsDeleting(id);
+    setDeleteTarget(null);
     try {
       await deleteConcert(id);
-      // Remove from list
       setConcerts((prev) => prev.filter((c) => c.id !== id));
+      success("Xóa sự kiện thành công!");
     } catch (error) {
       console.error("Failed to delete concert", error);
-      alert("Failed to delete the event. It might have existing orders.");
+      toastError("Xóa sự kiện thất bại. Sự kiện có thể đã có đơn hàng.");
     } finally {
       setIsDeleting(null);
     }
@@ -79,10 +110,10 @@ export default function AdminEventsPage() {
 
   const handleExport = () => {
     if (concerts.length === 0) {
-      alert("No data to export.");
+      warning("Không có dữ liệu để xuất.");
       return;
     }
-    const headers = ["ID", "Name", "Venue", "City", "Date", "Time", "Status"];
+    const headers = ["ID", "Tên sự kiện", "Địa điểm", "Thành phố", "Ngày", "Giờ", "Trạng thái"];
     const csvContent = [
       headers.join(","),
       ...concerts.map((c) =>
@@ -104,7 +135,7 @@ export default function AdminEventsPage() {
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `events_export_${new Date().toISOString().slice(0, 10)}.csv`,
+      `danh_sach_su_kien_${new Date().toISOString().slice(0, 10)}.csv`,
     );
     document.body.appendChild(link);
     link.click();
@@ -117,26 +148,26 @@ export default function AdminEventsPage() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="font-display text-3xl font-bold text-foreground mb-1">
-            Events Management
+            Quản lý Sự kiện
           </h2>
           <p className="text-muted-foreground font-body text-sm">
-            Track, edit, and manage all your upcoming and past ticketed events.
+            Theo dõi, chỉnh sửa và quản lý tất cả các sự kiện bán vé trên hệ thống.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={handleExport}
-            className="hidden md:flex items-center gap-2 px-4 py-2 text-primary border border-border rounded-lg hover:bg-surface-high transition-all font-semibold text-sm"
+            className="hidden md:flex items-center gap-2 px-4 py-2 text-primary border border-border rounded-lg hover:bg-surface-high transition-all font-semibold text-sm cursor-pointer"
           >
             <Download className="w-4 h-4" />
-            Export List
+            Xuất danh sách
           </button>
           <Link
             href="/admin/create-event"
             className="flex-1 md:flex-none bg-primary hover:bg-primary-hover text-primary-foreground px-6 py-2.5 rounded-lg font-bold text-sm transition-all active:scale-95 shadow-sm flex items-center justify-center gap-2"
           >
             <Plus className="w-5 h-5" />
-            Create Event
+            Tạo sự kiện
           </Link>
         </div>
       </header>
@@ -146,32 +177,35 @@ export default function AdminEventsPage() {
         <div className="relative w-full md:flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <input
-            className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm transition-all"
-            placeholder="Search events by name, ID, or location..."
+            className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm transition-all text-foreground"
+            placeholder="Tìm kiếm sự kiện theo tên, ID hoặc địa điểm..."
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
+        <div className="flex items-center gap-2 w-full md:w-auto font-semibold">
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="flex-1 md:w-40 px-3 py-2.5 bg-background border border-border rounded-lg text-sm font-semibold cursor-pointer focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
+            className="flex-1 md:w-48 px-3 py-2.5 bg-background border border-border rounded-lg text-sm font-semibold cursor-pointer focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none text-foreground"
           >
             <option value="All">All Statuses</option>
             <option value="DRAFT">DRAFT</option>
             <option value="PUBLISHED">PUBLISHED</option>
             <option value="COMPLETED">COMPLETED</option>
-            <option value="CANCELLED">CANCELLED</option>
           </select>
           <button
             onClick={() => {
               setSearchQuery("");
               setStatusFilter("All");
+              setPage(1);
             }}
             className="p-2.5 bg-background border border-border hover:bg-surface-high hover:border-primary text-muted-foreground hover:text-primary rounded-lg transition-all flex items-center justify-center cursor-pointer active:scale-95 duration-200"
-            title="Reset Filters"
+            title="Đặt lại bộ lọc"
           >
             <SlidersHorizontal className="w-5 h-5" />
           </button>
@@ -185,19 +219,19 @@ export default function AdminEventsPage() {
             <thead>
               <tr className="border-b border-border bg-background">
                 <th className="px-6 py-4 font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Event Name
+                  Tên sự kiện
                 </th>
                 <th className="px-6 py-4 font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Date & Time
+                  Ngày & Giờ
                 </th>
                 <th className="px-6 py-4 font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Venue
+                  Địa điểm
                 </th>
                 <th className="px-6 py-4 font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center">
-                  Status
+                  Trạng thái
                 </th>
                 <th className="px-6 py-4 font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
-                  Actions
+                  Hành động
                 </th>
               </tr>
             </thead>
@@ -210,7 +244,7 @@ export default function AdminEventsPage() {
                   >
                     <div className="flex flex-col items-center justify-center gap-3">
                       <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      <p className="text-sm font-medium">Loading events...</p>
+                      <p className="text-sm font-medium">Đang tải danh sách sự kiện...</p>
                     </div>
                   </td>
                 </tr>
@@ -223,7 +257,7 @@ export default function AdminEventsPage() {
                     <div className="flex flex-col items-center justify-center gap-3">
                       <CalendarOff className="w-10 h-10 text-border" />
                       <p className="text-sm font-medium">
-                        No events found matching your criteria.
+                        Không tìm thấy sự kiện nào khớp với bộ lọc.
                       </p>
                     </div>
                   </td>
@@ -239,7 +273,7 @@ export default function AdminEventsPage() {
                         <div
                           className="w-12 h-12 rounded-lg bg-primary/10 overflow-hidden shrink-0 bg-cover bg-center"
                           style={{
-                            backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih')`,
+                            backgroundImage: `url('${getConcertPosterUrl(concert.posterUrl)}')`,
                           }}
                         ></div>
                         <div>
@@ -285,7 +319,7 @@ export default function AdminEventsPage() {
                         <Link
                           href={`/admin/create-event?edit=${concert.id}`}
                           className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
-                          title="Edit Event"
+                          title="Chỉnh sửa sự kiện"
                         >
                           <Pencil className="w-5 h-5" />
                         </Link>
@@ -293,7 +327,7 @@ export default function AdminEventsPage() {
                           href={`/concerts/${concert.id}`}
                           target="_blank"
                           className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
-                          title="View Public Page"
+                          title="Xem trang công khai"
                         >
                           <Eye className="w-5 h-5" />
                         </Link>
@@ -302,8 +336,8 @@ export default function AdminEventsPage() {
                             setSelectedWorkerConcert(concert);
                             setIsWorkerDrawerOpen(true);
                           }}
-                          className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
-                          title="Worker Operations (AI Bio & Guest Import)"
+                          className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all cursor-pointer"
+                          title="Tác vụ AI & Import khách mời"
                         >
                           <Sparkles className="w-5 h-5" />
                         </button>
@@ -312,8 +346,8 @@ export default function AdminEventsPage() {
                             handleDelete(concert.id, concert.title)
                           }
                           disabled={isDeleting === concert.id}
-                          className="p-2 text-muted-foreground hover:text-error hover:bg-error/10 rounded-lg transition-all disabled:opacity-50"
-                          title="Delete Event"
+                          className="p-2 text-muted-foreground hover:text-error hover:bg-error/10 rounded-lg transition-all disabled:opacity-50 cursor-pointer"
+                          title="Xóa sự kiện"
                         >
                           {isDeleting === concert.id ? (
                             <Hourglass className="w-5 h-5" />
@@ -330,24 +364,84 @@ export default function AdminEventsPage() {
           </table>
         </div>
 
-        {/* Pagination (Static UI for now) */}
-        {!isLoading && concerts.length > 0 && (
-          <div className="px-6 py-4 bg-background flex items-center justify-between border-t border-border">
-            <p className="text-xs font-semibold text-muted-foreground">
-              Showing {concerts.length} events
-            </p>
-            <div className="flex gap-2">
+        {/* Pagination bar */}
+        {!isLoading && totalPages > 1 && (
+          <div className="px-6 py-4 bg-background border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 select-none">
+            <div className="flex items-center gap-4 flex-wrap">
+              <span className="text-xs text-muted-foreground font-body">
+                Trang <span className="font-bold text-foreground">{page}</span> trên{" "}
+                <span className="font-bold text-foreground">{totalPages}</span>
+              </span>
+
+              {/* Limit Selector */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                  Hiển thị:
+                </span>
+                <div className="relative">
+                  <select
+                    value={limit}
+                    onChange={(e) => {
+                      setLimit(Number(e.target.value));
+                      setPage(1);
+                    }}
+                    className="appearance-none pl-2.5 pr-7 py-1 border border-border rounded-lg bg-surface font-body text-xs focus:outline-none focus:border-primary text-foreground font-semibold cursor-pointer"
+                  >
+                    <option value={10}>10 dòng</option>
+                    <option value={20}>20 dòng</option>
+                    <option value={50}>50 dòng</option>
+                    <option value={100}>100 dòng</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-muted-foreground">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
               <button
-                className="px-3 py-1 border border-border rounded-md text-xs font-bold hover:bg-surface-high transition-all disabled:opacity-50"
-                disabled
+                disabled={page === 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="p-1.5 border border-border rounded-lg hover:border-primary/50 hover:text-primary transition-all disabled:opacity-30 disabled:hover:border-border disabled:hover:text-muted-foreground cursor-pointer"
               >
-                Previous
+                <ChevronLeft size={16} />
               </button>
-              <button className="px-3 py-1 bg-primary text-primary-foreground rounded-md text-xs font-bold shadow-sm">
-                1
-              </button>
-              <button className="px-3 py-1 border border-border rounded-md text-xs font-bold hover:bg-surface-high transition-all">
-                Next
+
+              <div className="flex items-center gap-1.5">
+                {getPageNumbers().map((p: number | string, idx: number) => {
+                  if (p === "...") {
+                    return (
+                      <span key={`dots-${idx}`} className="px-2 text-muted-foreground text-xs font-semibold select-none">
+                        ...
+                      </span>
+                    );
+                  }
+                  const isCurrent = p === page;
+                  return (
+                    <button
+                      key={`page-${p}`}
+                      onClick={() => setPage(p as number)}
+                      className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                        isCurrent
+                          ? "bg-primary border-primary text-white"
+                          : "border-border hover:border-primary/50 text-foreground hover:text-primary"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                disabled={page === totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="p-1.5 border border-border rounded-lg hover:border-primary/50 hover:text-primary transition-all disabled:opacity-30 disabled:hover:border-border disabled:hover:text-muted-foreground cursor-pointer"
+              >
+                <ChevronRight size={16} />
               </button>
             </div>
           </div>
@@ -371,6 +465,61 @@ export default function AdminEventsPage() {
             : null
         }
       />
+
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        title="Xác nhận xóa sự kiện"
+        message={`Bạn có chắc chắn muốn xóa sự kiện "${deleteTarget?.name}" không? Hành động này sẽ hủy sự kiện và không thể hoàn tác.`}
+        confirmLabel="Xóa"
+        cancelLabel="Hủy"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
+
+interface ConfirmModalProps {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+function ConfirmModal({
+  isOpen,
+  title,
+  message,
+  confirmLabel,
+  cancelLabel,
+  onConfirm,
+  onCancel,
+}: ConfirmModalProps) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[250] flex items-center justify-center p-4 select-none animate-in fade-in duration-200">
+      <div className="bg-surface border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+        <h3 className="font-display text-lg font-bold text-foreground">{title}</h3>
+        <p className="font-body text-sm text-muted-foreground leading-relaxed">{message}</p>
+        <div className="flex justify-end gap-3 pt-2">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-xs font-semibold rounded-lg border border-border text-foreground hover:bg-surface-high transition-all cursor-pointer"
+          >
+            {cancelLabel}
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 text-xs font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all cursor-pointer"
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+

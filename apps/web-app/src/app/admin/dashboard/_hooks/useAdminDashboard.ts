@@ -10,10 +10,7 @@ import {
   type RevenueItem,
   type RecentOrder,
 } from "@/services/dashboard.service";
-import {
-  getAdminOrders,
-  type AdminOrderListItem,
-} from "@/services/order.service";
+
 
 export function useAdminDashboard() {
   // Summary & orders
@@ -29,27 +26,18 @@ export function useAdminDashboard() {
   const [groupBy, setGroupBy] = useState<"day" | "week" | "month">("day");
   const [fromDate, setFromDate] = useState<string>("2026-03-01");
   const [toDate, setToDate] = useState<string>("2026-07-04");
-  const [status, setStatus] = useState<string>("All");
   const [tempFromDate, setTempFromDate] = useState<string>("2026-03-01");
   const [tempToDate, setTempToDate] = useState<string>("2026-07-04");
   const [tempGroupBy, setTempGroupBy] = useState<"day" | "week" | "month">(
     "day",
   );
-  const [tempStatus, setTempStatus] = useState<string>("All");
   const fromDateRef = useRef<HTMLInputElement>(null);
   const toDateRef = useRef<HTMLInputElement>(null);
 
   // Chart hover
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  // Modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalOrders, setModalOrders] = useState<AdminOrderListItem[]>([]);
-  const [modalPage, setModalPage] = useState(1);
-  const [modalTotalPages, setModalTotalPages] = useState(1);
-  const [modalSearch, setModalSearch] = useState("");
-  const [isModalLoading, setIsModalLoading] = useState(false);
-  const [modalStatusFilter, setModalStatusFilter] = useState<string>("");
+
 
   // Load summary and recent orders
   useEffect(() => {
@@ -85,7 +73,6 @@ export function useAdminDashboard() {
           group_by: groupBy,
           from: fromDate || undefined,
           to: toDate || undefined,
-          status: status || undefined,
         });
         setRevenueData(data);
       } catch (err) {
@@ -95,64 +82,37 @@ export function useAdminDashboard() {
       }
     }
     loadRevenue();
-  }, [groupBy, fromDate, toDate, status]);
+  }, [groupBy, fromDate, toDate]);
 
-  // Load modal orders
-  useEffect(() => {
-    if (!isModalOpen) return;
-    async function fetchAllOrders() {
-      try {
-        setIsModalLoading(true);
-        const response = await getAdminOrders({
-          page: modalPage,
-          limit: 10,
-          search: modalSearch || undefined,
-          status: modalStatusFilter || undefined,
-        });
-        setModalOrders(response.data);
-        setModalTotalPages(response.meta.totalPages);
-      } catch (err) {
-        console.error("Failed to fetch all orders", err);
-      } finally {
-        setIsModalLoading(false);
-      }
-    }
-    const delayDebounce = setTimeout(() => {
-      fetchAllOrders();
-    }, 300);
-    return () => clearTimeout(delayDebounce);
-  }, [isModalOpen, modalPage, modalSearch, modalStatusFilter]);
+
 
   const handleApply = () => {
     setFromDate(tempFromDate);
     setToDate(tempToDate);
     setGroupBy(tempGroupBy);
-    setStatus(tempStatus);
   };
 
   const handleReset = () => {
     setTempFromDate("2026-03-01");
     setTempToDate("2026-07-04");
     setTempGroupBy("day");
-    setTempStatus("All");
     setFromDate("2026-03-01");
     setToDate("2026-07-04");
     setGroupBy("day");
-    setStatus("All");
   };
 
   // Chart computations
   const formatSummaryNumber = (value: number, type: "number" | "currency") => {
-    if (type === "number") return new Intl.NumberFormat("en-US").format(value);
+    if (type === "number") return new Intl.NumberFormat("vi-VN").format(value);
     if (value >= 1_000_000_000)
-      return `${(value / 1_000_000_000).toLocaleString("en-US", { maximumFractionDigits: 2 })} Bđ`;
+      return `${(value / 1_000_000_000).toLocaleString("vi-VN", { maximumFractionDigits: 2 })} tỷ đ`;
     if (value >= 1_000_000)
-      return `${(value / 1_000_000).toLocaleString("en-US", { maximumFractionDigits: 2 })} Mđ`;
-    return `${new Intl.NumberFormat("en-US").format(value)}đ`;
+      return `${(value / 1_000_000).toLocaleString("vi-VN", { maximumFractionDigits: 2 })} triệu đ`;
+    return `${new Intl.NumberFormat("vi-VN").format(value)} đ`;
   };
 
   const formatValueVND = (value: number) =>
-    `${new Intl.NumberFormat("vi-VN").format(Math.round(value))} VND`;
+    `${new Intl.NumberFormat("vi-VN").format(Math.round(value))} đ`;
 
   const maxRevenue =
     revenueData.length > 0
@@ -167,10 +127,10 @@ export function useAdminDashboard() {
   ];
 
   const formatYAxisLabel = (value: number) => {
-    if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)}M`;
-    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(0)}M`;
-    if (value >= 1_000) return `${(value / 1_000).toFixed(0)}k`;
-    return `${value}`;
+    if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)} tỷ đ`;
+    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(0)} triệu đ`;
+    if (value >= 1_000) return `${(value / 1_000).toFixed(0)}k đ`;
+    return `${value} đ`;
   };
 
   const formatXAxisLabel = (period: string, type: "day" | "week" | "month") => {
@@ -202,7 +162,7 @@ export function useAdminDashboard() {
   // SVG chart values
   const svgWidth = 800;
   const svgHeight = 300;
-  const paddingLeft = 55;
+  const paddingLeft = 75;
   const paddingRight = 20;
   const paddingTop = 20;
   const paddingBottom = 40;
@@ -282,30 +242,17 @@ export function useAdminDashboard() {
     groupBy,
     fromDate,
     toDate,
-    status,
     tempFromDate,
     setTempFromDate,
     tempToDate,
     setTempToDate,
     tempGroupBy,
     setTempGroupBy,
-    tempStatus,
-    setTempStatus,
     fromDateRef,
     toDateRef,
     hoveredIndex,
     setHoveredIndex,
-    isModalOpen,
-    setIsModalOpen,
-    modalOrders,
-    modalPage,
-    setModalPage,
-    modalTotalPages,
-    modalSearch,
-    setModalSearch,
-    isModalLoading,
-    modalStatusFilter,
-    setModalStatusFilter,
+
     handleApply,
     handleReset,
     formatSummaryNumber,

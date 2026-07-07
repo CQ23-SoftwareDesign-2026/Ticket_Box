@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useToast } from "@/context/ToastContext";
 import {
   X,
   Upload,
@@ -36,6 +37,8 @@ export function ConcertWorkerDrawer({
   onClose,
   concert,
 }: ConcertWorkerDrawerProps) {
+  const { success, error: toastError } = useToast();
+
   // Guest List Import Job State
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [importJob, setImportJob] = useState<BackgroundJob | null>(null);
@@ -48,6 +51,7 @@ export function ConcertWorkerDrawer({
   const [guestSearch, setGuestSearch] = useState("");
   const [guestScanStatus, setGuestScanStatus] = useState("All");
   const [guestPage, setGuestPage] = useState(1);
+  const [guestLimit, setGuestLimit] = useState(10);
   const [guestTotalPages, setGuestTotalPages] = useState(1);
 
   // Polling intervals refs
@@ -70,7 +74,7 @@ export function ConcertWorkerDrawer({
 
       const res = await getGuestList(concert.id, {
         page: guestPage,
-        limit: 10,
+        limit: guestLimit,
         search: guestSearch || undefined,
         category: undefined,
         is_scanned: scanParam,
@@ -86,7 +90,7 @@ export function ConcertWorkerDrawer({
     }
   };
 
-  // Load data when drawer opens or page/search changes
+  // Load data when drawer opens or page/search/limit changes
   useEffect(() => {
     if (isOpen && concert) {
       const timer = setTimeout(() => {
@@ -95,7 +99,7 @@ export function ConcertWorkerDrawer({
       return () => clearTimeout(timer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, concert, guestPage, guestSearch, guestScanStatus]);
+  }, [isOpen, concert, guestPage, guestLimit, guestSearch, guestScanStatus]);
 
   // Handle CSV Import
   const handleCsvSubmit = async (e: React.FormEvent) => {
@@ -110,7 +114,7 @@ export function ConcertWorkerDrawer({
       setImportJob(job);
       pollImportJob(job.id);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to import guest list");
+      toastError(err instanceof Error ? err.message : "Đăng tải danh sách khách mời thất bại.");
       setIsImporting(false);
     }
   };
@@ -130,11 +134,13 @@ export function ConcertWorkerDrawer({
           setIsImporting(false);
           setCsvFile(null);
           setGuestPage(1);
+          success("Đăng tải và nhập danh sách khách mời thành công!");
           void fetchGuests();
         } else if (job.status === "FAILED") {
           if (importIntervalRef.current)
             clearInterval(importIntervalRef.current);
           setIsImporting(false);
+          toastError(job.error_message || "Tiến trình nhập danh sách thất bại.");
         }
       } catch (err) {
         console.error("Failed to check import job status:", err);
@@ -143,6 +149,22 @@ export function ConcertWorkerDrawer({
 
     void checkStatus();
     importIntervalRef.current = setInterval(checkStatus, 2000);
+  };
+
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    if (guestTotalPages <= 5) {
+      for (let i = 1; i <= guestTotalPages; i++) pages.push(i);
+    } else {
+      if (guestPage <= 2) {
+        pages.push(1, 2, 3, "...", guestTotalPages);
+      } else if (guestPage >= guestTotalPages - 1) {
+        pages.push(1, "...", guestTotalPages - 2, guestTotalPages - 1, guestTotalPages);
+      } else {
+        pages.push(1, "...", guestPage, "...", guestTotalPages);
+      }
+    }
+    return pages;
   };
 
   if (!isOpen || !concert) return null;
@@ -159,20 +181,20 @@ export function ConcertWorkerDrawer({
       <div className="absolute inset-y-0 right-0 max-w-full pl-10 flex">
         <div className="w-screen max-w-2xl bg-surface border-l border-border flex flex-col shadow-2xl relative">
           {/* Drawer Header */}
-          <div className="px-6 py-5 border-b border-border flex items-center justify-between">
+          <div className="px-6 py-5 border-b border-border flex items-center justify-between select-none">
             <div>
               <h3 className="text-xl font-bold font-display text-foreground flex items-center gap-2">
                 <Users className="w-5 h-5 text-primary" />
-                Guest List Operations
+                Tác vụ danh sách khách mời
               </h3>
               <p className="text-xs text-muted-foreground mt-1">
-                Concert: <span className="font-semibold">{concert.title}</span>{" "}
+                Sự kiện: <span className="font-semibold">{concert.title}</span>{" "}
                 • {concert.venue}
               </p>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-surface-high text-muted-foreground hover:text-foreground transition-all"
+              className="p-1.5 rounded-lg hover:bg-surface-high text-muted-foreground hover:text-foreground transition-all cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -183,12 +205,12 @@ export function ConcertWorkerDrawer({
             <div className="space-y-6">
               {/* Guest List CSV Import */}
               <div className="bg-background rounded-xl p-5 border border-border space-y-4">
-                <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
-                  <Users className="w-4 h-4 text-primary" />
-                  Import Guests from CSV
+                <h4 className="font-bold text-sm text-foreground flex items-center gap-2 select-none">
+                  <Upload className="w-4 h-4 text-primary" />
+                  Nhập danh sách khách mời từ file CSV
                 </h4>
-                <p className="text-xs text-muted-foreground">
-                  Upload a CSV file containing columns:{" "}
+                <p className="text-xs text-muted-foreground select-none">
+                  Tải lên tệp CSV chứa các cột bắt buộc:{" "}
                   <code className="bg-surface px-1.5 py-0.5 rounded font-mono text-[10px]">
                     email
                   </code>
@@ -196,7 +218,7 @@ export function ConcertWorkerDrawer({
                   <code className="bg-surface px-1.5 py-0.5 rounded font-mono text-[10px]">
                     full_name
                   </code>
-                  , and{" "}
+                  , và{" "}
                   <code className="bg-surface px-1.5 py-0.5 rounded font-mono text-[10px]">
                     ticket_category
                   </code>
@@ -205,7 +227,7 @@ export function ConcertWorkerDrawer({
 
                 <form onSubmit={handleCsvSubmit} className="space-y-4">
                   <div className="flex items-center justify-center w-full">
-                    <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-border rounded-xl cursor-pointer bg-surface hover:bg-surface-high/50 hover:border-primary/50 transition-all">
+                    <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-border rounded-xl cursor-pointer bg-surface hover:bg-surface-high/50 hover:border-primary/50 transition-all relative">
                       <div className="flex flex-col items-center justify-center pt-4 pb-4">
                         <Upload className="w-7 h-7 text-muted-foreground mb-1.5" />
                         <p className="text-xs text-muted-foreground text-center px-4">
@@ -214,7 +236,7 @@ export function ConcertWorkerDrawer({
                               {csvFile.name}
                             </span>
                           ) : (
-                            "Click to upload or drag & drop CSV file"
+                            "Click để chọn file hoặc kéo thả tệp CSV vào đây"
                           )}
                         </p>
                       </div>
@@ -234,17 +256,17 @@ export function ConcertWorkerDrawer({
                   <button
                     type="submit"
                     disabled={!csvFile || isImporting}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-primary hover:bg-primary-hover text-primary-foreground font-bold text-sm rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm active:scale-98"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-primary hover:bg-primary-hover text-primary-foreground font-bold text-sm rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm active:scale-98 cursor-pointer"
                   >
                     {isImporting ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Importing CSV...
+                        Đang đăng tải danh sách...
                       </>
                     ) : (
                       <>
                         <CheckCircle className="w-4 h-4" />
-                        Import Guest List
+                        Tải danh sách khách mời lên
                       </>
                     )}
                   </button>
@@ -253,10 +275,10 @@ export function ConcertWorkerDrawer({
 
               {/* Import Job Progress */}
               {importJob && (
-                <div className="p-4 rounded-xl border border-border bg-background space-y-3">
+                <div className="p-4 rounded-xl border border-border bg-background space-y-3 select-none">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-muted-foreground">
-                      Import Job ID: {importJob.id.slice(0, 8)}...
+                      Mã tác vụ: {importJob.id.slice(0, 8)}...
                     </span>
                     <span
                       className={`text-xs font-bold px-2 py-0.5 rounded-full ${
@@ -279,12 +301,11 @@ export function ConcertWorkerDrawer({
                   </div>
 
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Progress: {importJob.progress_percentage}%</span>
+                    <span>Tiến trình: {importJob.progress_percentage}%</span>
                     {importJob.status === "COMPLETED" &&
                       importJob.result_data && (
                         <span className="text-emerald-500 font-semibold">
-                          Processed:{" "}
-                          {String(importJob.result_data.processed || 0)} guests
+                          Đã thêm: {String(importJob.result_data.processed || 0)} khách mời
                         </span>
                       )}
                     {importJob.error_message && (
@@ -304,7 +325,7 @@ export function ConcertWorkerDrawer({
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       type="text"
-                      placeholder="Search guests by name/email..."
+                      placeholder="Tìm kiếm khách mời theo tên hoặc email..."
                       value={guestSearch}
                       onChange={(e) => {
                         setGuestSearch(e.target.value);
@@ -320,11 +341,11 @@ export function ConcertWorkerDrawer({
                         setGuestScanStatus(e.target.value);
                         setGuestPage(1);
                       }}
-                      className="px-2 py-2 border border-border bg-background rounded-lg text-xs font-semibold cursor-pointer focus:outline-none"
+                      className="px-3 py-2 border border-border bg-background rounded-lg text-xs font-semibold cursor-pointer focus:outline-none"
                     >
-                      <option value="All">All Scan Status</option>
-                      <option value="SCANNED">Checked In</option>
-                      <option value="NOT_SCANNED">Not Checked In</option>
+                      <option value="All">Tất cả trạng thái check-in</option>
+                      <option value="SCANNED">Đã check-in</option>
+                      <option value="NOT_SCANNED">Chưa check-in</option>
                     </select>
                   </div>
                 </div>
@@ -334,27 +355,27 @@ export function ConcertWorkerDrawer({
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="border-b border-border bg-surface-high/40 text-xs font-semibold text-muted-foreground uppercase">
-                          <th className="px-4 py-3">Guest</th>
-                          <th className="px-4 py-3">Category</th>
-                          <th className="px-4 py-3 text-center">Status</th>
+                        <tr className="border-b border-border bg-surface-high/40 text-xs font-semibold text-muted-foreground uppercase select-none">
+                          <th className="px-4 py-3">Khách mời</th>
+                          <th className="px-4 py-3">Hạng vé</th>
+                          <th className="px-4 py-3 text-center">Trạng thái</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border text-xs">
                         {isGuestsLoading ? (
                           <tr>
-                            <td colSpan={3} className="p-8 text-center">
+                            <td colSpan={3} className="p-8 text-center select-none">
                               <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-2" />
-                              Loading guest list...
+                              Đang tải danh sách khách mời...
                             </td>
                           </tr>
                         ) : guests.length === 0 ? (
                           <tr>
                             <td
                               colSpan={3}
-                              className="p-8 text-center text-muted-foreground"
+                              className="p-8 text-center text-muted-foreground select-none"
                             >
-                              No guests found.
+                              Không tìm thấy khách mời nào.
                             </td>
                           </tr>
                         ) : (
@@ -364,14 +385,14 @@ export function ConcertWorkerDrawer({
                                 <p className="font-bold text-foreground">
                                   {g.full_name}
                                 </p>
-                                <p className="text-[10px] text-muted-foreground mt-0.5">
+                                <p className="text-[10px] text-muted-foreground mt-0.5 select-all">
                                   {g.email}
                                 </p>
                               </td>
-                              <td className="px-4 py-2.5 font-mono text-[10px] font-semibold text-on-surface-variant">
+                              <td className="px-4 py-2.5 font-mono text-[10px] font-semibold text-on-surface-variant select-all">
                                 {g.ticket_category}
                               </td>
-                              <td className="px-4 py-2.5 text-center">
+                              <td className="px-4 py-2.5 text-center select-none">
                                 <span
                                   className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
                                     g.is_scanned
@@ -389,32 +410,72 @@ export function ConcertWorkerDrawer({
                     </table>
                   </div>
 
-                  {/* Pagination */}
+                  {/* Pagination Footer */}
                   {!isGuestsLoading && guests.length > 0 && (
-                    <div className="px-4 py-3 bg-surface-high/10 border-t border-border flex items-center justify-between">
-                      <span className="text-[10px] text-muted-foreground font-semibold">
-                        Total: {totalGuests} guests
-                      </span>
-                      <div className="flex gap-1.5">
+                    <div className="px-4 py-3 bg-surface-high/10 border-t border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs select-none">
+                      <div className="flex items-center justify-between sm:justify-start gap-4">
+                        <span className="text-[10px] text-muted-foreground font-semibold">
+                          Tổng số: {totalGuests} khách mời
+                        </span>
+                        
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-muted-foreground font-semibold">Hiển thị:</span>
+                          <select
+                            value={guestLimit}
+                            onChange={(e) => {
+                              setGuestLimit(Number(e.target.value));
+                              setGuestPage(1);
+                            }}
+                            className="px-1.5 py-0.5 border border-border bg-background rounded text-[10px] font-semibold cursor-pointer focus:outline-none"
+                          >
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-center gap-1">
                         <button
-                          onClick={() =>
-                            setGuestPage((p) => Math.max(1, p - 1))
-                          }
                           disabled={guestPage === 1}
+                          onClick={() => setGuestPage((p) => Math.max(1, p - 1))}
                           className="p-1 rounded border border-border bg-background hover:bg-surface-high disabled:opacity-40 transition-all cursor-pointer"
                         >
                           <ChevronLeft className="w-3.5 h-3.5" />
                         </button>
-                        <span className="text-[10px] font-bold self-center px-1">
-                          {guestPage} / {guestTotalPages}
-                        </span>
+
+                        <div className="flex gap-1">
+                          {getPageNumbers().map((p, idx) => {
+                            if (p === "...") {
+                              return (
+                                <span
+                                  key={`ellipsis-${idx}`}
+                                  className="px-2 py-1 text-[10px] text-muted-foreground font-bold self-center"
+                                >
+                                  ...
+                                </span>
+                              );
+                            }
+                            return (
+                              <button
+                                key={`page-${p}`}
+                                onClick={() => setGuestPage(Number(p))}
+                                className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-all cursor-pointer ${
+                                  guestPage === p
+                                    ? "bg-primary border-primary text-primary-foreground"
+                                    : "border-border hover:border-primary/50 text-foreground hover:text-primary bg-background"
+                                }`}
+                              >
+                                {p}
+                              </button>
+                            );
+                          })}
+                        </div>
+
                         <button
-                          onClick={() =>
-                            setGuestPage((p) =>
-                              Math.min(guestTotalPages, p + 1),
-                            )
-                          }
                           disabled={guestPage === guestTotalPages}
+                          onClick={() => setGuestPage((p) => Math.min(guestTotalPages, p + 1))}
                           className="p-1 rounded border border-border bg-background hover:bg-surface-high disabled:opacity-40 transition-all cursor-pointer"
                         >
                           <ChevronRight className="w-3.5 h-3.5" />
