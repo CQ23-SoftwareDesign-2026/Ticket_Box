@@ -12,6 +12,7 @@ import { CheckInModule } from './modules/checkin/checkin.module';
 import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.module';
 import { AdminRevenueModule } from './modules/admin-revenue/admin-revenue.module';
 import { AdminUsersModule } from './modules/admin-users/admin-users.module';
+import { NotificationModule } from './modules/notifications/notification.module';
 
 @Module({
 	imports: [
@@ -28,6 +29,7 @@ import { AdminUsersModule } from './modules/admin-users/admin-users.module';
 		AdminDashboardModule,
 		AdminRevenueModule,
 		AdminUsersModule,
+		NotificationModule,
 	],
 })
 export class AppModule { }

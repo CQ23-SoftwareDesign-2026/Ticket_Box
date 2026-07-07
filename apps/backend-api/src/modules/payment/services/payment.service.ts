@@ -18,6 +18,7 @@ import { PaymentWebhookResponseDto } from '../dtos/payment-webhook-response.dto'
 import { PaymentTicketBreakdownDto } from '../dtos/payment-ticket-breakdown.dto';
 import { PaymentGatewayClient } from './gateway/payment-gateway.client';
 import { TicketingService } from '../../ticketing/services/ticketing.service';
+import { NotificationService } from '../../notifications/notification.service';
 
 type IdempotencyCacheEntry =
     | {
@@ -61,6 +62,7 @@ export class PaymentService {
         private readonly redisService: RedisService,
         private readonly paymentGatewayClient: PaymentGatewayClient,
         private readonly ticketingService: TicketingService,
+        private readonly notificationService: NotificationService,
     ) { }
 
     async processPayment(
@@ -465,6 +467,9 @@ export class PaymentService {
                 }
             }
         });
+
+        // Send confirmation email and push notification asynchronously
+        void this.notificationService.sendTicketConfirmation(transaction.order_id);
 
         return new PaymentWebhookResponseDto({
             order_status: 'PAID',

@@ -10,9 +10,10 @@ import { PaymentGatewayClient } from './services/gateway/payment-gateway.client'
 import { PayOsStrategy } from './services/gateway/payos.strategy';
 import { PaymentIdempotencyInterceptor } from './interceptors/payment-idempotency.interceptor';
 import { TicketingModule } from '../ticketing/ticketing.module';
+import { NotificationModule } from '../notifications/notification.module';
 
 @Module({
-    imports: [RedisModule, TicketingModule],
+    imports: [RedisModule, TicketingModule, NotificationModule],
     providers: [
         PrismaService,
         PaymentService,

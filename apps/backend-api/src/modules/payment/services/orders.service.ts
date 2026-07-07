@@ -21,6 +21,7 @@ type OrderListRow = {
     expires_at: Date;
     tickets: Array<{ id: string }>;
     payment_transactions: Array<{ payment_method: string; status: string | null }>;
+    user?: { full_name: string; email: string } | null;
 };
 
 type OrderDetailRow = OrderListRow & {
@@ -137,6 +138,7 @@ export class OrdersService {
                 take: limit,
                 where,
                 include: {
+                    user: { select: { full_name: true, email: true } },
                     concert: { select: { name: true } },
                     tickets: { select: { id: true } },
                     payment_transactions: {
@@ -159,6 +161,8 @@ export class OrdersService {
             ticket_count: order.tickets.length,
             latest_payment_method: order.payment_transactions[0]?.payment_method ?? null,
             latest_payment_status: order.payment_transactions[0]?.status ?? null,
+            user_name: order.user?.full_name ?? null,
+            user_email: order.user?.email ?? null,
         }));
 
         const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
