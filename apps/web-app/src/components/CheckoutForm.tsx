@@ -1,11 +1,16 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { PaymentMethodPicker, OrderSummaryCard } from "@/components/screens";
+import {
+  PaymentMethodPicker,
+  OrderSummaryCard,
+  ConfirmModal,
+} from "@/components/screens";
 import { Loader2, Ban } from "lucide-react";
 import { processPayment } from "@/services/payment.service";
 import { getCheckoutReservationState } from "@/utils/checkout-state.utils";
 import { getOrderById, cancelOrder } from "@/services/order.service";
+import { useToast } from "@/context/ToastContext";
 
 import QRCode from "qrcode";
 
@@ -13,7 +18,7 @@ interface CheckoutFormProps {
   orderId: string;
 }
 
-type LoadingSource = "left" | "right" | null;
+type LoadingSource = "pay-left" | "pay-right" | "cancel" | null;
 
 export function CheckoutForm({ orderId }: CheckoutFormProps) {
   const [selectedMethod] = useState<"PAYOS">("PAYOS");
@@ -28,16 +33,11 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
     resolvedOrderId: string;
   } | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
+  const { error: showErrorToast } = useToast();
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const handleCancelOrder = useCallback(async () => {
-    if (
-      !window.confirm(
-        "Bạn có chắc chắn muốn hủy lượt giữ chỗ này? Hành động này sẽ hoàn lại các vé đã chọn.",
-      )
-    ) {
-      return;
-    }
-    setLoadingSource("left");
+    setLoadingSource("cancel");
     try {
       const state = getCheckoutReservationState();
       const resolvedOrderId = state?.orderId ?? orderId;
@@ -45,11 +45,12 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
       window.location.href = "/";
     } catch (err) {
       console.error("Failed to cancel order:", err);
-      alert("Hủy giữ chỗ thất bại. Vui lòng thử lại.");
+      showErrorToast("Hủy giữ chỗ thất bại. Vui lòng thử lại.");
     } finally {
       setLoadingSource(null);
+      setShowCancelConfirm(false);
     }
-  }, [orderId]);
+  }, [orderId, showErrorToast]);
 
   useEffect(() => {
     let active = true;
@@ -161,34 +162,37 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
           }
           window.location.href = result.checkout_url;
         } else {
-          setError(
-            "Payment gateway did not return a redirect URL. Please try again.",
-          );
+          const errMsg =
+            "Cổng thanh toán không trả về thông tin. Vui lòng thử lại.";
+          setError(errMsg);
+          showErrorToast(errMsg);
           setLoadingSource(null);
         }
       } catch (err: unknown) {
-        let message = "Unexpected error. Please retry.";
+        let message = "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.";
         if (err instanceof Error) {
           if (
             err.message.toLowerCase().includes("fetch") ||
             err.message.toLowerCase().includes("network")
           ) {
             message =
-              "Network error — please check your connection and try again.";
+              "Lỗi kết nối — vui lòng kiểm tra mạng của bạn và thử lại.";
           } else {
             message = err.message;
           }
         }
         setError(message);
+        showErrorToast(message);
         setLoadingSource(null);
       }
     },
-    [loadingSource, orderId, selectedMethod],
+    [loadingSource, orderId, selectedMethod, showErrorToast],
   );
 
   const isAnyLoading = loadingSource !== null;
-  const leftLoading = loadingSource === "left";
-  const rightLoading = loadingSource === "right";
+  const leftLoading = loadingSource === "pay-left";
+  const rightLoading = loadingSource === "pay-right";
+  const cancelLoading = loadingSource === "cancel";
 
   if (isOrderLoading) {
     return (
@@ -219,7 +223,7 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
           onClick={() => {
             window.location.href = "/";
           }}
-          className="inline-flex h-11 px-6 items-center justify-center rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 active:scale-[0.98] transition-all"
+          className="inline-flex h-11 px-6 items-center justify-center rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 active:scale-[0.98] transition-all cursor-pointer"
         >
           Quay lại Trang chủ
         </button>
@@ -234,10 +238,11 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
         <div className="rounded-3xl border border-outline-variant bg-surface p-6 shadow-sm space-y-6">
           <div className="text-center space-y-2">
             <h2 className="font-display text-2xl font-black text-on-surface">
-              Scan QR to Pay
+              Quét mã QR để Thanh toán
             </h2>
             <p className="text-sm text-on-surface-variant">
-              Please use your mobile banking app to scan the VietQR code below.
+              Vui lòng sử dụng ứng dụng Mobile Banking của bạn để quét mã VietQR
+              bên dưới.
             </p>
           </div>
 
@@ -254,7 +259,7 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
                 <div className="flex flex-col items-center justify-center space-y-2">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   <span className="text-xs text-on-surface-variant">
-                    Generating QR...
+                    Đang tạo mã QR...
                   </span>
                 </div>
               )}
@@ -262,7 +267,7 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
             <div className="mt-4 text-center space-y-1">
               {paymentSession.accountName && (
                 <p className="text-xs text-on-surface-variant">
-                  Account Name:{" "}
+                  Tên tài khoản:{" "}
                   <span className="font-bold text-on-surface">
                     {paymentSession.accountName}
                   </span>
@@ -270,20 +275,17 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
               )}
               <p className="text-xs text-on-surface-variant flex items-center justify-center gap-1.5 animate-pulse">
                 <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                Waiting for payment detection...
+                Đang chờ hệ thống ghi nhận thanh toán...
               </p>
             </div>
           </div>
 
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => {
-                setPaymentSession(null);
-                setQrDataUrl("");
-              }}
-              className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-outline-variant text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-high hover:text-on-surface"
+              onClick={() => setShowCancelConfirm(true)}
+              className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-outline-variant text-sm font-semibold text-on-surface-variant transition-colors hover:bg-slate-850 hover:text-on-surface cursor-pointer"
             >
-              Cancel
+              Hủy giao dịch
             </button>
           </div>
         </div>
@@ -294,6 +296,17 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
           rightLoading={false}
           isAnyLoading={true}
           orderId={orderId}
+        />
+
+        <ConfirmModal
+          isOpen={showCancelConfirm}
+          onClose={() => setShowCancelConfirm(false)}
+          onConfirm={handleCancelOrder}
+          title="Xác nhận hủy giữ vé"
+          message="Bạn có chắc chắn muốn hủy lượt giữ vé này? Các chỗ ngồi đang chọn của bạn sẽ được giải phóng lập tức."
+          confirmText="Xác nhận hủy"
+          cancelText="Quay lại"
+          isLoading={cancelLoading}
         />
       </>
     );
@@ -311,12 +324,12 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
             <button
               id="pay-now-btn"
               type="button"
-              onClick={() => handlePay("left")}
+              onClick={() => handlePay("pay-left")}
               disabled={isAnyLoading}
               aria-busy={leftLoading}
-              aria-label="Pay now"
+              aria-label="Thanh toán ngay"
               className={[
-                "inline-flex items-center gap-2 rounded-xl px-6 py-3",
+                "inline-flex items-center gap-2 rounded-xl px-6 py-3 cursor-pointer",
                 "text-sm font-semibold text-white transition-all duration-200",
                 leftLoading
                   ? "cursor-not-allowed bg-primary/60"
@@ -326,55 +339,44 @@ export function CheckoutForm({ orderId }: CheckoutFormProps) {
               ].join(" ")}
             >
               {leftLoading && <Loader2 size={15} className="animate-spin" />}
-              {leftLoading ? "Redirecting…" : "Pay now"}
+              {leftLoading ? "Đang chuyển hướng…" : "Thanh toán ngay"}
             </button>
 
             {/* Cancel Order */}
             <button
               type="button"
-              onClick={handleCancelOrder}
+              onClick={() => setShowCancelConfirm(true)}
               disabled={isAnyLoading}
-              className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98] cursor-pointer border border-rose-200 bg-rose-50/50 text-rose-700 hover:bg-rose-600 hover:text-white hover:border-rose-600 hover:shadow-md hover:shadow-rose-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98] cursor-pointer border border-slate-800 bg-slate-900/40 text-on-surface-variant hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 hover:shadow-lg hover:shadow-red-500/5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loadingSource === "left" ? (
+              {cancelLoading ? (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
               ) : (
                 <Ban size={14} />
               )}
-              {loadingSource === "left" ? "Cancelling..." : "Cancel Order"}
+              {cancelLoading ? "Đang hủy..." : "Hủy giữ vé"}
             </button>
           </div>
-
-          {/* Error */}
-          {error && (
-            <div
-              role="alert"
-              className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
-            >
-              <span className="mt-px shrink-0">⚠</span>
-              <div className="flex-1">
-                <p className="font-semibold">Payment failed</p>
-                <p className="mt-0.5 text-rose-600/90">{error}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setError(null)}
-                aria-label="Dismiss"
-                className="shrink-0 text-rose-400 hover:text-rose-600 transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
       {/* Right column */}
       <OrderSummaryCard
-        onPay={() => handlePay("right")}
+        onPay={() => handlePay("pay-right")}
         rightLoading={rightLoading}
         isAnyLoading={isAnyLoading}
         orderId={orderId}
+      />
+
+      <ConfirmModal
+        isOpen={showCancelConfirm}
+        onClose={() => setShowCancelConfirm(false)}
+        onConfirm={handleCancelOrder}
+        title="Xác nhận hủy giữ vé"
+        message="Bạn có chắc chắn muốn hủy lượt giữ vé này? Các chỗ ngồi đang chọn của bạn sẽ được giải phóng lập tức."
+        confirmText="Xác nhận hủy"
+        cancelText="Quay lại"
+        isLoading={cancelLoading}
       />
     </>
   );

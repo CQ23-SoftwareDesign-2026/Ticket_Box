@@ -3,7 +3,6 @@
 import { X, ShoppingBag, CheckCircle, Ticket, DollarSign } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { type AdminUserDetail } from "@/services/admin-user.service";
-import { StatusBadge } from "../../_components/StatusBadge";
 
 const formatVND = (value: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
@@ -76,7 +75,7 @@ export function UserDetailDrawer({
                 </div>
                 <div>
                   <h3 className="font-display text-lg font-bold text-foreground">
-                    {detailData?.full_name || "User Details"}
+                    {detailData?.full_name || "Chi tiết người dùng"}
                   </h3>
                   <p className="text-xs text-muted-foreground font-body mt-0.5">
                     {detailData?.email}
@@ -98,13 +97,13 @@ export function UserDetailDrawer({
                   <div className="flex flex-col items-center justify-center gap-3">
                     <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                     <span className="font-body text-xs">
-                      Loading profile breakdown...
+                      Đang tải hồ sơ chi tiết...
                     </span>
                   </div>
                 </div>
               ) : !detailData ? (
                 <div className="py-20 text-center text-muted-foreground text-sm font-body">
-                  Failed to load details.
+                  Không thể tải chi tiết.
                 </div>
               ) : (
                 <>
@@ -113,7 +112,7 @@ export function UserDetailDrawer({
                     <div className="bg-background border border-border rounded-2xl p-4 shadow-sm text-center">
                       <ShoppingBag className="w-5 h-5 text-blue-400 mx-auto mb-1.5" />
                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                        Orders
+                        Đơn hàng
                       </p>
                       <p className="text-xl font-black text-foreground font-mono mt-0.5">
                         {detailData.stats.order_count}
@@ -122,7 +121,7 @@ export function UserDetailDrawer({
                     <div className="bg-background border border-border rounded-2xl p-4 shadow-sm text-center">
                       <CheckCircle className="w-5 h-5 text-emerald-400 mx-auto mb-1.5" />
                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                        Paid Orders
+                        Đã thanh toán
                       </p>
                       <p className="text-xl font-black text-foreground font-mono mt-0.5">
                         {detailData.stats.paid_order_count}
@@ -131,7 +130,7 @@ export function UserDetailDrawer({
                     <div className="bg-background border border-border rounded-2xl p-4 shadow-sm text-center">
                       <Ticket className="w-5 h-5 text-violet-400 mx-auto mb-1.5" />
                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                        Tickets
+                        Vé đã mua
                       </p>
                       <p className="text-xl font-black text-foreground font-mono mt-0.5">
                         {detailData.stats.ticket_count}
@@ -140,7 +139,7 @@ export function UserDetailDrawer({
                     <div className="bg-background border border-border rounded-2xl p-4 shadow-sm text-center">
                       <DollarSign className="w-5 h-5 text-emerald-400 mx-auto mb-1.5" />
                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                        Total Spent
+                        Tổng chi tiêu
                       </p>
                       <p className="text-xs font-bold text-foreground font-mono mt-1.5 leading-tight truncate">
                         {formatVND(detailData.stats.total_spent)}
@@ -154,7 +153,7 @@ export function UserDetailDrawer({
                       {/* Status */}
                       <div className="space-y-3">
                         <h4 className="font-display text-sm font-bold text-foreground">
-                          Account Status
+                          Trạng thái tài khoản
                         </h4>
                         <select
                           disabled={isSavingDraft}
@@ -172,34 +171,19 @@ export function UserDetailDrawer({
                       {/* Roles */}
                       <div className="space-y-3">
                         <h4 className="font-display text-sm font-bold text-foreground">
-                          Account Roles
+                          Vai trò tài khoản
                         </h4>
-                        <div className="flex flex-wrap gap-4 pt-1">
-                          {["Audience", "Admin", "Checker", "Organizer"].map(
-                            (roleName) => (
-                              <label
-                                key={roleName}
-                                className="flex items-center gap-2 text-xs font-bold text-foreground cursor-pointer select-none"
-                              >
-                                <input
-                                  type="checkbox"
-                                  disabled={isSavingDraft}
-                                  checked={draftRoles.includes(roleName)}
-                                  onChange={(e) => {
-                                    const nextRoles = e.target.checked
-                                      ? [...draftRoles, roleName]
-                                      : draftRoles.filter(
-                                          (r) => r !== roleName,
-                                        );
-                                    onDraftRolesChange(nextRoles);
-                                  }}
-                                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary bg-surface cursor-pointer"
-                                />
-                                {roleName}
-                              </label>
-                            ),
-                          )}
-                        </div>
+                        <select
+                          disabled={isSavingDraft}
+                          value={draftRoles[0] || "Audience"}
+                          onChange={(e) => onDraftRolesChange([e.target.value])}
+                          className="bg-surface border border-border rounded-xl px-3 py-1.5 text-xs font-semibold text-foreground focus:outline-none focus:border-primary w-full h-10 transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          <option value="Audience">Audience</option>
+                          <option value="Admin">Admin</option>
+                          <option value="Checker">Checker</option>
+                          <option value="Organizer">Organizer</option>
+                        </select>
                       </div>
                     </div>
 
@@ -211,23 +195,15 @@ export function UserDetailDrawer({
                           disabled={isSavingDraft}
                           className="bg-surface hover:bg-surface-high border border-border text-foreground font-body text-xs font-semibold py-2 px-4 rounded-xl transition-all cursor-pointer disabled:opacity-50"
                         >
-                          Cancel
+                          Hủy
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            if (
-                              window.confirm(
-                                "Are you sure you want to save these changes?",
-                              )
-                            ) {
-                              void onSaveChanges();
-                            }
-                          }}
+                          onClick={onSaveChanges}
                           disabled={isSavingDraft}
                           className="bg-primary hover:bg-primary-container text-white font-body text-xs font-semibold py-2 px-5 rounded-xl transition-all hover:shadow-lg hover:shadow-primary/20 cursor-pointer disabled:opacity-50"
                         >
-                          {isSavingDraft ? "Saving..." : "Save Changes"}
+                          {isSavingDraft ? "Đang lưu..." : "Lưu thay đổi"}
                         </button>
                       </div>
                     )}
@@ -236,22 +212,22 @@ export function UserDetailDrawer({
                   {/* Recent Orders */}
                   <div className="space-y-3">
                     <h4 className="font-display text-sm font-bold text-foreground">
-                      Recent Purchase Orders
+                      Đơn hàng mua gần đây
                     </h4>
                     {detailData.recent_orders.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground font-body text-xs border border-border border-dashed rounded-xl bg-background/20">
-                        This user has not placed any orders yet.
+                        Người dùng này chưa thực hiện đơn hàng nào.
                       </div>
                     ) : (
                       <div className="border border-border rounded-xl overflow-hidden bg-background">
                         <table className="w-full text-left border-collapse text-xs">
                           <thead>
                             <tr className="border-b border-border bg-surface-low font-body text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
-                              <th className="p-3">Concert</th>
-                              <th className="p-3 text-center">Status</th>
-                              <th className="p-3 text-right">Amount</th>
-                              <th className="p-3 text-center">Tickets</th>
-                              <th className="p-3">Order Date</th>
+                              <th className="p-3">Sự kiện</th>
+                              <th className="p-3 text-center">Trạng thái</th>
+                              <th className="p-3 text-right">Tổng tiền</th>
+                              <th className="p-3 text-center">Số vé</th>
+                              <th className="p-3">Ngày đặt</th>
                             </tr>
                           </thead>
                           <tbody className="font-body divide-y divide-border/50">

@@ -269,6 +269,7 @@ export const concerts = [
             { name: "BALLERINA", price: 1600000, max_per_user: 4, gate_number: 2, position: 4, status: "sold_out", total_quantity: 2200, sales_start_at: new Date("2026-07-01T10:00:00+07:00")},
             { name: "FEATHER", price: 1100000, max_per_user: 4, gate_number: 3, position: 5, status: "sold_out", total_quantity: 3000, sales_start_at: new Date("2026-07-01T10:00:00+07:00")},
             { name: "MOONLIGHT", price: 860000, max_per_user: 4, gate_number: 3, position: 6, status: "sold_out", total_quantity: 3800, sales_start_at: new Date("2026-07-01T10:00:00+07:00")},
+            { name: "STANLEY", price: 5000, max_per_user: 4, gate_number: 3, position: 7, status: "book_now", total_quantity: 10, sales_start_at: new Date("2026-07-01T10:00:00+07:00") },
         ],
         performers: [
             "Phùng Khánh Linh",

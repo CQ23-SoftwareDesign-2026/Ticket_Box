@@ -8,6 +8,7 @@ import {
   getOrders,
   type OrderDetail,
 } from "@/services/order.service";
+import { formatConcertCurrency } from "@/services/concert.service";
 import { CheckCircle2, XCircle, AlertCircle, Loader2 } from "lucide-react";
 
 // Hashing function matching backend to map orderCode back to orderId
@@ -63,7 +64,7 @@ function CallbackContent() {
 
         if (!resolvedOrderId) {
           if (active) {
-            setError("Could not locate the details of this transaction.");
+            setError("Không tìm thấy thông tin chi tiết của giao dịch này.");
             setLoading(false);
           }
           return;
@@ -96,7 +97,7 @@ function CallbackContent() {
         console.error("Error verifying payment callback:", err);
         if (active) {
           setError(
-            "Failed to fetch order status. Please check your internet connection.",
+            "Không thể xác nhận trạng thái đơn hàng. Vui lòng kiểm tra kết nối mạng của bạn.",
           );
           setLoading(false);
         }
@@ -115,11 +116,11 @@ function CallbackContent() {
       <div className="mx-auto flex min-h-[50vh] max-w-xl flex-col items-center justify-center space-y-4 px-4 text-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
         <h2 className="font-display text-2xl font-bold text-on-surface">
-          Verifying your transaction
+          Đang xác thực giao dịch
         </h2>
-        <p className="text-sm text-on-surface-variant max-w-sm">
-          Please wait while we establish secure credentials and verify the
-          settlement status with the portal.
+        <p className="text-sm text-on-surface-variant/80 max-w-sm">
+          Vui lòng chờ trong giây lát để chúng tôi kết nối an toàn và xác minh
+          trạng thái thanh toán từ hệ thống.
         </p>
       </div>
     );
@@ -128,21 +129,25 @@ function CallbackContent() {
   if (error || !order) {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
           <AlertCircle size={28} />
         </div>
         <h2 className="mt-6 font-display text-2xl font-bold text-on-surface">
-          Verification Error
+          Lỗi xác thực giao dịch
         </h2>
-        <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-          {error || "We encountered an error loading your order data."}
+        <p className="mt-2 text-sm leading-6 text-on-surface-variant/80">
+          {error || "Đã xảy ra lỗi không xác định khi tải dữ liệu đơn hàng."}
         </p>
         <div className="mt-8 flex flex-col gap-3">
-          <Button href="/my-tickets" className="w-full">
-            Go to order history
+          <Button href="/my-tickets" className="w-full justify-center py-3">
+            Đi tới lịch sử đặt vé
           </Button>
-          <Button href="/" variant="soft" className="w-full">
-            Back to homepage
+          <Button
+            href="/"
+            variant="soft"
+            className="w-full justify-center py-3"
+          >
+            Quay lại trang chủ
           </Button>
         </div>
       </div>
@@ -154,55 +159,54 @@ function CallbackContent() {
   if (isSuccess) {
     return (
       <div className="mx-auto max-w-xl px-4 py-8 sm:py-12">
-        <div className="overflow-hidden rounded-3xl border border-outline-variant bg-surface p-6 shadow-sm sm:p-8">
+        <div className="overflow-hidden rounded-3xl border border-outline-variant/30 bg-surface/20 p-6 shadow-xl sm:p-8 backdrop-blur-md">
           <div className="text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
               <CheckCircle2 size={28} />
             </div>
             <h2 className="mt-6 font-display text-3xl font-black text-on-surface">
-              Payment Successful!
+              Thanh toán thành công!
             </h2>
-            <p className="mt-2 text-sm text-on-surface-variant">
-              Your tickets are ready and confirmed. We have successfully
-              processed your settlement.
+            <p className="mt-2 text-sm text-on-surface-variant/80">
+              Vé của bạn đã sẵn sàng và được xác nhận. Chúng tôi đã xử lý thành
+              công giao dịch thanh toán của bạn.
             </p>
           </div>
 
-          <div className="mt-8 space-y-4 border-t border-b border-outline-variant/60 py-6">
-            <div className="flex justify-between text-sm">
-              <span className="text-on-surface-variant">Booking ID</span>
-              <span className="font-mono font-semibold text-on-surface">
-                {order.id.slice(0, 8).toUpperCase()}-
-                {order.id.slice(9, 13).toUpperCase()}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-on-surface-variant">Event</span>
+          <div className="mt-8 space-y-4 border-t border-b border-slate-700 py-6">
+            <div className="flex justify-between items-center text-sm gap-4">
+              <span className="text-on-surface-variant/85">Sự kiện</span>
               <span className="font-semibold text-on-surface text-right">
                 {order.concert_name}
               </span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-on-surface-variant">Total Amount</span>
-              <span className="font-semibold text-on-surface">
-                {order.total_amount}
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-on-surface-variant/85">Tổng tiền</span>
+              <span className="font-bold text-primary">
+                {formatConcertCurrency(Number(order.total_amount))}
               </span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-on-surface-variant">Tickets Purchased</span>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-on-surface-variant/85">Số lượng vé</span>
               <span className="font-semibold text-on-surface">
-                {order.ticket_count}{" "}
-                {order.ticket_count > 1 ? "tickets" : "ticket"}
+                {order.ticket_count} vé
               </span>
             </div>
           </div>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button href={`/orders/${order.id}`} className="w-full">
-              View tickets & QR
+            <Button
+              href={`/orders/${order.id}`}
+              className="w-full justify-center py-3"
+            >
+              Xem vé & mã QR
             </Button>
-            <Button href="/my-tickets" variant="soft" className="w-full">
-              Order history
+            <Button
+              href="/my-tickets"
+              variant="soft"
+              className="w-full justify-center py-3"
+            >
+              Lịch sử đặt vé
             </Button>
           </div>
         </div>
@@ -213,53 +217,54 @@ function CallbackContent() {
   // Failure or Cancelled Screen
   return (
     <div className="mx-auto max-w-xl px-4 py-8 sm:py-12">
-      <div className="overflow-hidden rounded-3xl border border-outline-variant bg-surface p-6 shadow-sm sm:p-8">
+      <div className="overflow-hidden rounded-3xl border border-outline-variant/30 bg-surface/20 p-6 shadow-xl sm:p-8 backdrop-blur-md">
         <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
             <XCircle size={28} />
           </div>
           <h2 className="mt-6 font-display text-3xl font-black text-on-surface">
-            Payment Cancelled
+            Thanh toán đã hủy
           </h2>
-          <p className="mt-2 text-sm text-on-surface-variant">
-            Your transaction was cancelled or failed to complete. No charges
-            were made.
+          <p className="mt-2 text-sm text-on-surface-variant/80">
+            Giao dịch thanh toán của bạn đã bị hủy hoặc không thành công. Bạn
+            chưa bị trừ tiền cho đơn hàng này.
           </p>
         </div>
 
-        <div className="mt-8 space-y-4 border-t border-b border-outline-variant/60 py-6">
-          <div className="flex justify-between text-sm">
-            <span className="text-on-surface-variant">Order ID</span>
-            <span className="font-mono font-semibold text-on-surface">
-              {order.id.slice(0, 8).toUpperCase()}
-            </span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-on-surface-variant">Event</span>
+        <div className="mt-8 space-y-4 border-t border-b border-slate-700 py-6">
+          <div className="flex justify-between items-center text-sm gap-4">
+            <span className="text-on-surface-variant/85">Sự kiện</span>
             <span className="font-semibold text-on-surface text-right">
               {order.concert_name}
             </span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-on-surface-variant">Total Amount</span>
-            <span className="font-semibold text-on-surface">
-              {order.total_amount}
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-on-surface-variant/85">Tổng tiền</span>
+            <span className="font-bold text-on-surface">
+              {formatConcertCurrency(Number(order.total_amount))}
             </span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-on-surface-variant">Status</span>
-            <span className="font-bold text-rose-600 uppercase tracking-wider text-xs">
-              {order.status}
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-on-surface-variant/85">Trạng thái</span>
+            <span className="font-bold text-rose-500 uppercase tracking-wider text-xs">
+              Chờ thanh toán
             </span>
           </div>
         </div>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Button href={`/checkout/${order.id}`} className="w-full">
-            Retry checkout
+          <Button
+            href={`/checkout/${order.id}`}
+            className="w-full justify-center py-3"
+          >
+            Thử thanh toán lại
           </Button>
-          <Button href="/" variant="soft" className="w-full">
-            Back to concerts
+          <Button
+            href="/"
+            variant="soft"
+            className="w-full justify-center py-3"
+          >
+            Quay lại trang chủ
           </Button>
         </div>
       </div>
@@ -276,7 +281,7 @@ export default function CallbackPage() {
             <div className="mx-auto flex min-h-[50vh] max-w-xl flex-col items-center justify-center space-y-4 px-4 text-center">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
               <h2 className="font-display text-2xl font-bold text-on-surface">
-                Loading callback details
+                Đang tải thông tin kết quả giao dịch
               </h2>
             </div>
           }

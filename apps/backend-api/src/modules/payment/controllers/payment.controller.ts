@@ -4,6 +4,8 @@ import {
     HttpCode,
     HttpStatus,
     Post,
+    Patch,
+    Param,
     Req,
     UsePipes,
     UseInterceptors,
@@ -20,9 +22,12 @@ import {
     ApiBearerAuth,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../shared/guards/roles.guard';
+import { Roles } from '../../../shared/decorators/roles.decorator';
 import { UseGuards } from '@nestjs/common';
 import { CreatePaymentDto } from '../dtos/create-payment.dto';
 import { PaymentService } from '../services/payment.service';
+import { ResolveRefundDto } from '../dtos/resolve-refund.dto';
 import { PaymentProcessResponseDto } from '../dtos/payment-process-response.dto';
 import { PaymentWebhookRequestDto } from '../dtos/payment-webhook-request.dto';
 import { PaymentWebhookResponseDto } from '../dtos/payment-webhook-response.dto';
@@ -60,5 +65,18 @@ export class PaymentController {
         @Body() dto: any,
     ) {
         return this.paymentService.handleWebhook(dto);
+    }
+
+    @Patch('transactions/:id/refund')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('ADMIN')
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Resolve and record a refund for paid-after-expiration/cancelled payments' })
+    async resolveRefund(
+        @Param('id') id: string,
+        @Req() req: any,
+        @Body() dto: ResolveRefundDto,
+    ) {
+        return this.paymentService.resolveRefund(id, req.user.sub, dto);
     }
 }

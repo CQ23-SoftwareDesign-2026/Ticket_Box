@@ -27,6 +27,12 @@ export class OrderDetailDto {
     @ApiPropertyOptional({ type: Object })
     ticket_metadata?: Record<string, unknown> | null;
 
+    @ApiPropertyOptional({ example: 'John Doe' })
+    user_name?: string | null;
+
+    @ApiPropertyOptional({ example: 'john@example.com' })
+    user_email?: string | null;
+
     @ApiProperty({ type: [OrderTicketDto] })
     tickets!: OrderTicketDto[];
 

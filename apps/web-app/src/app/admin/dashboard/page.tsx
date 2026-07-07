@@ -4,7 +4,6 @@ import { useAdminDashboard } from "./_hooks/useAdminDashboard";
 import { DashboardSummaryCards } from "./_components/DashboardSummaryCards";
 import { RevenueChart } from "./_components/RevenueChart";
 import { RecentOrdersList } from "./_components/RecentOrdersList";
-import { AllOrdersModal } from "./_components/AllOrdersModal";
 
 export default function AdminDashboardPage() {
   const {
@@ -17,31 +16,16 @@ export default function AdminDashboardPage() {
     setSearchQuery,
     filteredOrders,
     groupBy,
-    fromDate,
-    toDate,
     tempFromDate,
     setTempFromDate,
     tempToDate,
     setTempToDate,
     tempGroupBy,
     setTempGroupBy,
-    tempStatus,
-    setTempStatus,
     fromDateRef,
     toDateRef,
     hoveredIndex,
     setHoveredIndex,
-    isModalOpen,
-    setIsModalOpen,
-    modalOrders,
-    modalPage,
-    setModalPage,
-    modalTotalPages,
-    modalSearch,
-    setModalSearch,
-    isModalLoading,
-    modalStatusFilter,
-    setModalStatusFilter,
     handleApply,
     handleReset,
     formatSummaryNumber,
@@ -55,7 +39,6 @@ export default function AdminDashboardPage() {
     paddingLeft,
     paddingRight,
     paddingTop,
-    paddingBottom,
     chartWidth,
     chartHeight,
     points,
@@ -105,7 +88,6 @@ export default function AdminDashboardPage() {
           tempFromDate={tempFromDate}
           tempToDate={tempToDate}
           tempGroupBy={tempGroupBy}
-          tempStatus={tempStatus}
           fromDateRef={fromDateRef}
           toDateRef={toDateRef}
           hoveredIndex={hoveredIndex}
@@ -114,7 +96,6 @@ export default function AdminDashboardPage() {
           paddingLeft={paddingLeft}
           paddingRight={paddingRight}
           paddingTop={paddingTop}
-          paddingBottom={paddingBottom}
           chartWidth={chartWidth}
           chartHeight={chartHeight}
           yLabels={yLabels}
@@ -129,7 +110,6 @@ export default function AdminDashboardPage() {
           onTempFromDateChange={setTempFromDate}
           onTempToDateChange={setTempToDate}
           onTempGroupByChange={setTempGroupBy}
-          onTempStatusChange={setTempStatus}
           onApply={handleApply}
           onReset={handleReset}
           onExportCsv={handleExportCsv}
@@ -144,23 +124,8 @@ export default function AdminDashboardPage() {
           isLoadingOrders={isLoadingOrders}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          onViewAll={() => setIsModalOpen(true)}
         />
       </div>
-
-      <AllOrdersModal
-        isOpen={isModalOpen}
-        modalOrders={modalOrders}
-        modalPage={modalPage}
-        modalTotalPages={modalTotalPages}
-        modalSearch={modalSearch}
-        isModalLoading={isModalLoading}
-        modalStatusFilter={modalStatusFilter}
-        onClose={() => setIsModalOpen(false)}
-        onSearchChange={setModalSearch}
-        onPageChange={setModalPage}
-        onStatusFilterChange={setModalStatusFilter}
-      />
     </div>
   );
 }

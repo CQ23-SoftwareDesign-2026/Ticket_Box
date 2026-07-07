@@ -18,7 +18,8 @@ export default function AdminUsersPage() {
     setRole,
     page,
     setPage,
-    itemsPerPage,
+    limit,
+    setLimit,
     users,
     totalItems,
     isLoading,
@@ -44,8 +45,6 @@ export default function AdminUsersPage() {
     setNewPassword,
     newRoles,
     setNewRoles,
-    newStatus,
-    setNewStatus,
     createError,
     isCreating,
     handleCreateUser,
@@ -58,18 +57,18 @@ export default function AdminUsersPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="font-display text-3xl font-bold text-foreground">
-            User Management
+            Quản lý người dùng
           </h1>
           <p className="text-muted-foreground font-body text-sm mt-1">
-            Manage user accounts, update security roles, and view purchase
-            history
+            Quản lý tài khoản người dùng, cập nhật vai trò bảo mật và theo dõi
+            lịch sử
           </p>
         </div>
         <button
           onClick={() => setIsCreateModalOpen(true)}
           className="bg-primary hover:bg-primary-container text-white font-body text-xs font-bold py-2.5 px-4 rounded-xl flex items-center gap-2 transition-all hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 duration-200"
         >
-          <Plus className="w-4 h-4" /> Create User
+          <Plus className="w-4 h-4" /> Tạo người dùng
         </button>
       </div>
 
@@ -99,8 +98,9 @@ export default function AdminUsersPage() {
         page={page}
         totalPages={totalPages}
         totalItems={totalItems}
-        itemsPerPage={itemsPerPage}
+        limit={limit}
         onPageChange={setPage}
+        onLimitChange={setLimit}
         onViewDetail={setSelectedUserId}
       />
 
@@ -132,7 +132,6 @@ export default function AdminUsersPage() {
         newEmail={newEmail}
         newPassword={newPassword}
         newRoles={newRoles}
-        newStatus={newStatus}
         createError={createError}
         isCreating={isCreating}
         onClose={() => setIsCreateModalOpen(false)}
@@ -141,7 +140,6 @@ export default function AdminUsersPage() {
         onEmailChange={setNewEmail}
         onPasswordChange={setNewPassword}
         onRolesChange={setNewRoles}
-        onStatusChange={setNewStatus}
       />
     </div>
   );

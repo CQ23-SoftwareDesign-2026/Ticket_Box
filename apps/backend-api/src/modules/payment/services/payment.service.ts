@@ -18,6 +18,8 @@ import { PaymentWebhookResponseDto } from '../dtos/payment-webhook-response.dto'
 import { PaymentTicketBreakdownDto } from '../dtos/payment-ticket-breakdown.dto';
 import { PaymentGatewayClient } from './gateway/payment-gateway.client';
 import { TicketingService } from '../../ticketing/services/ticketing.service';
+import { NotificationService } from '../../notifications/notification.service';
+import { ResolveRefundDto } from '../dtos/resolve-refund.dto';
 
 type IdempotencyCacheEntry =
     | {
@@ -61,6 +63,7 @@ export class PaymentService {
         private readonly redisService: RedisService,
         private readonly paymentGatewayClient: PaymentGatewayClient,
         private readonly ticketingService: TicketingService,
+        private readonly notificationService: NotificationService,
     ) { }
 
     async processPayment(
@@ -466,6 +469,9 @@ export class PaymentService {
             }
         });
 
+        // Send confirmation email and push notification asynchronously
+        void this.notificationService.sendTicketConfirmation(transaction.order_id);
+
         return new PaymentWebhookResponseDto({
             order_status: 'PAID',
             payment_status: 'SUCCESS',
@@ -786,5 +792,42 @@ export class PaymentService {
                 item.quantity
             );
         }
+    }
+
+    public async resolveRefund(
+        transactionId: string,
+        adminUserId: string,
+        dto: ResolveRefundDto,
+    ) {
+        const transaction = await this.prisma.paymentTransaction.findUnique({
+            where: { id: transactionId },
+        });
+
+        if (!transaction) {
+            throw new NotFoundException('Transaction not found');
+        }
+
+        if (transaction.status === 'REFUNDED') {
+            throw new BadRequestException('Transaction is already refunded');
+        }
+
+        const existingRaw = (transaction.raw_response as Prisma.JsonObject) || {};
+        const updatedRaw = {
+            ...existingRaw,
+            refund_info: {
+                refunded_by: adminUserId,
+                refunded_at: new Date().toISOString(),
+                refund_tx_id: dto.refund_tx_id || null,
+                refund_note: dto.refund_note || null,
+            },
+        };
+
+        return this.prisma.paymentTransaction.update({
+            where: { id: transactionId },
+            data: {
+                status: 'REFUNDED',
+                raw_response: updatedRaw as Prisma.JsonObject,
+            },
+        });
     }
 }

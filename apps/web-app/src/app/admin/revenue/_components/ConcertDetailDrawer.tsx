@@ -1,9 +1,8 @@
 "use client";
 
-import { X, Calendar } from "lucide-react";
-import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
+import { X, Calendar, MapPin } from "lucide-react";
 import { getConcertPosterUrl } from "@/services/concert.service";
+import { motion, AnimatePresence } from "framer-motion";
 import { type ConcertRevenueDetailResponse } from "@/services/revenue.service";
 import { StatusBadge } from "../../_components/StatusBadge";
 
@@ -71,10 +70,10 @@ export function ConcertDetailDrawer({
             <div className="p-6 border-b border-border flex justify-between items-start">
               <div>
                 <h3 className="font-display text-lg font-bold text-foreground">
-                  Concert revenue detail
+                  Chi tiết doanh thu sự kiện
                 </h3>
                 <p className="text-xs text-muted-foreground font-body mt-0.5">
-                  Breakdown of categories and tiers metrics
+                  Phân tích theo hạng vé và loại
                 </p>
               </div>
               <button
@@ -91,24 +90,23 @@ export function ConcertDetailDrawer({
                   <div className="flex flex-col items-center justify-center gap-3">
                     <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                     <span className="font-body text-xs">
-                      Loading detail breakdown...
+                      Đang tải chi tiết...
                     </span>
                   </div>
                 </div>
               ) : !detailData ? (
                 <div className="py-20 text-center text-muted-foreground text-sm font-body">
-                  Failed to load details.
+                  Không thể tải chi tiết.
                 </div>
               ) : (
                 <>
                   {/* Concert Info */}
                   <div className="flex gap-4 p-4 rounded-2xl bg-background border border-border">
                     <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-surface-low border border-border relative">
-                      <Image
-                        src={getConcertPosterUrl()}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={getConcertPosterUrl(detailData.concert.poster_url)}
                         alt={detailData.concert.name}
-                        width={64}
-                        height={64}
                         className="w-full h-full object-cover"
                       />
                     </div>
@@ -127,23 +125,31 @@ export function ConcertDetailDrawer({
                       <p className="text-[10px] text-muted-foreground font-semibold font-mono">
                         {formatConcertDate(detailData.concert.start_time)}
                       </p>
+                      {detailData.concert.location && (
+                        <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <MapPin className="w-3 h-3 shrink-0" />
+                          <span className="truncate max-w-[320px]">
+                            {detailData.concert.location}
+                          </span>
+                        </p>
+                      )}
                     </div>
                   </div>
 
                   {/* Date Range Indicator */}
                   <div className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground bg-background/50 py-1.5 px-3 rounded-lg border border-border/50 uppercase tracking-wider">
                     <Calendar className="w-3.5 h-3.5" />
-                    <span>Date range:</span>
+                    <span>Khoảng thời gian:</span>
                     <span className="text-foreground">
                       {fromDate
                         ? new Date(fromDate).toLocaleDateString("vi-VN")
-                        : "Inception"}
+                        : "Từ đầu"}
                     </span>
                     <span>→</span>
                     <span className="text-foreground">
                       {toDate
                         ? new Date(toDate).toLocaleDateString("vi-VN")
-                        : "Present"}
+                        : "Hiện tại"}
                     </span>
                   </div>
 
@@ -151,7 +157,7 @@ export function ConcertDetailDrawer({
                   <div className="grid grid-cols-3 gap-4">
                     <div className="bg-background border border-border rounded-xl p-4 flex flex-col gap-1 shadow-sm">
                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                        Total revenue
+                        Tổng doanh thu
                       </span>
                       <span className="text-sm sm:text-base font-extrabold text-foreground font-mono truncate">
                         {formatVND(detailData.total_revenue)}
@@ -159,7 +165,7 @@ export function ConcertDetailDrawer({
                     </div>
                     <div className="bg-background border border-border rounded-xl p-4 flex flex-col gap-1 shadow-sm">
                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                        Paid orders
+                        Đơn đã thanh toán
                       </span>
                       <span className="text-base sm:text-lg font-extrabold text-foreground font-mono">
                         {detailData.paid_orders.toLocaleString("vi-VN")}
@@ -167,7 +173,7 @@ export function ConcertDetailDrawer({
                     </div>
                     <div className="bg-background border border-border rounded-xl p-4 flex flex-col gap-1 shadow-sm">
                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                        Tickets sold
+                        Vé đã bán
                       </span>
                       <span className="text-base sm:text-lg font-extrabold text-foreground font-mono">
                         {detailData.tickets_sold.toLocaleString("vi-VN")}
@@ -178,26 +184,26 @@ export function ConcertDetailDrawer({
                   {/* Tier Breakdown */}
                   <div className="space-y-3">
                     <h4 className="font-display text-sm font-bold text-foreground">
-                      Ticket tier breakdown
+                      Phân tích theo hạng vé
                     </h4>
                     <div className="overflow-x-auto border border-border rounded-xl">
                       <table className="w-full text-left border-collapse text-[11px]">
                         <thead>
                           <tr className="bg-background font-body font-bold text-muted-foreground border-b border-border uppercase tracking-wider">
-                            <th className="p-3">Tier name</th>
-                            <th className="p-3 text-right">Price (VND)</th>
-                            <th className="p-3 text-center">Total qty</th>
-                            <th className="p-3 text-center">Sold</th>
-                            <th className="p-3 text-center">Remaining</th>
-                            <th className="p-3 text-right">Revenue (VND)</th>
-                            <th className="p-3 text-center">Gate</th>
+                            <th className="p-3">Hạng vé</th>
+                            <th className="p-3 text-right">Giá (VND)</th>
+                            <th className="p-3 text-center">Tổng SL</th>
+                            <th className="p-3 text-center">Đã bán</th>
+                            <th className="p-3 text-center">Còn lại</th>
+                            <th className="p-3 text-right">Doanh thu (VND)</th>
+                            <th className="p-3 text-center">Cổng</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border/50 font-body">
                           {detailData.ticket_tiers?.map((tier) => (
                             <tr
                               key={tier.category_id}
-                              className="hover:bg-surface-high/15 transition-colors"
+                              className="hover:bg-surface-high/15 odd:bg-surface-low/20 even:bg-surface-low/5 transition-colors"
                             >
                               <td className="p-3 font-semibold text-foreground">
                                 {tier.name}
@@ -221,13 +227,13 @@ export function ConcertDetailDrawer({
                               </td>
                               <td className="p-3 text-center font-mono font-semibold text-muted-foreground">
                                 {tier.gate_number !== null
-                                  ? `Gate ${tier.gate_number}`
+                                  ? `Cổng ${tier.gate_number}`
                                   : "—"}
                               </td>
                             </tr>
                           ))}
                           <tr className="bg-background/40 font-bold border-t border-border">
-                            <td className="p-3 text-foreground">Total</td>
+                            <td className="p-3 text-foreground">Tổng cộng</td>
                             <td className="p-3 text-right text-muted-foreground">
                               —
                             </td>

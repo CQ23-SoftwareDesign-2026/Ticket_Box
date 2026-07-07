@@ -19,6 +19,8 @@ export interface RevenueByConcertItem {
   concert_name: string;
   status: "DRAFT" | "PUBLISHED" | "COMPLETED" | "CANCELLED";
   start_time: string;
+  poster_url: string | null;
+  location: string | null;
   revenue: number;
   paid_orders: number;
   tickets_sold: number;
@@ -33,6 +35,8 @@ export interface ConcertInfo {
   name: string;
   status: string;
   start_time: string;
+  poster_url: string | null;
+  location: string | null;
 }
 
 export interface TicketTierRevenue {

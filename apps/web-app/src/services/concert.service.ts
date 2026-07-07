@@ -10,6 +10,7 @@ export interface ConcertApiItem {
   poster_url?: string;
   status: string;
   ticketTiers?: ConcertTicketTier[];
+  performers?: string[];
 }
 
 export interface ConcertTicketTier {
@@ -19,6 +20,10 @@ export interface ConcertTicketTier {
   total_quantity: number;
   max_per_user: number;
   gate_number?: number | null;
+  position?: number;
+  status?: string;
+  sales_start_at?: string;
+  remaining_quantity?: number;
 }
 
 export interface ConcertDetailResponse {
@@ -32,6 +37,7 @@ export interface ConcertDetailResponse {
   poster_url?: string;
   status: string;
   ticketTiers: ConcertTicketTier[];
+  performers?: string[];
 }
 
 export interface ConcertListMeta {
@@ -62,6 +68,7 @@ export interface ConcertCardItem {
   mapUrl: string;
   posterUrl?: string;
   ticketTiers?: ConcertTicketTier[];
+  performers?: string[];
 }
 
 export interface ConcertDetailItem extends ConcertCardItem {
@@ -126,7 +133,12 @@ function formatDateTime(value: string) {
 function mapConcert(item: ConcertApiItem): ConcertCardItem {
   const { venue, city } = splitLocation(item.location);
   const { date, time } = formatDateTime(item.start_time);
-  const tiers = item.ticketTiers ?? [];
+
+  const rawTiers = item.ticketTiers ?? [];
+  const tiers = [...rawTiers].sort(
+    (a, b) => (a.position ?? 0) - (b.position ?? 0),
+  );
+
   const minPrice =
     tiers.length > 0 ? Math.min(...tiers.map((t) => t.price)) : undefined;
 
@@ -148,6 +160,7 @@ function mapConcert(item: ConcertApiItem): ConcertCardItem {
     mapUrl: item.svg_map_url,
     posterUrl: item.poster_url,
     ticketTiers: tiers,
+    performers: item.performers,
   };
 }
 
@@ -161,12 +174,19 @@ function mapConcertDetail(item: ConcertDetailResponse): ConcertDetailItem {
     svg_map_url: item.svg_map_url,
     poster_url: item.poster_url,
     status: item.status,
+    performers: item.performers,
+    ticketTiers: item.ticketTiers,
   });
+
+  const rawTiers = item.ticketTiers ?? [];
+  const tiers = [...rawTiers].sort(
+    (a, b) => (a.position ?? 0) - (b.position ?? 0),
+  );
 
   return {
     ...mapped,
     aiBio: item.ai_bio,
-    ticketTiers: item.ticketTiers ?? [],
+    ticketTiers: tiers,
     startTime: item.start_time,
   };
 }

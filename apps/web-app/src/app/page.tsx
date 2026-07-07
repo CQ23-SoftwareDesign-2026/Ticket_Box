@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, Suspense, Fragment } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Card, SectionHeading, SiteShell } from "@/components/common";
+import { SectionHeading, SiteShell } from "@/components/common";
+import { useToast } from "@/context/ToastContext";
 import { HeroCarousel } from "@/components/screens";
 import {
   getConcerts,
@@ -96,7 +97,7 @@ function ConcertsFullList() {
     currentPage: 1,
   });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { error: showErrorToast } = useToast();
 
   // Reset page when status changes via URL
   const prevStatus = useRef(activeStatus);
@@ -110,7 +111,6 @@ function ConcertsFullList() {
     const id = window.setTimeout(() => {
       const load = async () => {
         setLoading(true);
-        setError(null);
         try {
           const r = await getConcerts({
             page,
@@ -124,7 +124,9 @@ function ConcertsFullList() {
         } catch (e) {
           if (!isActive) return;
           setItems([]);
-          setError(e instanceof Error ? e.message : "Không thể tải concert.");
+          showErrorToast(
+            e instanceof Error ? e.message : "Không thể tải concert.",
+          );
         } finally {
           if (isActive) setLoading(false);
         }
@@ -135,7 +137,7 @@ function ConcertsFullList() {
       isActive = false;
       clearTimeout(id);
     };
-  }, [meta.itemsPerPage, page, search, activeStatus]);
+  }, [meta.itemsPerPage, page, search, activeStatus, showErrorToast]);
 
   const totalPages = Math.max(meta.totalPages, 1);
 
@@ -163,13 +165,6 @@ function ConcertsFullList() {
         </p>
       </div>
 
-      {error && (
-        <div className="mb-4 flex items-center gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-400">
-          <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />
-          {error}
-        </div>
-      )}
-
       {/* Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {loading
@@ -184,7 +179,7 @@ function ConcertsFullList() {
               <MiniConcertCard key={concert.id} concert={concert} />
             ))}
       </div>
-      {!loading && items.length === 0 && !error && (
+      {!loading && items.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
           <p className="text-base font-semibold text-on-surface-variant">
             Không có sự kiện nào
@@ -503,41 +498,6 @@ function GuestLanding() {
     >
       <HeroCarousel />
       <ConcertsSection />
-      <section className="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
-        <Card className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-on-surface-variant">
-              Public access
-            </p>
-            <h2 className="font-display text-3xl font-bold text-on-surface">
-              Khám phá concert trước khi đăng nhập
-            </h2>
-            <p className="max-w-2xl text-sm leading-6 text-on-surface-variant">
-              Bạn có thể xem danh sách concert mà không cần tài khoản. Đăng nhập
-              chỉ cần thiết khi bạn muốn đặt chỗ, thanh toán hoặc quản lý vé.
-            </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {[
-              [
-                "Danh mục công khai",
-                "Thẻ concert và chi tiết tải mà không cần xác thực.",
-              ],
-              [
-                "Cùng trải nghiệm",
-                "Giao diện duyệt giống nhau dù bạn đăng nhập hay không.",
-              ],
-            ].map(([title, body]) => (
-              <div key={title} className="rounded-2xl bg-surface-low p-4">
-                <p className="text-sm font-semibold text-on-surface">{title}</p>
-                <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                  {body}
-                </p>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </section>
     </SiteShell>
   );
 }

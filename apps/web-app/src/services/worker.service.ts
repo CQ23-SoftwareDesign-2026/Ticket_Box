@@ -37,6 +37,30 @@ export interface BackgroundJob {
   completed_at: string | null;
 }
 
+export interface BackgroundJobWithMeta extends BackgroundJob {
+  concert_name: string | null;
+  triggered_by_name: string | null;
+  triggered_by_email: string | null;
+}
+
+export interface BackgroundJobsListResponse {
+  data: BackgroundJobWithMeta[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface BackgroundJobsQuery {
+  page?: number;
+  limit?: number;
+  status?: string;
+  job_type?: string;
+  concert_id?: string;
+}
+
 export async function generateBio(
   concertId: string,
   file: File,
@@ -121,5 +145,19 @@ export async function getGuestList(
 
   return apiClient.get<GuestListResponse>(
     `/worker/concert/${concertId}/guests?${query.toString()}`,
+  );
+}
+
+export async function getBackgroundJobs(
+  params: BackgroundJobsQuery = {},
+): Promise<BackgroundJobsListResponse> {
+  const query = new URLSearchParams();
+  if (params.page) query.append("page", String(params.page));
+  if (params.limit) query.append("limit", String(params.limit));
+  if (params.status) query.append("status", params.status);
+  if (params.job_type) query.append("job_type", params.job_type);
+  if (params.concert_id) query.append("concert_id", params.concert_id);
+  return apiClient.get<BackgroundJobsListResponse>(
+    `/worker/jobs?${query.toString()}`,
   );
 }

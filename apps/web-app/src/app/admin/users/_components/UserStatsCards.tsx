@@ -13,7 +13,7 @@ export function UserStatsCards({ stats }: UserStatsCardsProps) {
         </div>
         <div>
           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-            Total Users
+            Tổng người dùng
           </p>
           <p className="text-2xl font-black text-foreground mt-0.5">
             {stats.total}
@@ -27,7 +27,7 @@ export function UserStatsCards({ stats }: UserStatsCardsProps) {
         </div>
         <div>
           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-            Active Accounts
+            Tài khoản hoạt động
           </p>
           <p className="text-2xl font-black text-foreground mt-0.5">
             {stats.active}
@@ -41,7 +41,7 @@ export function UserStatsCards({ stats }: UserStatsCardsProps) {
         </div>
         <div>
           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-            Administrators
+            Quản trị viên
           </p>
           <p className="text-2xl font-black text-foreground mt-0.5">
             {stats.admin}
@@ -55,7 +55,7 @@ export function UserStatsCards({ stats }: UserStatsCardsProps) {
         </div>
         <div>
           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-            Suspended
+            Bị khoá / Tạm dừng
           </p>
           <p className="text-2xl font-black text-foreground mt-0.5">
             {stats.blocked}

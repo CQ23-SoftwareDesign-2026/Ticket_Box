@@ -2,9 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  AlertCircle,
   CalendarDays,
-  CheckCircle2,
   ClipboardCheck,
   Loader2,
   Pencil,
@@ -32,6 +30,8 @@ import type {
   PaginationMeta,
 } from "@/types/checker-assignment.types";
 import { getErrorMessage } from "@/utils/error.utils";
+import { Pagination } from "../_components/Pagination";
+import { useToast } from "@/context/ToastContext";
 
 const DEFAULT_META: PaginationMeta = {
   totalItems: 0,
@@ -42,34 +42,29 @@ const DEFAULT_META: PaginationMeta = {
 };
 
 function formatConcertTime(value?: string) {
-  if (!value) {
-    return "Time unavailable";
-  }
-
+  if (!value) return "—";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Time unavailable";
-  }
+  if (Number.isNaN(date.getTime())) return "—";
 
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
+  return new Intl.DateTimeFormat("vi-VN", {
+    month: "long",
     day: "numeric",
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    timeZone: "Asia/Ho_Chi_Minh",
   }).format(date);
 }
 
 function formatShortDate(value: string) {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Unknown";
-  }
+  if (Number.isNaN(date.getTime())) return "—";
 
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
+  return new Intl.DateTimeFormat("vi-VN", {
+    month: "long",
     day: "numeric",
     year: "numeric",
+    timeZone: "Asia/Ho_Chi_Minh",
   }).format(date);
 }
 
@@ -88,29 +83,77 @@ function AssignmentModal({
   onClose,
   children,
 }: AssignmentModalProps) {
-  if (!isOpen) {
-    return null;
-  }
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-[2px]">
-      <div className="w-full max-w-2xl overflow-hidden rounded-lg border border-surface-high bg-surface shadow-[0_24px_80px_rgba(0,0,0,0.34)]">
-        <div className="flex items-start justify-between gap-4 border-b border-surface-high bg-surface-low px-6 py-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl relative z-10 flex flex-col max-h-[90vh]">
+        <div className="flex items-start justify-between gap-4 border-b border-border bg-surface-low/50 px-6 py-5">
           <div>
-            <h3 className="font-display text-2xl font-semibold text-foreground">
+            <h3 className="font-display text-lg font-bold text-foreground">
               {title}
             </h3>
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+            <p className="mt-1 text-xs text-muted-foreground font-body">
+              {description}
+            </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-md border border-surface-high bg-surface px-3 py-3 text-muted-foreground transition-colors hover:bg-surface-high hover:text-foreground"
+            className="rounded-lg hover:bg-surface-high p-1.5 text-muted-foreground hover:text-foreground transition-all cursor-pointer"
             aria-label="Close modal"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="px-6 py-6">{children}</div>
+        <div className="px-6 py-6 overflow-y-auto">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmDeleteModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  isDeleting,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  isDeleting: boolean;
+}) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl p-6 space-y-4 relative z-10">
+        <div className="space-y-2 font-body text-xs">
+          <h3 className="font-display text-base font-bold text-foreground">
+            {title}
+          </h3>
+          <p className="text-muted-foreground leading-relaxed">{message}</p>
+        </div>
+        <div className="flex gap-3 justify-end pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-border bg-background px-4 py-2 text-xs font-semibold text-foreground transition-all hover:bg-surface-low cursor-pointer active:scale-95"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer active:scale-95 hover:shadow-lg hover:shadow-rose-600/20"
+          >
+            {isDeleting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            Xác nhận xóa
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -131,25 +174,21 @@ function SummaryCard({
 }) {
   return (
     <div
-      className={`rounded-lg border border-surface-high/70 bg-surface-low shadow-[0_14px_34px_rgba(0,0,0,0.18)] ${tint}`}
+      className={`rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all duration-200 hover:shadow-md ${tint}`}
     >
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p
-              className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${tone}`}
-            >
-              {label}
-            </p>
-            <p className="mt-3 font-display text-3xl font-bold text-foreground">
-              {value}
-            </p>
-          </div>
-          <div
-            className={`flex h-10 w-10 items-center justify-center rounded-md border border-surface-high bg-surface ${tone}`}
-          >
-            <Icon className="h-4 w-4" />
-          </div>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            {label}
+          </p>
+          <p className="mt-1 font-display text-2xl font-bold text-foreground">
+            {value}
+          </p>
+        </div>
+        <div
+          className={`flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-background ${tone}`}
+        >
+          <Icon className="h-4 w-4" />
         </div>
       </div>
     </div>
@@ -157,6 +196,12 @@ function SummaryCard({
 }
 
 export default function AdminAssignmentsPage() {
+  const {
+    success: toastSuccess,
+    error: toastError,
+    warning: toastWarning,
+  } = useToast();
+
   const [assignments, setAssignments] = useState<CheckerAssignmentItem[]>([]);
   const [meta, setMeta] = useState<PaginationMeta>(DEFAULT_META);
   const [concerts, setConcerts] = useState<ActiveConcertOption[]>([]);
@@ -164,10 +209,10 @@ export default function AdminAssignmentsPage() {
   const [loading, setLoading] = useState(true);
   const [bootstrapping, setBootstrapping] = useState(true);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [concertFilter, setConcertFilter] = useState("");
   const [checkerFilter, setCheckerFilter] = useState("");
-  const [globalError, setGlobalError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingCreateGates, setIsLoadingCreateGates] = useState(false);
@@ -175,7 +220,7 @@ export default function AdminAssignmentsPage() {
   const [createConcertId, setCreateConcertId] = useState("");
   const [createCheckerId, setCreateCheckerId] = useState("");
   const [createGateNumber, setCreateGateNumber] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
+
   const [editTarget, setEditTarget] = useState<CheckerAssignmentItem | null>(
     null,
   );
@@ -183,6 +228,8 @@ export default function AdminAssignmentsPage() {
   const [editGates, setEditGates] = useState<number[]>([]);
   const [isLoadingEditGates, setIsLoadingEditGates] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] =
+    useState<CheckerAssignmentItem | null>(null);
 
   const concertMap = useMemo(
     () => new Map(concerts.map((concert) => [concert.id, concert])),
@@ -195,31 +242,31 @@ export default function AdminAssignmentsPage() {
 
   const summaryItems = [
     {
-      label: "Total Assignments",
+      label: "Tổng phân công",
       value: meta.totalItems.toString(),
       icon: ClipboardCheck,
       tone: "text-primary",
       tint: "bg-primary/5",
     },
     {
-      label: "Published Concerts",
+      label: "Tổng số sự kiện",
       value: concerts.length.toString(),
       icon: CalendarDays,
-      tone: "text-amber-300",
+      tone: "text-amber-400",
       tint: "bg-amber-500/5",
     },
     {
-      label: "Active Checkers",
+      label: "Nhân viên soát vé",
       value: checkers.length.toString(),
       icon: UserRound,
-      tone: "text-emerald-300",
+      tone: "text-emerald-400",
       tint: "bg-emerald-500/5",
     },
     {
-      label: "Filtered Results",
+      label: "Kết quả lọc",
       value: meta.itemCount.toString(),
       icon: ShieldCheck,
-      tone: "text-sky-300",
+      tone: "text-sky-400",
       tint: "bg-sky-500/5",
     },
   ];
@@ -236,12 +283,13 @@ export default function AdminAssignmentsPage() {
   const loadAssignments = useCallback(
     async (
       nextPage: number,
+      nextLimit: number,
       nextConcertFilter: string,
       nextCheckerFilter: string,
     ) => {
       return getCheckerAssignments({
         page: nextPage,
-        limit: 10,
+        limit: nextLimit,
         concert_id: nextConcertFilter || undefined,
         checker_id: nextCheckerFilter || undefined,
       });
@@ -249,28 +297,20 @@ export default function AdminAssignmentsPage() {
     [],
   );
 
+  // Bootstrap Page Data
   useEffect(() => {
     let active = true;
 
     const bootstrap = async () => {
       setBootstrapping(true);
-      setGlobalError(null);
-
       try {
         const { concertData, checkerData } = await loadBootstrapData();
-
-        if (!active) {
-          return;
-        }
-
+        if (!active) return;
         setConcerts(concertData);
         setCheckers(checkerData);
-      } catch (error) {
-        if (!active) {
-          return;
-        }
-
-        setGlobalError(getErrorMessage(error));
+      } catch (error: unknown) {
+        if (!active) return;
+        toastError(getErrorMessage(error));
       } finally {
         if (active) {
           setBootstrapping(false);
@@ -283,36 +323,31 @@ export default function AdminAssignmentsPage() {
     return () => {
       active = false;
     };
-  }, [loadBootstrapData]);
+  }, [loadBootstrapData, toastError]);
 
+  // Load Paginated Assignments List
   useEffect(() => {
     let active = true;
 
     const fetchAssignments = async () => {
       setLoading(true);
-      setGlobalError(null);
-
       try {
         const response = await loadAssignments(
           page,
+          limit,
           concertFilter,
           checkerFilter,
         );
 
-        if (!active) {
-          return;
-        }
+        if (!active) return;
 
         setAssignments(response.data);
         setMeta(response.meta);
-      } catch (error) {
-        if (!active) {
-          return;
-        }
-
+      } catch (error: unknown) {
+        if (!active) return;
         setAssignments([]);
         setMeta(DEFAULT_META);
-        setGlobalError(getErrorMessage(error));
+        toastError(getErrorMessage(error));
       } finally {
         if (active) {
           setLoading(false);
@@ -325,23 +360,13 @@ export default function AdminAssignmentsPage() {
     return () => {
       active = false;
     };
-  }, [page, concertFilter, checkerFilter, loadAssignments]);
-
-  useEffect(() => {
-    if (!feedback) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => setFeedback(null), 4000);
-    return () => window.clearTimeout(timer);
-  }, [feedback]);
+  }, [page, limit, concertFilter, checkerFilter, loadAssignments, toastError]);
 
   const resetCreateForm = () => {
     setCreateConcertId("");
     setCreateCheckerId("");
     setCreateGateNumber("");
     setCreateGates([]);
-    setFormError(null);
   };
 
   const handleOpenCreate = () => {
@@ -353,18 +378,15 @@ export default function AdminAssignmentsPage() {
     setCreateConcertId(concertId);
     setCreateGateNumber("");
     setCreateGates([]);
-    setFormError(null);
 
-    if (!concertId) {
-      return;
-    }
+    if (!concertId) return;
 
     setIsLoadingCreateGates(true);
     try {
       const gates = await getAvailableAssignmentGates(concertId);
       setCreateGates(gates);
-    } catch (error) {
-      setFormError(getErrorMessage(error));
+    } catch (error: unknown) {
+      toastError(getErrorMessage(error));
     } finally {
       setIsLoadingCreateGates(false);
     }
@@ -372,10 +394,9 @@ export default function AdminAssignmentsPage() {
 
   const handleCreateAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError(null);
 
     if (!createConcertId || !createCheckerId || !createGateNumber) {
-      setFormError("Please choose a concert, checker, and gate.");
+      toastWarning("Vui lòng chọn đầy đủ sự kiện, nhân viên soát vé và cổng.");
       return;
     }
 
@@ -389,11 +410,11 @@ export default function AdminAssignmentsPage() {
 
       setIsCreateOpen(false);
       resetCreateForm();
-      setFeedback("Assignment created successfully.");
-      await loadAssignments(page, concertFilter, checkerFilter);
+      toastSuccess("Tạo phân công thành công!");
+      await loadAssignments(page, limit, concertFilter, checkerFilter);
       await loadBootstrapData();
-    } catch (error) {
-      setFormError(getErrorMessage(error));
+    } catch (error: unknown) {
+      toastError(getErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -403,7 +424,6 @@ export default function AdminAssignmentsPage() {
     setEditTarget(assignment);
     setEditGateNumber(String(assignment.gate_number));
     setEditGates([assignment.gate_number]);
-    setFormError(null);
     setIsLoadingEditGates(true);
 
     try {
@@ -414,8 +434,8 @@ export default function AdminAssignmentsPage() {
         new Set([assignment.gate_number, ...availableGates]),
       ).sort((a, b) => a - b);
       setEditGates(merged);
-    } catch (error) {
-      setFormError(getErrorMessage(error));
+    } catch (error: unknown) {
+      toastError(getErrorMessage(error));
     } finally {
       setIsLoadingEditGates(false);
     }
@@ -425,62 +445,61 @@ export default function AdminAssignmentsPage() {
     setEditTarget(null);
     setEditGateNumber("");
     setEditGates([]);
-    setFormError(null);
   };
 
   const handleEditAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!editTarget || !editGateNumber) {
-      setFormError("Please choose a gate for this assignment.");
+      toastWarning("Vui lòng chọn cổng soát vé.");
       return;
     }
 
-    setFormError(null);
     setIsSubmitting(true);
     try {
       await updateCheckerAssignment(editTarget.id, {
         gate_number: Number(editGateNumber),
       });
       closeEditModal();
-      setFeedback("Assignment updated successfully.");
-      await loadAssignments(page, concertFilter, checkerFilter);
-    } catch (error) {
-      setFormError(getErrorMessage(error));
+      toastSuccess("Cập nhật phân công thành công!");
+      await loadAssignments(page, limit, concertFilter, checkerFilter);
+    } catch (error: unknown) {
+      toastError(getErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (assignment: CheckerAssignmentItem) => {
-    if (
-      !window.confirm(
-        `Remove ${assignment.checker.full_name} from Gate ${assignment.gate_number} for ${assignment.concert.name}?`,
-      )
-    ) {
-      return;
-    }
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
 
-    setDeletingId(assignment.id);
-    setGlobalError(null);
-
+    setDeletingId(deleteTarget.id);
     try {
-      await deleteCheckerAssignment(assignment.id);
-      setFeedback("Assignment removed successfully.");
-      await loadAssignments(page, concertFilter, checkerFilter);
+      await deleteCheckerAssignment(deleteTarget.id);
+      toastSuccess("Hủy phân công soát vé thành công!");
+      setDeleteTarget(null);
+      await loadAssignments(page, limit, concertFilter, checkerFilter);
       await loadBootstrapData();
-    } catch (error) {
-      setGlobalError(getErrorMessage(error));
+    } catch (error: unknown) {
+      toastError(getErrorMessage(error));
     } finally {
       setDeletingId(null);
     }
   };
 
   const handleRefresh = async () => {
-    await Promise.all([
-      loadBootstrapData(),
-      loadAssignments(page, concertFilter, checkerFilter),
-    ]);
+    setLoading(true);
+    try {
+      await Promise.all([
+        loadBootstrapData(),
+        loadAssignments(page, limit, concertFilter, checkerFilter),
+      ]);
+      toastSuccess("Làm mới dữ liệu thành công!");
+    } catch (error: unknown) {
+      toastError(getErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const currentPageAssignments = assignments.map((assignment) => ({
@@ -489,229 +508,149 @@ export default function AdminAssignmentsPage() {
   }));
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-lg border border-surface-high/70 bg-surface shadow-[0_16px_40px_rgba(0,0,0,0.18)]">
-        <div className="rounded-t-lg border-b border-surface-high/70 bg-surface-low px-6 py-5 md:px-7">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-                <ClipboardCheck className="h-3.5 w-3.5 text-primary" />
-                Check-in Assignment Control
-              </div>
-              <div>
-                <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
-                  Checker assignments
-                </h1>
-              </div>
-            </div>
+    <div className="space-y-6 max-w-7xl mx-auto font-body text-xs">
+      {/* Title Header area */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-border">
+        <div className="space-y-1">
+          <h1 className="font-display text-3xl font-bold text-foreground">
+            Phân công soát vé
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Chỉ định nhân viên soát vé phụ trách từng cổng tại các sự kiện.
+          </p>
+        </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <button
-                onClick={() => void handleRefresh()}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-surface-high bg-surface px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-surface-high"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Refresh
-              </button>
-              <button
-                onClick={handleOpenCreate}
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary-hover"
-              >
-                <Plus className="h-4 w-4" />
-                Create assignment
-              </button>
-            </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => void handleRefresh()}
+            className="bg-background border border-border hover:bg-surface-low text-foreground font-semibold py-2.5 px-4 rounded-xl flex items-center gap-2 transition-all cursor-pointer active:scale-95 duration-200"
+          >
+            <RefreshCw className="h-4 w-4" /> Làm mới
+          </button>
+          <button
+            onClick={handleOpenCreate}
+            className="bg-primary hover:bg-primary-container text-white font-bold py-2.5 px-4 rounded-xl flex items-center gap-2 transition-all cursor-pointer active:scale-95 duration-200 hover:shadow-lg hover:shadow-primary/20"
+          >
+            <Plus className="h-4 w-4" /> Thêm phân công
+          </button>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        {summaryItems.map((item) => (
+          <SummaryCard key={item.label} {...item} />
+        ))}
+      </div>
+
+      {/* Filters Bar */}
+      <div className="bg-surface rounded-2xl border border-border p-5 shadow-sm grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+        <div className="flex flex-col gap-2 md:col-span-5">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            Lọc theo sự kiện
+          </span>
+          <div className="relative">
+            <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-300" />
+            <select
+              value={concertFilter}
+              onChange={(e) => {
+                setConcertFilter(e.target.value);
+                setPage(1);
+              }}
+              className="pl-9 pr-3 py-2 border border-border rounded-xl bg-background focus:outline-none focus:border-primary text-xs w-full h-11 transition-all text-foreground cursor-pointer"
+            >
+              <option value="">Tất cả sự kiện</option>
+              {concerts.map((concert) => (
+                <option key={concert.id} value={concert.id}>
+                  {concert.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        <div className="grid gap-4 bg-surface p-4 md:grid-cols-2 xl:grid-cols-4">
-          {summaryItems.map((item) => (
-            <SummaryCard key={item.label} {...item} />
-          ))}
-        </div>
-      </section>
-
-      {globalError ? (
-        <div className="flex items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-4 text-sm text-red-200">
-          <AlertCircle className="h-5 w-5 shrink-0" />
-          <p>{globalError}</p>
-        </div>
-      ) : null}
-
-      {feedback ? (
-        <div className="flex items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-4 text-sm text-emerald-200">
-          <CheckCircle2 className="h-5 w-5 shrink-0" />
-          <p>{feedback}</p>
-        </div>
-      ) : null}
-
-      <section className="rounded-lg border border-surface-high/70 bg-surface shadow-[0_16px_40px_rgba(0,0,0,0.16)]">
-        <div className="rounded-t-lg border-b border-surface-high/70 bg-surface-low px-6 py-4">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="flex items-center h-12">
-              <p className="text-[20px] font-semibold uppercase tracking-[0.18em]">
-                Filters
-              </p>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2 xl:min-w-[760px] xl:grid-cols-[1fr_1fr_auto]">
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.14em]">
-                  Concert
-                </span>
-                <div className="relative">
-                  <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-amber-300" />
-                  <select
-                    value={concertFilter}
-                    onChange={(e) => {
-                      setConcertFilter(e.target.value);
-                      setPage(1);
-                    }}
-                    className="w-full rounded-md border border-surface-high bg-surface py-3 pl-10 pr-4 text-sm font-medium text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15"
-                  >
-                    <option value="">All published concerts</option>
-                    {concerts.map((concert) => (
-                      <option key={concert.id} value={concert.id}>
-                        {concert.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </label>
-
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.14em]">
-                  Checker
-                </span>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sky-300" />
-                  <select
-                    value={checkerFilter}
-                    onChange={(e) => {
-                      setCheckerFilter(e.target.value);
-                      setPage(1);
-                    }}
-                    className="w-full rounded-md border border-surface-high bg-surface py-3 pl-10 pr-4 text-sm font-medium text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15"
-                  >
-                    <option value="">All active checkers</option>
-                    {checkers.map((checker) => (
-                      <option key={checker.id} value={checker.id}>
-                        {checker.full_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </label>
-
-              <button
-                onClick={() => {
-                  setConcertFilter("");
-                  setCheckerFilter("");
-                  setPage(1);
-                }}
-                className="rounded-md border border-surface-high bg-surface px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-surface-high"
-              >
-                Clear filters
-              </button>
-            </div>
+        <div className="flex flex-col gap-2 md:col-span-5">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            Lọc theo nhân viên soát vé
+          </span>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sky-300" />
+            <select
+              value={checkerFilter}
+              onChange={(e) => {
+                setCheckerFilter(e.target.value);
+                setPage(1);
+              }}
+              className="pl-9 pr-3 py-2 border border-border rounded-xl bg-background focus:outline-none focus:border-primary text-xs w-full h-11 transition-all text-foreground cursor-pointer"
+            >
+              <option value="">Tất cả nhân viên</option>
+              {checkers.map((checker) => (
+                <option key={checker.id} value={checker.id}>
+                  {checker.full_name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        <div className="grid gap-4 bg-surface p-4 md:grid-cols-3">
-          <div className="rounded-lg border border-surface-high/70 bg-surface-low px-6 py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-300">
-              Concerts loaded
-            </p>
-            <p className="mt-2 text-lg font-semibold text-foreground">
-              {concerts.length} available
-            </p>
-          </div>
-          <div className="rounded-lg border border-surface-high/70 bg-surface-low px-6 py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
-              Checkers loaded
-            </p>
-            <p className="mt-2 text-lg font-semibold text-foreground">
-              {checkers.length} active
-            </p>
-          </div>
-          <div className="rounded-lg border border-surface-high/70 bg-surface-low px-6 py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-300">
-              Current page
-            </p>
-            <p className="mt-2 text-lg font-semibold text-foreground">
-              {meta.currentPage || 1} / {Math.max(meta.totalPages, 1)}
-            </p>
-          </div>
-        </div>
-      </section>
+        <button
+          onClick={() => {
+            setConcertFilter("");
+            setCheckerFilter("");
+            setPage(1);
+          }}
+          className="rounded-xl border border-border bg-background hover:bg-surface-low text-foreground font-semibold h-11 transition-all cursor-pointer active:scale-95 md:col-span-2 w-full text-center"
+        >
+          Xóa bộ lọc
+        </button>
+      </div>
 
-      <section className="rounded-lg border border-surface-high/70 bg-surface shadow-[0_16px_40px_rgba(0,0,0,0.16)]">
-        <div className="rounded-t-lg border-b border-surface-high/70 bg-surface-low px-6 py-5">
-          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-                Assignment Registry
-              </p>
-              <h2 className="mt-2 font-display text-2xl font-semibold text-foreground">
-                Current checker coverage
-              </h2>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {meta.totalItems} total assignment(s)
-            </p>
-          </div>
+      {/* Main Content Table Card */}
+      <div className="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-border bg-surface-low/30">
+          <h2 className="font-display text-base font-bold text-foreground">
+            Bảng phân công soát vé
+          </h2>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] border-collapse text-left">
+          <table className="w-full text-left border-collapse text-sm">
             <thead>
-              <tr className="border-b border-surface-high bg-surface-low">
-                <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Checker
-                </th>
-                <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Concert
-                </th>
-                <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Gate
-                </th>
-                <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Schedule
-                </th>
-                <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Created
-                </th>
-                <th className="px-6 py-4 text-right text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Actions
-                </th>
+              <tr className="bg-surface-low/50 font-body text-[11px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/60">
+                <th className="p-4">Nhân viên</th>
+                <th className="p-4">Sự kiện</th>
+                <th className="p-4">Cổng phụ trách</th>
+                <th className="p-4">Thời gian diễn ra</th>
+                <th className="p-4">Ngày tạo</th>
+                <th className="p-4 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-border/40 font-body">
               {bootstrapping || loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center">
-                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                      <div className="h-7 w-7 animate-spin border-2 border-primary border-t-transparent" />
-                      <p className="text-sm font-medium">
-                        Loading assignments...
-                      </p>
+                  <td colSpan={6} className="p-24 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <span className="text-xs">Đang tải dữ liệu...</span>
                     </div>
                   </td>
                 </tr>
               ) : currentPageAssignments.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center">
-                    <div className="mx-auto max-w-md space-y-3">
-                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg border border-surface-high bg-surface-low text-primary">
+                  <td colSpan={6} className="p-24 text-center">
+                    <div className="max-w-md mx-auto space-y-4">
+                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-surface-low text-primary">
                         <ClipboardCheck className="h-5 w-5" />
                       </div>
-                      <h3 className="text-lg font-semibold text-foreground">
-                        No assignments found
-                      </h3>
-                      <p className="text-sm leading-6 text-muted-foreground">
-                        Create the first assignment to define which checker is
-                        responsible for which gate.
-                      </p>
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-bold text-foreground">
+                          Không tìm thấy phân công nào
+                        </h3>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Nhấn nút {'"Thêm phân công"'} để chỉ định nhân viên
+                          soát vé phụ trách cổng.
+                        </p>
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -719,67 +658,50 @@ export default function AdminAssignmentsPage() {
                 currentPageAssignments.map((assignment) => (
                   <tr
                     key={assignment.id}
-                    className="transition-colors hover:bg-surface-high/35"
+                    className="hover:bg-surface-high/10 transition-colors"
                   >
-                    <td className="px-6 py-5">
-                      <div className="space-y-1">
-                        <p className="font-semibold text-foreground">
-                          {assignment.checker.full_name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {assignment.checker.email}
-                        </p>
-                      </div>
+                    <td className="p-4">
+                      <p className="font-bold text-foreground">
+                        {assignment.checker.full_name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {assignment.checker.email}
+                      </p>
                     </td>
-                    <td className="px-6 py-5">
-                      <div className="space-y-1">
-                        <p className="font-semibold text-foreground">
-                          {assignment.concert.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {assignment.concertDetails?.location ||
-                            "Location unavailable"}
-                        </p>
-                      </div>
+                    <td className="p-4">
+                      <p className="font-bold text-foreground">
+                        {assignment.concert.name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {assignment.concertDetails?.location || "—"}
+                      </p>
                     </td>
-                    <td className="px-6 py-5">
-                      <span className="inline-flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/12 px-3 py-1.5 text-sm font-bold text-amber-300">
-                        <ShieldCheck className="h-4 w-4" />
-                        Gate {assignment.gate_number}
+                    <td className="p-4">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold text-amber-300">
+                        <ShieldCheck className="h-3 w-3" />
+                        Cổng {assignment.gate_number}
                       </span>
                     </td>
-                    <td className="px-6 py-5">
-                      <p className="text-sm font-medium text-foreground">
-                        {formatConcertTime(
-                          assignment.concertDetails?.start_time,
-                        )}
-                      </p>
+                    <td className="p-4 text-xs font-semibold text-foreground">
+                      {formatConcertTime(assignment.concertDetails?.start_time)}
                     </td>
-                    <td className="px-6 py-5">
-                      <p className="text-sm text-foreground">
-                        {formatShortDate(assignment.created_at)}
-                      </p>
+                    <td className="p-4 text-xs text-muted-foreground font-medium">
+                      {formatShortDate(assignment.created_at)}
                     </td>
-                    <td className="px-6 py-5">
+                    <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => void handleOpenEdit(assignment)}
-                          className="inline-flex items-center gap-2 rounded-md border border-surface-high bg-surface px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-surface-high"
+                          className="bg-primary hover:bg-primary-container text-white px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer active:scale-95"
                         >
-                          <Pencil className="h-4 w-4" />
-                          Edit
+                          <Pencil size={11} /> Sửa
                         </button>
                         <button
-                          onClick={() => void handleDelete(assignment)}
+                          onClick={() => setDeleteTarget(assignment)}
                           disabled={deletingId === assignment.id}
-                          className="inline-flex items-center gap-2 rounded-md border border-red-500/35 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-200 transition-colors hover:bg-red-500/20 disabled:opacity-60"
+                          className="bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
                         >
-                          {deletingId === assignment.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                          Remove
+                          <Trash2 size={11} /> Xóa
                         </button>
                       </div>
                     </td>
@@ -790,63 +712,49 @@ export default function AdminAssignmentsPage() {
           </table>
         </div>
 
-        {!loading && meta.totalPages > 1 ? (
-          <div className="flex flex-col gap-4 border-t border-surface-high/70 bg-surface-low px-6 py-4 md:flex-row md:items-center md:justify-between">
-            <p className="text-sm text-muted-foreground">
-              Showing page {meta.currentPage} of {meta.totalPages}.
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-                disabled={page <= 1}
-                className="rounded-md border border-surface-high bg-surface px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-surface-high disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() =>
-                  setPage((prev) => Math.min(prev + 1, meta.totalPages))
-                }
-                disabled={page >= meta.totalPages}
-                className="rounded-md border border-surface-high bg-surface px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-surface-high disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
+        {/* Pagination bar */}
+        {!loading && meta.totalPages > 1 && (
+          <div className="p-4 border-t border-border bg-surface-low/30">
+            <Pagination
+              page={page}
+              totalPages={meta.totalPages}
+              totalItems={meta.totalItems}
+              itemsPerPage={limit}
+              onPageChange={setPage}
+              onLimitChange={(l) => {
+                setLimit(l);
+                setPage(1);
+              }}
+              itemLabel="lượt phân công"
+            />
           </div>
-        ) : null}
-      </section>
+        )}
+      </div>
 
+      {/* CREATE MODAL */}
       <AssignmentModal
-        title="Create assignment"
-        description="Select the concert, checker, and available gate to create a new check-in scope."
+        title="Thêm phân công"
+        description="Chọn sự kiện, nhân viên soát vé và cổng tương ứng để tạo phân công check-in mới."
         isOpen={isCreateOpen}
         onClose={() => {
           setIsCreateOpen(false);
           resetCreateForm();
         }}
       >
-        <form className="space-y-5" onSubmit={handleCreateAssignment}>
-          {formError ? (
-            <div className="flex items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-4 text-sm text-red-200">
-              <AlertCircle className="h-5 w-5 shrink-0" />
-              <p>{formError}</p>
-            </div>
-          ) : null}
-
+        <form className="space-y-4 text-xs" onSubmit={handleCreateAssignment}>
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="space-y-2">
-              <span className="text-sm font-semibold text-foreground">
-                Concert
+            <label className="space-y-1.5">
+              <span className="font-bold text-muted-foreground uppercase tracking-wider block">
+                Sự kiện *
               </span>
               <select
                 value={createConcertId}
                 onChange={(e) =>
                   void handleConcertChangeForCreate(e.target.value)
                 }
-                className="w-full rounded-md border border-surface-high bg-surface-low px-4 py-3 text-sm font-medium text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:border-primary h-11 cursor-pointer"
               >
-                <option value="">Select a concert</option>
+                <option value="">Chọn một sự kiện</option>
                 {concerts.map((concert) => (
                   <option key={concert.id} value={concert.id}>
                     {concert.name}
@@ -855,51 +763,51 @@ export default function AdminAssignmentsPage() {
               </select>
             </label>
 
-            <label className="space-y-2">
-              <span className="text-sm font-semibold text-foreground">
-                Checker
+            <label className="space-y-1.5">
+              <span className="font-bold text-muted-foreground uppercase tracking-wider block">
+                Nhân viên soát vé *
               </span>
               <select
                 value={createCheckerId}
                 onChange={(e) => setCreateCheckerId(e.target.value)}
-                className="w-full rounded-md border border-surface-high bg-surface-low px-4 py-3 text-sm font-medium text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:border-primary h-11 cursor-pointer"
               >
-                <option value="">Select a checker</option>
+                <option value="">Chọn nhân viên</option>
                 {checkers.map((checker) => (
                   <option key={checker.id} value={checker.id}>
-                    {checker.full_name} - {checker.email}
+                    {checker.full_name} ({checker.email})
                   </option>
                 ))}
               </select>
             </label>
           </div>
 
-          <div className="rounded-lg border border-surface-high/70 bg-surface-low px-5 py-5">
+          <div className="rounded-xl border border-border bg-surface-low/50 p-4">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold text-foreground">
-                  Available gates
+                <p className="font-bold text-foreground">
+                  Cổng soát vé khả dụng
                 </p>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                <p className="mt-0.5 text-muted-foreground text-[10px]">
                   {selectedConcertForCreate
-                    ? `${selectedConcertForCreate.name} · ${selectedConcertForCreate.location}`
-                    : "Select a concert first to load its open gates."}
+                    ? `${selectedConcertForCreate.name} · ${selectedConcertForCreate.location || "Chưa cập nhật địa điểm"}`
+                    : "Chọn sự kiện để tải danh sách cổng"}
                 </p>
               </div>
-              {isLoadingCreateGates ? (
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              ) : null}
+              {isLoadingCreateGates && (
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              )}
             </div>
 
             <div className="mt-4">
               {createConcertId &&
               createGates.length === 0 &&
               !isLoadingCreateGates ? (
-                <div className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-4 py-4 text-sm text-amber-200">
-                  No open gates are available for this concert right now.
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-amber-300 font-medium">
+                  Không có cổng soát vé khả dụng cho sự kiện này.
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2">
                   {createGates.map((gate) => {
                     const isSelected = createGateNumber === String(gate);
                     return (
@@ -907,13 +815,13 @@ export default function AdminAssignmentsPage() {
                         key={gate}
                         type="button"
                         onClick={() => setCreateGateNumber(String(gate))}
-                        className={`border px-4 py-3 text-sm font-semibold transition-all ${
+                        className={`border px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
                           isSelected
-                            ? "rounded-md border-primary bg-primary text-primary-foreground"
-                            : "rounded-md border-surface-high bg-surface text-foreground hover:border-primary/35 hover:bg-surface-high"
+                            ? "border-primary bg-primary text-white"
+                            : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-surface-low"
                         }`}
                       >
-                        Gate {gate}
+                        Cổng {gate}
                       </button>
                     );
                   })}
@@ -922,93 +830,86 @@ export default function AdminAssignmentsPage() {
             </div>
           </div>
 
-          <div className="flex flex-col-reverse gap-3 border-t border-border pt-4 sm:flex-row sm:justify-end">
+          <div className="flex gap-3 justify-end pt-3 border-t border-border mt-6">
             <button
               type="button"
               onClick={() => {
                 setIsCreateOpen(false);
                 resetCreateForm();
               }}
-              className="rounded-md border border-surface-high bg-surface px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-surface-high"
+              className="bg-background hover:bg-surface-low border border-border text-foreground font-semibold py-2.5 px-4 rounded-xl transition-all cursor-pointer active:scale-95"
             >
-              Cancel
+              Hủy
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-60"
+              className="bg-primary hover:bg-primary-container text-white font-bold py-2.5 px-5 rounded-xl transition-all flex items-center gap-1.5 hover:shadow-lg hover:shadow-primary/20 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <Plus className="h-4 w-4" />
+                <Plus className="h-3.5 w-3.5" />
               )}
-              Create assignment
+              Tạo phân công
             </button>
           </div>
         </form>
       </AssignmentModal>
 
+      {/* EDIT MODAL */}
       <AssignmentModal
-        title="Edit assigned gate"
-        description="Move the selected checker to another available gate in the same concert."
+        title="Sửa cổng phân công"
+        description="Thay đổi cổng soát vé phụ trách của nhân viên soát vé đã chọn."
         isOpen={Boolean(editTarget)}
         onClose={closeEditModal}
       >
-        <form className="space-y-5" onSubmit={handleEditAssignment}>
-          {formError ? (
-            <div className="flex items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-4 text-sm text-red-200">
-              <AlertCircle className="h-5 w-5 shrink-0" />
-              <p>{formError}</p>
-            </div>
-          ) : null}
-
-          {editTarget ? (
+        <form className="space-y-4 text-xs" onSubmit={handleEditAssignment}>
+          {editTarget && (
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-lg border border-surface-high/70 bg-surface-low px-5 py-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Checker
+              <div className="rounded-xl border border-border bg-surface-low/50 p-4">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Nhân viên soát vé
                 </p>
-                <p className="mt-2 text-lg font-semibold text-foreground">
+                <p className="mt-1 font-bold text-foreground text-sm">
                   {editTarget.checker.full_name}
                 </p>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="text-[10px] text-muted-foreground">
                   {editTarget.checker.email}
                 </p>
               </div>
 
-              <div className="rounded-lg border border-surface-high/70 bg-surface-low px-5 py-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Concert
+              <div className="rounded-xl border border-border bg-surface-low/50 p-4">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Sự kiện
                 </p>
-                <p className="mt-2 text-lg font-semibold text-foreground">
+                <p className="mt-1 font-bold text-foreground text-sm">
                   {editTarget.concert.name}
                 </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {concertMap.get(editTarget.concert_id)?.location ||
-                    "Location unavailable"}
+                <p className="text-[10px] text-muted-foreground">
+                  {concertMap.get(editTarget.concert_id)?.location || "—"}
                 </p>
               </div>
             </div>
-          ) : null}
+          )}
 
-          <div className="rounded-lg border border-surface-high/70 bg-surface-low px-5 py-5">
+          <div className="rounded-xl border border-border bg-surface-low/50 p-4">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold text-foreground">
-                  Reassign gate
+                <p className="font-bold text-foreground">
+                  Thay đổi cổng phụ trách
                 </p>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  The current gate stays selectable, so you can keep it or move
-                  this checker elsewhere.
+                <p className="mt-0.5 text-muted-foreground text-[10px]">
+                  Cổng hiện tại vẫn có thể được chọn để giữ nguyên phân công
+                  hoặc di chuyển sang cổng trống khác.
                 </p>
               </div>
-              {isLoadingEditGates ? (
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              ) : null}
+              {isLoadingEditGates && (
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              )}
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-wrap gap-2">
               {editGates.map((gate) => {
                 const isSelected = editGateNumber === String(gate);
                 return (
@@ -1016,42 +917,56 @@ export default function AdminAssignmentsPage() {
                     key={gate}
                     type="button"
                     onClick={() => setEditGateNumber(String(gate))}
-                    className={`border px-4 py-3 text-sm font-semibold transition-all ${
+                    className={`border px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
                       isSelected
-                        ? "rounded-md border-primary bg-primary text-primary-foreground"
-                        : "rounded-md border-surface-high bg-surface text-foreground hover:border-primary/35 hover:bg-surface-high"
+                        ? "border-primary bg-primary text-white"
+                        : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-surface-low"
                     }`}
                   >
-                    Gate {gate}
+                    Cổng {gate}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="flex flex-col-reverse gap-3 border-t border-border pt-4 sm:flex-row sm:justify-end">
+          <div className="flex gap-3 justify-end pt-3 border-t border-border mt-6">
             <button
               type="button"
               onClick={closeEditModal}
-              className="rounded-md border border-surface-high bg-surface px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-surface-high"
+              className="bg-background hover:bg-surface-low border border-border text-foreground font-semibold py-2.5 px-4 rounded-xl transition-all cursor-pointer active:scale-95"
             >
-              Cancel
+              Hủy
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-60"
+              className="bg-primary hover:bg-primary-container text-white font-bold py-2.5 px-5 rounded-xl transition-all flex items-center gap-1.5 hover:shadow-lg hover:shadow-primary/20 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <Pencil className="h-4 w-4" />
+                <Pencil className="h-3.5 w-3.5" />
               )}
-              Save gate
+              Lưu thay đổi
             </button>
           </div>
         </form>
       </AssignmentModal>
+
+      {/* CONFIRM DELETE MODAL */}
+      <ConfirmDeleteModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="Hủy phân công"
+        message={
+          deleteTarget
+            ? `Bạn có chắc chắn muốn hủy phân công nhân viên soát vé ${deleteTarget.checker.full_name} phụ trách Cổng ${deleteTarget.gate_number} tại sự kiện ${deleteTarget.concert.name}?`
+            : ""
+        }
+        isDeleting={deletingId === deleteTarget?.id}
+      />
     </div>
   );
 }

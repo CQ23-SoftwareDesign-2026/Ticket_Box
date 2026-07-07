@@ -1,7 +1,6 @@
 "use client";
 
-import { Building2, Search } from "lucide-react";
-import Image from "next/image";
+import { Building2, MapPin, Search } from "lucide-react";
 import { getConcertPosterUrl } from "@/services/concert.service";
 import { type RevenueByConcertItem } from "@/services/revenue.service";
 import { StatusBadge } from "../../_components/StatusBadge";
@@ -59,14 +58,14 @@ export function ConcertRevenueTable({
             <Building2 className="w-5 h-5" />
           </div>
           <h3 className="font-display text-lg font-bold text-foreground">
-            Revenue by concert
+            Doanh thu theo sự kiện
           </h3>
         </div>
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search concert..."
+            placeholder="Tìm sự kiện..."
             value={tableSearch}
             onChange={(e) => {
               onSearchChange(e.target.value);
@@ -82,26 +81,24 @@ export function ConcertRevenueTable({
           <div className="py-20 text-center text-muted-foreground">
             <div className="flex flex-col items-center justify-center gap-3">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-              <span className="font-body text-xs">
-                Loading concerts revenue...
-              </span>
+              <span className="font-body text-xs">Đang tải dữ liệu...</span>
             </div>
           </div>
         ) : filteredConcerts.length === 0 ? (
           <div className="py-20 text-center text-muted-foreground font-body text-sm border border-border/50 rounded-xl bg-background/20">
-            No concerts found.
+            Không tìm thấy sự kiện nào.
           </div>
         ) : (
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-border bg-background/50 font-body text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                <th className="p-4 rounded-tl-xl">Concert</th>
-                <th className="p-4 text-center">Status</th>
-                <th className="p-4">Start Time</th>
-                <th className="p-4 text-right">Revenue (VND)</th>
-                <th className="p-4 text-center">Paid Orders</th>
-                <th className="p-4 text-center">Tickets Sold</th>
-                <th className="p-4 text-center rounded-tr-xl">Action</th>
+                <th className="p-4 rounded-tl-xl">Sự kiện</th>
+                <th className="p-4 text-center">Trạng thái</th>
+                <th className="p-4">Thời gian</th>
+                <th className="p-4 text-right">Doanh thu (VND)</th>
+                <th className="p-4 text-center">Đơn đã thanh toán</th>
+                <th className="p-4 text-center">Vé đã bán</th>
+                <th className="p-4 text-center rounded-tr-xl">Thao tác</th>
               </tr>
             </thead>
             <tbody className="font-body text-xs divide-y divide-border/50">
@@ -113,11 +110,10 @@ export function ConcertRevenueTable({
                   <td className="p-4 font-semibold text-foreground">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-surface-low border border-border relative">
-                        <Image
-                          src={getConcertPosterUrl()}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={getConcertPosterUrl(item.poster_url)}
                           alt={item.concert_name}
-                          width={40}
-                          height={40}
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -125,6 +121,14 @@ export function ConcertRevenueTable({
                         <div className="text-sm font-bold text-foreground leading-tight">
                           {item.concert_name}
                         </div>
+                        {item.location && (
+                          <div className="flex items-center gap-1 mt-0.5 text-[10px] text-muted-foreground">
+                            <MapPin className="w-2.5 h-2.5 shrink-0" />
+                            <span className="line-clamp-1">
+                              {item.location}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -148,7 +152,7 @@ export function ConcertRevenueTable({
                       onClick={() => onViewDetail(item.concert_id)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border hover:border-primary hover:bg-primary hover:text-white font-body text-xs font-bold rounded-lg transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-95 duration-200 cursor-pointer"
                     >
-                      View detail
+                      Xem chi tiết
                     </button>
                   </td>
                 </tr>
@@ -165,7 +169,7 @@ export function ConcertRevenueTable({
           totalItems={filteredConcerts.length}
           itemsPerPage={itemsPerPage}
           onPageChange={onPageChange}
-          itemLabel="concerts"
+          itemLabel="sự kiện"
         />
       )}
     </section>
