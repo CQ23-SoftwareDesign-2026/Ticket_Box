@@ -265,7 +265,7 @@ export default function AdminNotificationsPage() {
                               href={`/admin/orders/${item.order.id}`}
                               className="text-sm font-semibold text-primary hover:underline"
                             >
-                              Đơn {item.order.id.slice(0, 8)}…
+                              Chi tiết đơn hàng
                             </Link>
                           ) : item.concert ? (
                             <p

@@ -85,6 +85,10 @@ export class EmailService {
                 return {
                   filename: item.filename || `attachment-${index + 1}`,
                   content,
+                  ...(item.contentType
+                    ? { content_type: item.contentType }
+                    : {}),
+                  ...(item.cid ? { content_id: item.cid } : {}),
                 };
               }),
             }),
