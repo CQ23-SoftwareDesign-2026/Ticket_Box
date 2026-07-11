@@ -469,8 +469,10 @@ export class PaymentService {
             }
         });
 
-        // Send confirmation email and push notification asynchronously
-        void this.notificationService.sendTicketConfirmation(transaction.order_id);
+        // Payment is already committed; notification channel failures must not roll it back.
+        void this.notificationService.sendTicketConfirmation(transaction.order_id).catch((error) => {
+            this.logger.error(`Failed to dispatch ticket confirmation for order ${transaction.order_id}`, error);
+        });
 
         return new PaymentWebhookResponseDto({
             order_status: 'PAID',

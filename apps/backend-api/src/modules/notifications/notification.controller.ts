@@ -1,94 +1,58 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Param,
-  Body,
-  Query,
-  UseGuards,
-  UsePipes,
-  ValidationPipe,
-} from "@nestjs/common";
-import {
-  ApiBearerAuth,
-  ApiNotFoundResponse,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags,
-  ApiConflictResponse,
-} from "@nestjs/swagger";
+import { Controller, Get, Param, Patch, Query, Req, Sse, UseGuards } from "@nestjs/common";
+import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Observable } from "rxjs";
+import { MessageEvent } from "@nestjs/common";
 import { JwtAuthGuard } from "../../shared/guards/jwt-auth.guard";
-import { RolesGuard } from "../../shared/guards/roles.guard";
-import { Roles } from "../../shared/decorators/roles.decorator";
 import { NotificationService } from "./notification.service";
-import { QueryNotificationLogsDto } from "./dtos/query-notification-logs.dto";
-import { NotificationLogDto } from "./dtos/notification-log.dto";
-import { NotificationTemplateDto } from "./dtos/notification-template.dto";
-import { CreateTemplateDto } from "./dtos/create-template.dto";
-import { UpdateTemplateDto } from "./dtos/update-template.dto";
+import { NotificationStreamService } from "./notification-stream.service";
 
-@Controller("admin/notifications")
-@ApiTags("Admin Notifications")
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles("ADMIN")
+@Controller("notifications")
+@ApiTags("Notifications")
+@UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
-@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class NotificationController {
-  constructor(private readonly notificationService: NotificationService) {}
+  constructor(
+    private readonly notifications: NotificationService,
+    private readonly stream: NotificationStreamService,
+  ) {}
 
-  @Get("logs")
-  @ApiOperation({ summary: "Get all notification delivery logs (paginated)" })
-  @ApiOkResponse({ description: "List of logs successfully retrieved" })
-  async getLogs(@Query() query: QueryNotificationLogsDto) {
-    return this.notificationService.getLogs(query);
+  @Get()
+  @ApiOperation({ summary: "Get the current user's notifications" })
+  list(
+    @Req() req: any,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+    @Query("unreadOnly") unreadOnly?: string,
+  ) {
+    return this.notifications.list(
+      req.user.sub,
+      Number(page) || 1,
+      Number(limit) || 20,
+      unreadOnly === "true",
+    );
   }
 
-  @Get("logs/:id")
-  @ApiOperation({ summary: "Get a notification log detail" })
-  @ApiOkResponse({ type: NotificationLogDto })
-  @ApiNotFoundResponse({ description: "Notification log not found" })
-  async getLogDetail(@Param("id") id: string) {
-    return this.notificationService.getLogDetail(id);
+  @Get("unread-count")
+  @ApiOperation({ summary: "Get the current user's unread notification count" })
+  unreadCount(@Req() req: any) {
+    return this.notifications.unreadCount(req.user.sub);
   }
 
-  @Get("templates")
-  @ApiOperation({ summary: "Get all notification templates" })
-  @ApiOkResponse({ type: [NotificationTemplateDto] })
-  async getTemplates() {
-    return this.notificationService.getTemplates();
+  @Sse("stream")
+  @ApiOperation({ summary: "Stream new notifications for the current user" })
+  connect(@Req() req: any): Observable<MessageEvent> {
+    return this.stream.connect(req.user.sub);
   }
 
-  @Post("templates")
-  @ApiOperation({ summary: "Create a new notification template" })
-  @ApiOkResponse({ type: NotificationTemplateDto })
-  @ApiConflictResponse({ description: "Template code already exists" })
-  async createTemplate(@Body() dto: CreateTemplateDto) {
-    return this.notificationService.createTemplate(dto);
+  @Patch("read-all")
+  @ApiOperation({ summary: "Mark all current user's notifications as read" })
+  markAllRead(@Req() req: any) {
+    return this.notifications.markAllRead(req.user.sub);
   }
 
-  @Get("templates/:id")
-  @ApiOperation({ summary: "Get a notification template detail" })
-  @ApiOkResponse({ type: NotificationTemplateDto })
-  @ApiNotFoundResponse({ description: "Template not found" })
-  async getTemplateDetail(@Param("id") id: string) {
-    return this.notificationService.getTemplateDetail(id);
-  }
-
-  @Patch("templates/:id")
-  @ApiOperation({ summary: "Update an existing notification template" })
-  @ApiOkResponse({ type: NotificationTemplateDto })
-  @ApiNotFoundResponse({ description: "Template not found" })
-  async updateTemplate(@Param("id") id: string, @Body() dto: UpdateTemplateDto) {
-    return this.notificationService.updateTemplate(id, dto);
-  }
-
-  @Delete("templates/:id")
-  @ApiOperation({ summary: "Delete a notification template" })
-  @ApiOkResponse({ description: "Template successfully deleted" })
-  @ApiNotFoundResponse({ description: "Template not found" })
-  async deleteTemplate(@Param("id") id: string) {
-    return this.notificationService.deleteTemplate(id);
+  @Patch(":id/read")
+  @ApiOperation({ summary: "Mark one current user's notification as read" })
+  markRead(@Req() req: any, @Param("id") id: string) {
+    return this.notifications.markRead(req.user.sub, id);
   }
 }

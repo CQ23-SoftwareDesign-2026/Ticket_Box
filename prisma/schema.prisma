@@ -19,7 +19,7 @@ model User {
   user_roles        UserRole[]
   orders            Order[]
   tickets_scanned   Ticket[]          @relation("TicketScannedBy")
-  notification_logs NotificationLog[]
+  notifications     Notification[]
   background_jobs   BackgroundJob[]   @relation("BackgroundJobTriggeredBy")
   checker_assignments CheckerAssignment[] @relation("CheckerAssignments")
 
@@ -88,6 +88,7 @@ model Concert {
   guest_lists       GuestList[]
   background_jobs   BackgroundJob[] @relation("BackgroundJobConcert")
   checker_assignments CheckerAssignment[] @relation("ConcertCheckerAssignments")
+  notifications      Notification[]
 
   @@map("concerts")
 }
@@ -124,6 +125,7 @@ model Order {
   concert              Concert              @relation(fields: [concert_id], references: [id])
   tickets              Ticket[]
   payment_transactions PaymentTransaction[]
+  notifications        Notification[]
 
   @@map("orders")
 }
@@ -194,33 +196,30 @@ model BackgroundJob {
   @@map("background_jobs")
 }
 
-model NotificationTemplate {
-  id      String @id @default(uuid()) @db.Uuid
-  code    String @db.VarChar(100)
-  channel String @db.VarChar(50)
-  subject String @db.VarChar(255)
-  content String @db.Text
-
-  notification_logs NotificationLog[]
-
-  @@map("notification_templates")
+enum NotificationType {
+  TICKET_PURCHASED
+  CONCERT_REMINDER
 }
 
-model NotificationLog {
-  id            String   @id @default(uuid()) @db.Uuid
-  user_id       String   @db.Uuid
-  template_id   String   @db.Uuid
-  target        String   @db.VarChar(255)
-  status        String   @db.VarChar(50)
-  error_message String?  @db.Text
-  retry_count   Int
-  created_at    DateTime @default(now())
-  sent_at       DateTime?
+model Notification {
+  id         String           @id @default(uuid()) @db.Uuid
+  user_id    String           @db.Uuid
+  order_id   String?          @db.Uuid
+  concert_id String?          @db.Uuid
+  type       NotificationType
+  deduplication_key String     @unique @db.VarChar(255)
+  title      String           @db.VarChar(255)
+  message    String           @db.Text
+  data       Json?            @db.JsonB
+  read_at    DateTime?
+  created_at DateTime         @default(now())
 
-  user     User                 @relation(fields: [user_id], references: [id])
-  template NotificationTemplate @relation(fields: [template_id], references: [id])
+  user  User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  order Order? @relation(fields: [order_id], references: [id], onDelete: SetNull)
+  concert Concert? @relation(fields: [concert_id], references: [id], onDelete: SetNull)
 
-  @@map("notification_logs")
+  @@index([user_id, read_at, created_at])
+  @@map("notifications")
 }
 
 model CheckerAssignment {
