@@ -16,6 +16,7 @@ import {
   User as UserIcon,
   Receipt,
   Cpu,
+  Bell,
 } from "lucide-react";
 import { BrandMark } from "@/components/common";
 
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/admin/revenue", label: "Doanh thu", icon: DollarSign },
   { href: "/admin/users", label: "Người dùng", icon: Users },
   { href: "/admin/assignments", label: "Phân công", icon: ClipboardCheck },
+  { href: "/admin/notifications", label: "Thông báo", icon: Bell },
   { href: "/admin/jobs", label: "Tác vụ nền", icon: Cpu },
 ];
 
