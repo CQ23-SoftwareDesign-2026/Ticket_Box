@@ -9,9 +9,10 @@ import { InAppNotificationChannel } from "./channels/in-app-notification.channel
 import { NOTIFICATION_CHANNELS } from "./notification.types";
 import { NotificationSchedulerService } from "./notification-scheduler.service";
 import { EmailNotificationConsumer } from "./consumers/email-notification.consumer";
+import { AdminNotificationController } from "./admin-notification.controller";
 
 @Module({
-  controllers: [NotificationController],
+  controllers: [NotificationController, AdminNotificationController],
   providers: [
     PrismaService,
     EmailService,
@@ -23,7 +24,10 @@ import { EmailNotificationConsumer } from "./consumers/email-notification.consum
     EmailNotificationConsumer,
     {
       provide: NOTIFICATION_CHANNELS,
-      useFactory: (inApp: InAppNotificationChannel, email: EmailNotificationChannel) => [inApp, email],
+      useFactory: (
+        inApp: InAppNotificationChannel,
+        email: EmailNotificationChannel,
+      ) => [inApp, email],
       inject: [InAppNotificationChannel, EmailNotificationChannel],
     },
   ],

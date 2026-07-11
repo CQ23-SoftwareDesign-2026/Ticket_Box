@@ -1,6 +1,7 @@
 import { tokenStorage } from "@/utils/token.utils";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "/api/proxy";
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "/api/proxy";
 
 type ApiErrorBody = {
   message?: string;

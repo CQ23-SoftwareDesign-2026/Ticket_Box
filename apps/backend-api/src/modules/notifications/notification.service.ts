@@ -1,7 +1,13 @@
 import { Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { Notification, Prisma } from "@prisma/client";
 import { PrismaService } from "../../shared/prisma.service";
-import { NOTIFICATION_CHANNELS, NotificationChannel, NotificationContext, NotificationEvent } from "./notification.types";
+import {
+  NOTIFICATION_CHANNELS,
+  NotificationChannel,
+  NotificationContext,
+  NotificationEvent,
+} from "./notification.types";
+import { AdminNotificationQueryDto } from "./dtos/admin-notification-query.dto";
 
 @Injectable()
 export class NotificationService {
@@ -9,7 +15,8 @@ export class NotificationService {
 
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(NOTIFICATION_CHANNELS) private readonly channels: NotificationChannel[],
+    @Inject(NOTIFICATION_CHANNELS)
+    private readonly channels: NotificationChannel[],
   ) {}
 
   async sendTicketConfirmation(orderId: string): Promise<void> {
@@ -46,13 +53,26 @@ export class NotificationService {
     await this.dispatch(context);
   }
 
-  async sendConcertReminder(context: Omit<Extract<NotificationContext, { event: NotificationEvent.CONCERT_REMINDER }>, "event">) {
-    await this.dispatch({ event: NotificationEvent.CONCERT_REMINDER, ...context });
+  async sendConcertReminder(
+    context: Omit<
+      Extract<
+        NotificationContext,
+        { event: NotificationEvent.CONCERT_REMINDER }
+      >,
+      "event"
+    >,
+  ) {
+    await this.dispatch({
+      event: NotificationEvent.CONCERT_REMINDER,
+      ...context,
+    });
   }
 
   private async dispatch(context: NotificationContext): Promise<void> {
     const results = await Promise.allSettled(
-      this.channels.filter((channel) => channel.supports(context.event)).map((channel) => channel.send(context)),
+      this.channels
+        .filter((channel) => channel.supports(context.event))
+        .map((channel) => channel.send(context)),
     );
 
     for (const result of results) {
@@ -81,19 +101,74 @@ export class NotificationService {
 
     return {
       data: items,
-      meta: { page: safePage, limit: safeLimit, total, totalPages: Math.ceil(total / safeLimit) },
+      meta: {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        totalPages: Math.ceil(total / safeLimit),
+      },
     };
   }
 
   async unreadCount(userId: string) {
-    return { count: await this.prisma.notification.count({ where: { user_id: userId, read_at: null } }) };
+    return {
+      count: await this.prisma.notification.count({
+        where: { user_id: userId, read_at: null },
+      }),
+    };
+  }
+
+  async adminList(query: AdminNotificationQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const search = query.search?.trim();
+    const where: Prisma.NotificationWhereInput = {
+      ...(query.type ? { type: query.type } : {}),
+      ...(query.read === true ? { read_at: { not: null } } : {}),
+      ...(query.read === false ? { read_at: null } : {}),
+      ...(search
+        ? {
+            OR: [
+              { title: { contains: search, mode: "insensitive" } },
+              { message: { contains: search, mode: "insensitive" } },
+              {
+                user: { full_name: { contains: search, mode: "insensitive" } },
+              },
+              { user: { email: { contains: search, mode: "insensitive" } } },
+            ],
+          }
+        : {}),
+    };
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.notification.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { created_at: "desc" },
+        include: {
+          user: { select: { id: true, full_name: true, email: true } },
+          concert: { select: { id: true, name: true, start_time: true } },
+          order: { select: { id: true, status: true } },
+        },
+      }),
+      this.prisma.notification.count({ where }),
+    ]);
+    return {
+      data: items,
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   async markRead(userId: string, id: string): Promise<Notification> {
-    const notification = await this.prisma.notification.findFirst({ where: { id, user_id: userId } });
+    const notification = await this.prisma.notification.findFirst({
+      where: { id, user_id: userId },
+    });
     if (!notification) throw new NotFoundException("Notification not found");
     if (notification.read_at) return notification;
-    return this.prisma.notification.update({ where: { id }, data: { read_at: new Date() } });
+    return this.prisma.notification.update({
+      where: { id },
+      data: { read_at: new Date() },
+    });
   }
 
   async markAllRead(userId: string) {

@@ -1,5 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import { Injectable, Logger } from "@nestjs/common";
+import * as nodemailer from "nodemailer";
 
 @Injectable()
 export class EmailService {
@@ -11,18 +11,18 @@ export class EmailService {
     this.resendApiKey = process.env.RESEND_API_KEY || null;
 
     if (this.resendApiKey) {
-      this.logger.log('Resend API integration initialized successfully');
+      this.logger.log("Resend API integration initialized successfully");
       return;
     }
 
     const host = process.env.SMTP_HOST;
-    const port = parseInt(process.env.SMTP_PORT || '587', 10);
+    const port = parseInt(process.env.SMTP_PORT || "587", 10);
     const user = process.env.SMTP_USER;
     const pass = process.env.SMTP_PASS;
 
-    if (!host || !user || !pass || user.includes('your-gmail-here')) {
+    if (!host || !user || !pass || user.includes("your-gmail-here")) {
       this.logger.warn(
-        'Email service will run in MOCK mode because neither Resend API Key nor SMTP configurations are provided.',
+        "Email service will run in MOCK mode because neither Resend API Key nor SMTP configurations are provided.",
       );
       return;
     }
@@ -37,45 +37,79 @@ export class EmailService {
           pass,
         },
       });
-      this.logger.log('SMTP Nodemailer Transporter initialized successfully');
+      this.logger.log("SMTP Nodemailer Transporter initialized successfully");
     } catch (err) {
-      this.logger.error('Failed to create nodemailer transporter', err);
+      this.logger.error("Failed to create nodemailer transporter", err);
     }
   }
 
   async sendMail(options: nodemailer.SendMailOptions): Promise<boolean> {
-    const from = process.env.EMAIL_FROM || process.env.SMTP_FROM || `"TicketBox" <no-reply@ticketbox.local>`;
+    const from =
+      process.env.EMAIL_FROM ||
+      process.env.SMTP_FROM ||
+      `"TicketBox" <no-reply@ticketbox.local>`;
     const mailOptions = { from, ...options };
 
     // 1. Resend API mode
     if (this.resendApiKey) {
       try {
-        const to = Array.isArray(mailOptions.to) ? mailOptions.to.join(', ') : mailOptions.to;
-        const response = await (globalThis as any).fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.resendApiKey}`,
-            'Content-Type': 'application/json',
+        const to = Array.isArray(mailOptions.to)
+          ? mailOptions.to.join(", ")
+          : mailOptions.to;
+        const response = await (globalThis as any).fetch(
+          "https://api.resend.com/emails",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${this.resendApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: mailOptions.from,
+              to,
+              subject: mailOptions.subject,
+              html: mailOptions.html,
+              attachments: mailOptions.attachments?.map((attachment, index) => {
+                const item =
+                  typeof attachment === "string"
+                    ? { path: attachment }
+                    : attachment;
+                if (!item || !("content" in item) || item.content == null) {
+                  throw new Error(
+                    `Resend attachment ${index} must provide in-memory content`,
+                  );
+                }
+                const content = Buffer.isBuffer(item.content)
+                  ? item.content.toString("base64")
+                  : Buffer.from(String(item.content)).toString("base64");
+                return {
+                  filename: item.filename || `attachment-${index + 1}`,
+                  content,
+                };
+              }),
+            }),
           },
-          body: JSON.stringify({
-            from: mailOptions.from,
-            to,
-            subject: mailOptions.subject,
-            html: mailOptions.html,
-          }),
-        });
+        );
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          this.logger.error('Resend API returned an error:', JSON.stringify(errorData));
+          this.logger.error(
+            "Resend API returned an error:",
+            JSON.stringify(errorData),
+          );
           return false;
         }
 
         const data = await response.json().catch(() => ({}));
-        this.logger.log(`Email sent successfully via Resend API to ${to}. ID: ${data?.id}`);
+        this.logger.log(
+          `Email sent successfully via Resend API to ${to}. ID: ${data?.id}`,
+        );
         return true;
       } catch (error) {
-        this.logger.error(`Failed to send email via Resend API to ${mailOptions.to}`, error);
+        this.logger.error(
+          `Failed to send email via Resend API to ${mailOptions.to}`,
+          error,
+        );
         return false;
       }
     }
@@ -93,13 +127,19 @@ export class EmailService {
     }
 
     // 3. Mock mode
-    this.logger.log(`[MOCK EMAIL] To: ${mailOptions.to} | Subject: ${mailOptions.subject}`);
+    this.logger.log(
+      `[MOCK EMAIL] To: ${mailOptions.to} | Subject: ${mailOptions.subject}`,
+    );
     this.logger.log(`[MOCK EMAIL] HTML Content:\n${mailOptions.html}`);
     return true;
   }
 
-  async sendVerificationEmail(toEmail: string, fullName: string, token: string): Promise<boolean> {
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+  async sendVerificationEmail(
+    toEmail: string,
+    fullName: string,
+    token: string,
+  ): Promise<boolean> {
+    const backendUrl = process.env.BACKEND_URL || "http://localhost:3000";
     const verifyUrl = `${backendUrl}/auth/verify?token=${token}`;
 
     const html = `
@@ -134,13 +174,17 @@ export class EmailService {
 
     return this.sendMail({
       to: toEmail,
-      subject: '🎫 TicketBox - Xác thực tài khoản của bạn',
+      subject: "🎫 TicketBox - Xác thực tài khoản của bạn",
       html,
     });
   }
 
-  async sendPasswordResetEmail(toEmail: string, fullName: string, token: string): Promise<boolean> {
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  async sendPasswordResetEmail(
+    toEmail: string,
+    fullName: string,
+    token: string,
+  ): Promise<boolean> {
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
     const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
 
     const html = `
@@ -180,7 +224,7 @@ export class EmailService {
 
     return this.sendMail({
       to: toEmail,
-      subject: '🎫 TicketBox - Yêu cầu khôi phục mật khẩu',
+      subject: "🎫 TicketBox - Yêu cầu khôi phục mật khẩu",
       html,
     });
   }
