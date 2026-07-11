@@ -31,7 +31,6 @@ function LoginForm() {
   const [email, setEmail] = useState(searchParams?.get("email") ?? "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showResendVerification, setShowResendVerification] = useState(false);
 
   useEffect(() => {
     if (verified) {
@@ -54,7 +53,6 @@ function LoginForm() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setShowResendVerification(false);
 
     try {
       const response = await authService.login(email, password);
@@ -64,7 +62,13 @@ function LoginForm() {
     } catch (err: unknown) {
       const errorMsg = getAuthErrorMessage(err, "login");
       showErrorToast(errorMsg);
-      setShowResendVerification(shouldSuggestResendVerification(err));
+      if (shouldSuggestResendVerification(err)) {
+        setTimeout(() => {
+          router.push(
+            `/resend-verification?email=${encodeURIComponent(email)}`,
+          );
+        }, 1500);
+      }
     } finally {
       setLoading(false);
     }
@@ -80,18 +84,6 @@ function LoginForm() {
       ]}
     >
       <form className="space-y-5" onSubmit={onSubmit}>
-        {showResendVerification ? (
-          <div className="rounded-xl bg-red-950/40 border border-red-500/20 p-4 text-sm text-red-300">
-            <p className="mb-2">Tài khoản của bạn chưa được xác thực email.</p>
-            <Link
-              href={`/resend-verification?email=${encodeURIComponent(email)}`}
-              className="inline-flex font-bold text-red-400 hover:text-red-300 underline underline-offset-4"
-            >
-              Gửi lại email xác thực
-            </Link>
-          </div>
-        ) : null}
-
         <div className="space-y-1">
           <label
             className="ticketbox-label text-on-surface-variant/90"
