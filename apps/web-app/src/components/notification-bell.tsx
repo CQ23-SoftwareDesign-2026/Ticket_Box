@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Bell, CheckCheck, Ticket, Clock } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   NotificationItem,
   notificationService,
@@ -14,17 +14,18 @@ export function NotificationBell() {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unread, setUnread] = useState(0);
 
-  const refresh = useCallback(async () => {
-    const [list, count] = await Promise.all([
+  useEffect(() => {
+    let active = true;
+    void Promise.all([
       notificationService.list(),
       notificationService.unreadCount(),
-    ]);
-    setItems(list.data);
-    setUnread(count.count);
-  }, []);
-
-  useEffect(() => {
-    void refresh().catch(() => undefined);
+    ])
+      .then(([list, count]) => {
+        if (!active) return;
+        setItems(list.data);
+        setUnread(count.count);
+      })
+      .catch(() => undefined);
     const controller = new AbortController();
     let retry: ReturnType<typeof setTimeout> | undefined;
     const connect = async () => {
@@ -44,10 +45,11 @@ export function NotificationBell() {
     };
     void connect();
     return () => {
+      active = false;
       controller.abort();
       if (retry) clearTimeout(retry);
     };
-  }, [refresh]);
+  }, []);
 
   const read = async (item: NotificationItem) => {
     if (!item.read_at) {
