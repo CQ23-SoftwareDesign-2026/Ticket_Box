@@ -22,6 +22,41 @@ export interface ProcessPaymentResponse {
   circuit_breaker_state: string;
 }
 
+type PaymentFetchError = {
+  response?: {
+    status?: number;
+    data?: {
+      message?: string | string[];
+      circuit_breaker_state?: string;
+    };
+  };
+};
+
+export const PAYOS_UNAVAILABLE_MESSAGE =
+  "Cổng PayOS đang tạm thời gián đoạn, vui lòng thử lại sau.";
+
+/** Returns true only for the BE graceful-degradation response. */
+export function isPayOsCircuitOpen(error: unknown): boolean {
+  const fetchError = error as PaymentFetchError;
+  const status = fetchError.response?.status;
+  const data = fetchError.response?.data;
+  const messages = Array.isArray(data?.message)
+    ? data.message
+    : data?.message
+      ? [data.message]
+      : [];
+
+  return (
+    status === 503 &&
+    (data?.circuit_breaker_state === "OPEN" ||
+      messages.some((message) =>
+        /gateway is temporarily unavailable|circuit breaker is open|breaker is open/i.test(
+          message,
+        ),
+      ))
+  );
+}
+
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 function generateUUID(): string {

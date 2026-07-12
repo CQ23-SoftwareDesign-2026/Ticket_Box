@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { processPayment, type PaymentMethod } from "@/services/payment.service";
+import {
+  isPayOsCircuitOpen,
+  PAYOS_UNAVAILABLE_MESSAGE,
+  processPayment,
+  type PaymentMethod,
+} from "@/services/payment.service";
 import { getCheckoutReservationState } from "@/utils/checkout-state.utils";
 
 interface PayNowButtonProps {
@@ -52,8 +57,11 @@ export function PayNowButton({ orderId, selectedMethod }: PayNowButtonProps) {
         setLoading(false);
       }
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Unexpected error. Please retry.";
+      const message = isPayOsCircuitOpen(err)
+        ? PAYOS_UNAVAILABLE_MESSAGE
+        : err instanceof Error
+          ? err.message
+          : "Unexpected error. Please retry.";
       setError(message);
       setLoading(false);
     }

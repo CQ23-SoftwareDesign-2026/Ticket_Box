@@ -153,11 +153,19 @@ export class PaymentService {
                 return response;
             }
 
-            // A gateway timeout is ambiguous: PayOS may have created the payment
-            // link even though our process did not receive the response. Never
-            // create another payment attempt for the same order until a webhook
-            // or reconciliation process resolves this transaction.
-            if (activeTransaction.status === 'UNKNOWN' || activeTransaction.status === 'INIT') {
+            if (activeTransaction.status === 'UNKNOWN') {
+                const reconciled = await this.reconcileUnknownTransaction(
+                    activeTransaction,
+                    normalizedKey,
+                    cacheKey,
+                    dto.payment_method,
+                );
+                if (reconciled) return reconciled;
+            }
+
+            // INIT without a checkout URL means another request is still in
+            // flight (or the process stopped before recording its outcome).
+            if (activeTransaction.status === 'INIT') {
                 await this.persistIdempotencyFailure(cacheKey, normalizedKey, {
                     order_id: order.id,
                     payment_method: dto.payment_method,
@@ -564,6 +572,131 @@ export class PaymentService {
         );
         await this.persistIdempotencyCompletion(cacheKey, result);
         return result;
+    }
+
+    private async reconcileUnknownTransaction(
+        transaction: {
+            id: string;
+            order_id: string;
+            payment_method: string;
+            status: string;
+            idempotency_key: string;
+            provider_order_code: bigint;
+            raw_response: Prisma.JsonValue | null;
+        },
+        requestIdempotencyKey: string,
+        cacheKey: string,
+        paymentMethod: PaymentMethod,
+    ): Promise<PaymentProcessResponseDto | null> {
+        const circuitState = this.paymentGatewayClient.getCircuitState(paymentMethod);
+        if (circuitState === 'OPEN') {
+            await this.persistIdempotencyFailure(cacheKey, requestIdempotencyKey, {
+                order_id: transaction.order_id,
+                payment_method: paymentMethod,
+                message: `${paymentMethod} payment gateway is temporarily unavailable`,
+                circuit_breaker_state: circuitState,
+            });
+            throw new ServiceUnavailableException({
+                message: `${paymentMethod} payment gateway is temporarily unavailable`,
+                circuit_breaker_state: circuitState,
+            });
+        }
+
+        try {
+            const lookup = await this.paymentGatewayClient.getPaymentSession(
+                paymentMethod,
+                Number(transaction.provider_order_code),
+            );
+            const checkedAt = new Date().toISOString();
+
+            if (lookup.status === 'PENDING' && lookup.amountPaid === 0) {
+                const cancelled = await this.paymentGatewayClient.cancelPaymentSession(
+                    paymentMethod,
+                    Number(transaction.provider_order_code),
+                    'Replacing payment session after an inconclusive timeout',
+                );
+                if (cancelled.status !== 'CANCELLED') {
+                    throw new ConflictException('Previous payment session could not be safely cancelled.');
+                }
+
+                await this.prisma.paymentTransaction.update({
+                    where: { id: transaction.id },
+                    data: {
+                        status: 'FAILED',
+                        transaction_id_3rd_party: cancelled.providerTransactionId,
+                        raw_response: this.mergeTelemetry(transaction.raw_response, {
+                            reconciliation: {
+                                status: cancelled.status,
+                                checked_at: checkedAt,
+                                previous_response: lookup.raw,
+                                cancellation_response: cancelled.raw,
+                                replacement_allowed: true,
+                            },
+                        }) as Prisma.JsonObject,
+                    },
+                });
+                // Continue processPayment so this same request creates a new
+                // transaction/orderCode and receives a fresh PayOS QR payload.
+                return null;
+            }
+
+            if (lookup.status === 'PAID') {
+                await this.prisma.paymentTransaction.update({
+                    where: { id: transaction.id },
+                    data: {
+                        transaction_id_3rd_party: lookup.providerTransactionId,
+                        raw_response: this.mergeTelemetry(transaction.raw_response, {
+                            reconciliation: {
+                                status: lookup.status,
+                                checked_at: checkedAt,
+                                response: lookup.raw,
+                                awaiting_signed_webhook: true,
+                            },
+                        }) as Prisma.JsonObject,
+                    },
+                });
+                throw new ConflictException('Payment was received and is awaiting confirmation.');
+            }
+
+            if (lookup.status === 'UNDERPAID' || lookup.status === 'PROCESSING' || lookup.amountPaid > 0) {
+                throw new ConflictException('Payment has activity and is awaiting confirmation.');
+            }
+
+            // PayOS has conclusively closed this link. Mark the old attempt as
+            // failed, then let the current request create a fresh session.
+            if (['CANCELLED', 'EXPIRED', 'FAILED'].includes(lookup.status)) {
+                await this.prisma.paymentTransaction.update({
+                    where: { id: transaction.id },
+                    data: {
+                        status: 'FAILED',
+                        transaction_id_3rd_party: lookup.providerTransactionId,
+                        raw_response: this.mergeTelemetry(transaction.raw_response, {
+                            reconciliation: {
+                                status: lookup.status,
+                                checked_at: checkedAt,
+                                response: lookup.raw,
+                            },
+                        }) as Prisma.JsonObject,
+                    },
+                });
+                return null;
+            }
+
+            throw new ConflictException('Payment status is being confirmed. Do not retry yet.');
+        } catch (error) {
+            if (error instanceof ConflictException) throw error;
+
+            await this.persistIdempotencyFailure(cacheKey, requestIdempotencyKey, {
+                order_id: transaction.order_id,
+                payment_method: paymentMethod,
+                message: error instanceof Error ? error.message : 'Payment reconciliation failed',
+                circuit_breaker_state: this.paymentGatewayClient.getCircuitState(paymentMethod),
+            });
+            throw new ServiceUnavailableException({
+                message: 'Unable to confirm the previous payment attempt. Please try again later.',
+                circuit_breaker_state: this.paymentGatewayClient.getCircuitState(paymentMethod),
+            });
+        }
     }
 
     private mapProcessTransaction(
