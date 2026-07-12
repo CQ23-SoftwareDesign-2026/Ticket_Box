@@ -18,7 +18,7 @@ Sự bùng nổ của các concert âm nhạc quy mô lớn tại Việt Nam (nh
 Dự án TicketBox được xây dựng nhằm số hóa toàn diện quy trình phân phối vé và quản lý sự kiện, với mục tiêu kiến tạo một hệ thống công bằng, minh bạch và có sức chống chịu tải trọng cực đoan.
 
 **Mục tiêu định lượng và kỹ thuật:**
-* **Đảm bảo Uptime:** Hệ thống phải đứng vững và phục vụ mượt mà 80.000 người truy cập đồng thời trong 5 phút đầu tiên mở bán (70% dồn vào phút đầu).
+* **Đảm bảo khả năng chống tải đột biến:** Hệ thống phải có cơ chế bảo vệ backend khi 80.000 người truy cập trong 5 phút đầu mở bán (70% dồn vào phút đầu). Trong phạm vi đồ án, nhóm chứng minh bằng rate limiting, Redis atomic reservation, hàng đợi bất đồng bộ và kịch bản stress test cục bộ; triển khai production đầy đủ cần bổ sung hạ tầng autoscaling/edge ở giai đoạn sau.
 * **Zero Overbooking:** Đảm bảo tỷ lệ bán trùng vé là 0%, kể cả khi có hàng chục nghìn người cùng tranh chấp 200 vé SVIP giới hạn.
 * **Zero Double-charge:** Đảm bảo 100% không có giao dịch nào bị trừ tiền hai lần dù mạng chập chờn hoặc người dùng cố tình spam nút thanh toán.
 * **Offline Check-in:** Quá trình soát vé tại cổng phải diễn ra dưới 1 giây trên mỗi vé và hoạt động trơn tru ngay cả khi rớt mạng Internet hoàn toàn.
@@ -42,20 +42,20 @@ Hệ thống phục vụ ba nhóm tác nhân chính với các nhu cầu chuyên
 * Hiện thực hóa các cơ chế bảo vệ hệ thống: Rate Limiting (Token Bucket), Idempotency Key (chống trừ tiền hai lần), Circuit Breaker (xử lý lỗi bên thứ ba), Redis Lua Script (chống overbooking).
 * Phát triển Backend API (Node.js/NestJS), kết nối PostgreSQL, Redis và Message Broker (RabbitMQ).
 * Lập trình luồng xử lý bất đồng bộ (Background Workers) cho tác vụ AI PDF OCR và import CSV.
-* Phát triển mobile app check-in có tích hợp local database (SQLite) để mô phỏng soát vé offline và cơ chế phân luồng cổng (Gate Segregation).
+* Phát triển mobile app check-in có lưu trữ cục bộ bằng AsyncStorage/local persistent storage để mô phỏng soát vé offline và cơ chế phân luồng cổng (Gate Segregation).
 * Triển khai hạ tầng ở môi trường phát triển cục bộ bằng Docker Compose.
 
 **Ngoài phạm vi đồ án (Out-of-scope):**
-* Tích hợp trực tiếp với VNPAY/MoMo thực tế (dùng mock hoặc stub để giả lập delay/timeout nhằm test Circuit Breaker).
+* Tích hợp đầy đủ nhiều cổng thanh toán thực tế như VNPAY/MoMo; trong đồ án ưu tiên PayOS/sandbox hoặc mock/stub để giả lập delay/timeout nhằm test Circuit Breaker.
 * Triển khai production bằng Kubernetes hoặc cloud AWS/GCP (tập trung vào kiến trúc và code logic).
 * Tự huấn luyện mô hình AI (sử dụng API LLM có sẵn như OpenAI hoặc Gemini).
 
 ## Rủi ro và ràng buộc
 Quá trình phát triển hệ thống phải đối mặt và giải quyết các ràng buộc kỹ thuật khắt khe:
 
-1. **Tải trọng đọc đột biến (Read-Heavy Spike):** Không truy vấn trực tiếp vào PostgreSQL khi 80.000 user cùng tải trang. Bắt buộc triển khai multi-layer caching (CDN cho SVG và Redis cache-aside cho thông tin và số vé).
+1. **Tải trọng đọc đột biến (Read-Heavy Spike):** Không để mọi request đọc trong giờ mở bán đi thẳng xuống PostgreSQL. Trong đồ án dùng Redis/cache-aside cho dữ liệu cần đọc nhiều và rate limit ở backend; ở production có thể bổ sung CDN/edge cache cho tài nguyên tĩnh và trang public.
 2. **Tranh chấp vé cường độ cao (Write-Heavy Contention):** Rủi ro bottleneck nếu dùng SQL locking. Bắt buộc xử lý chốt vé nguyên tử trên RAM bằng Redis Lua Script, sau đó lưu trữ bất đồng bộ.
-3. **Cổng thanh toán không ổn định:** Rủi ro hệ thống bị treo do cạn thread pool khi VNPAY/MoMo phản hồi chậm. Bắt buộc áp dụng Circuit Breaker và Idempotency Key để chống lặp giao dịch.
+3. **Cổng thanh toán không ổn định:** Rủi ro hệ thống bị treo do cạn thread pool khi cổng thanh toán như PayOS/VNPAY/MoMo phản hồi chậm. Bắt buộc áp dụng Circuit Breaker và Idempotency Key để chống lặp giao dịch.
 4. **Phân mảnh dữ liệu ngoại tuyến (Split-brain Offline):** Rủi ro một vé được quét ở hai cổng mất mạng khác nhau. Bắt buộc giải quyết bằng phân luồng cổng (Gate Segregation) kết hợp đồng bộ hàng loạt (Bulk-sync).
 5. **Tích hợp hệ thống bên thứ ba chậm chạp:** OCR PDF và đọc CSV kéo dài; không xử lý đồng bộ trên main thread. Bắt buộc kiến trúc event-driven, đẩy task vào RabbitMQ để background worker chạy ngầm.
 
@@ -66,8 +66,8 @@ Quá trình phát triển hệ thống phải đối mặt và giải quyết c�
 - Mobile app check-in là mô phỏng chức năng chính, không yêu cầu phát hành store.
 
 ## Tiêu chí chấp nhận
-- Trang danh sách concert và trang chi tiết đạt p95 latency <= 400ms trong kịch bản 80.000 lượt truy cập/5 phút (70% trong phút đầu), error rate < 1%.
-- Cache hit ratio cho dữ liệu concert và số vé >= 90% trong giờ cao điểm.
+- Các API public và API mua vé có cơ chế trả nhanh khi vượt ngưỡng bằng HTTP 429, không để spike request làm sập backend hoặc kéo lỗi 5xx tăng cao.
+- Dữ liệu concert và số vé còn lại được cache/đệm bằng Redis ở các điểm đọc nhiều; các chỉ số như p95 latency và cache hit ratio là mục tiêu vận hành cần đo bằng k6/monitoring khi triển khai production.
 - Không có overbooking: tổng vé đã bán không vượt số vé cấu hình, tỷ lệ bán trùng = 0%.
 - Giao dịch thanh toán dùng idempotency key, tỷ lệ double-charge = 0% trong kịch bản retry/timeout.
 - E-ticket QR được cấp trong <= 5 giây sau khi thanh toán thành công; check-in online p95 <= 5 giây/vé.

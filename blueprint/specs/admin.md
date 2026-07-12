@@ -1,444 +1,660 @@
-# Đặc tả: Admin APIs và màn hình quản trị
-
-## Mô tả
-Nhóm API admin phục vụ các màn hình quản trị trong web app:
-
-- Dashboard tổng quan.
-- Quản lý sự kiện/concert và ticket tier.
-- Quản lý đơn hàng.
-- Quản lý doanh thu.
-- Quản lý người dùng/role/status.
-- Phân công checker theo concert/gate.
-- Xem notification phía admin.
-
-Phần frontend nằm chủ yếu trong `apps/web-app/src/app/admin`, gọi API qua các service trong `apps/web-app/src/services`.
-
-## Quyền truy cập chung
-
-Đa số API admin yêu cầu:
-
-- JWT hợp lệ qua `JwtAuthGuard`.
-- Role `ADMIN` qua `RolesGuard`.
-- ValidationPipe với `transform: true`, `whitelist: true`.
-
-Một số API quản lý concert cho phép cả `ADMIN` và `ORGANIZER`, nhưng vẫn yêu cầu permission cụ thể:
-
-- `CREATE_CONCERT`
-- `UPDATE_CONCERT`
-- `DELETE_CONCERT`
-
-## Luồng chính
-
-### 1. Dashboard admin
-Frontend:
-
-- `apps/web-app/src/app/admin/dashboard`
-
-Backend:
-
-- `GET /admin/dashboard/summary`
-- `GET /admin/dashboard/revenue`
-- `GET /admin/dashboard/recent-orders`
-
-Mục đích:
-
-- Hiển thị số liệu tổng quan của hệ thống.
-- Hiển thị biểu đồ doanh thu theo ngày/tuần/tháng.
-- Hiển thị danh sách đơn hàng mới nhất.
-
-Query của revenue dashboard:
-
-```txt
-from?: ISO datetime
-to?: ISO datetime
-group_by?: day | week | month
-```
-
-Query của recent orders:
-
-```txt
-limit?: 1..20
-```
-
-Ràng buộc:
-
-- Chỉ role `ADMIN` được xem dashboard.
-- Dữ liệu doanh thu nên tính trên order/payment đã hoàn thành, không tính order pending/cancelled.
-
-### 2. Quản lý concert và ticket tier
-Frontend:
-
-- `apps/web-app/src/app/admin/events`
-- `apps/web-app/src/app/admin/create-event`
-
-Backend:
-
-- `GET /concerts`
-- `GET /concerts/:id`
-- `POST /concerts`
-- `PATCH /concerts/:id`
-- `DELETE /concerts/:id`
-
-API public/list/detail:
-
-- `GET /concerts` hỗ trợ pagination, filter `status`, search theo tên concert.
-- `GET /concerts/:id` trả chi tiết concert và ticket tier.
-
-API tạo/sửa/xóa:
-
-- Yêu cầu role `ADMIN` hoặc `ORGANIZER`.
-- Yêu cầu permission tương ứng.
-- `DELETE /concerts/:id` là soft delete.
-
-Body tạo concert gồm các nhóm thông tin:
-
-```json
-{
-  "name": "Anh Trai Say Hi",
-  "description": "Concert description",
-  "location": "Ho Chi Minh City",
-  "performers": ["Artist A", "Artist B"],
-  "ai_bio": "AI generated bio",
-  "start_time": "2026-07-20T19:30:00+07:00",
-  "svg_map_url": "https://...",
-  "poster_url": "https://...",
-  "status": "PUBLISHED",
-  "ticketTiers": [
-    {
-      "name": "SVIP",
-      "price": 2500000,
-      "total_quantity": 200,
-      "max_per_user": 2,
-      "gate_number": 1
-    }
-  ]
-}
-```
-
-Ràng buộc quan trọng:
-
-- `start_time` phải là ngày trong tương lai khi tạo/cập nhật.
-- Mỗi concert phải có ít nhất một ticket tier khi tạo.
-- `gate_number` của ticket tier được dùng cho check-in và phân công checker.
-- Khi update concert có `ticketTiers`, backend sẽ cập nhật lại thông tin tier theo payload.
-
-### 3. Warm up Redis inventory cho ticketing
-Backend:
-
-- `POST /tickets/init`
-
-Mục đích:
-
-- Khởi tạo inventory của một ticket category vào Redis để test/demo luồng đặt vé.
-- API này chỉ dành cho admin/test/seeding.
-
-Body:
-
-```json
-{
-  "category_id": "category-uuid",
-  "available": 200,
-  "max_per_user": 2
-}
-```
-
-Response:
-
-```json
-{
-  "status": "SUCCESS",
-  "message": "Category inventory initialized"
-}
-```
-
-Lưu ý:
-
-- Luồng production nên ưu tiên lazy seed từ database khi category chưa có trong Redis.
-- Warm up dùng khi cần prewarm trước mở bán hoặc demo stress test.
-- Giá trị `available` cần khớp với số vé còn lại hợp lệ của category.
-
-### 4. Quản lý đơn hàng
-Frontend:
-
-- `apps/web-app/src/app/admin/orders`
-- `apps/web-app/src/app/admin/orders/[orderId]`
-
-Backend:
-
-- `GET /orders/admin`
-- `GET /orders/admin/:id`
-
-`GET /orders/admin` hỗ trợ:
-
-```txt
-page?: number
-limit?: number
-status?: PENDING | PAID | CANCELLED
-search?: order id | concert name | user email | user name
-payment_method?: string
-user_id?: string
-concert_id?: string
-```
-
-`GET /orders/admin/:id` trả chi tiết một order bất kỳ cho admin, gồm thông tin người mua, concert, payment transaction và ticket breakdown.
-
-Ràng buộc:
-
-- Chỉ role `ADMIN` được xem tất cả order.
-- User thường chỉ xem được order của chính mình qua `/orders/:id`.
-- Admin order detail phải dùng API riêng `/orders/admin/:id` để không bị giới hạn theo `req.user.sub`.
-
-### 5. Quản lý doanh thu
-Frontend:
-
-- `apps/web-app/src/app/admin/revenue`
-
-Backend:
-
-- `GET /admin/revenue/trend`
-- `GET /admin/revenue/by-concert`
-- `GET /admin/revenue/concerts/:concert_id/detail`
-
-Query chung:
-
-```txt
-from?: ISO datetime
-to?: ISO datetime
-```
-
-Trend:
-
-```txt
-group_by?: day | week | month
-```
-
-Doanh thu theo concert:
-
-```txt
-status?: DRAFT | PUBLISHED | COMPLETED
-limit?: 1..100
-```
-
-Mục đích:
-
-- `trend`: vẽ biểu đồ doanh thu theo thời gian.
-- `by-concert`: so sánh doanh thu từng concert trong khoảng ngày.
-- `concerts/:concert_id/detail`: xem chi tiết doanh thu, ticket sold, breakdown theo tier của một concert.
-
-Ràng buộc:
-
-- Chỉ role `ADMIN` được xem revenue.
-- Khoảng ngày `from/to` cần được FE hiển thị rõ trên biểu đồ và bảng doanh thu.
-- `to` nên được normalize về cuối ngày khi người dùng chọn ngày trên UI để không bị mất doanh thu trong ngày đó.
-
-### 6. Quản lý user, role và status
-Frontend:
-
-- `apps/web-app/src/app/admin/users`
-
-Backend:
-
-- `GET /admin/users`
-- `POST /admin/users`
-- `GET /admin/users/:id`
-- `PATCH /admin/users/:id/status`
-- `PATCH /admin/users/:id/roles`
-
-`GET /admin/users` hỗ trợ:
-
-```txt
-page?: number
-limit?: number
-search?: email | full name
-status?: ACTIVE | INACTIVE | BANNED | PENDING
-role?: string
-```
-
-Tạo user:
-
-```json
-{
-  "email": "checker@example.com",
-  "password": "Password123!",
-  "full_name": "Nguyen Van Checker",
-  "status": "ACTIVE",
-  "roles": ["Checker"]
-}
-```
-
-Cập nhật status:
-
-```json
-{
-  "status": "ACTIVE"
-}
-```
-
-Cập nhật roles:
-
-```json
-{
-  "roles": ["Audience", "Checker"]
-}
-```
-
-Ràng buộc:
-
-- Chỉ role `ADMIN` được quản lý user.
-- Role trong request phải tồn tại trong database.
-- Email tạo mới không được trùng.
-- Status chỉ nằm trong `ACTIVE`, `INACTIVE`, `BANNED`, `PENDING`.
-
-### 7. Phân công checker theo concert/gate
-Frontend:
-
-- `apps/web-app/src/app/admin/assignments`
-
-Backend:
-
-- `GET /checkin/assignments`
-- `POST /checkin/assignments`
-- `PUT /checkin/assignments/:id`
-- `DELETE /checkin/assignments/:id`
-- `GET /checkin/assignments/concerts`
-- `GET /checkin/assignments/checkers`
-- `GET /checkin/assignments/gates/:concert_id`
-
-Query danh sách assignment:
-
-```txt
-page?: number
-limit?: number
-concert_id?: uuid
-checker_id?: uuid
-```
-
-Tạo assignment:
-
-```json
-{
-  "checker_id": "checker-user-uuid",
-  "concert_id": "concert-uuid",
-  "gate_number": 1
-}
-```
-
-Cập nhật assignment:
-
-```json
-{
-  "gate_number": 2
-}
-```
-
-Mục đích các API phụ:
-
-- `/concerts`: lấy concert `PUBLISHED` để admin chọn.
-- `/checkers`: lấy tài khoản checker đang hoạt động.
-- `/gates/:concert_id`: lấy danh sách gate còn trống/chưa được phân công.
-
-Ràng buộc:
-
-- Chỉ role `ADMIN` được quản lý assignment.
-- Checker phải là user hợp lệ có role checker.
-- Concert phải hợp lệ.
-- Gate number phải thuộc các ticket tier của concert.
-- Một gate trong một concert không nên bị phân công trùng nếu không có chủ đích vận hành rõ ràng.
-
-### 8. Notification admin
-Frontend:
-
-- `apps/web-app/src/app/admin/notifications`
-
-Backend:
-
-- `GET /admin/notifications`
-
-Mục đích:
-
-- Cho admin xem danh sách notification của hệ thống/người dùng theo query.
-
-Ràng buộc:
-
-- Chỉ role `ADMIN` được truy cập.
-- Query được validate theo `AdminNotificationQueryDto`.
-
-## Kịch bản lỗi
-
-### Auth và permission
-- Thiếu JWT: `401 Unauthorized`.
-- JWT hết hạn/không hợp lệ: `401 Unauthorized`.
+# Đặc tả: Admin APIs
+
+## API: `GET /admin/dashboard/summary`
+
+### Mô tả
+API trả các chỉ số tổng quan cho màn hình dashboard admin, ví dụ số concert, số user, số order, doanh thu hoặc các metric vận hành chính.
+
+### Luồng chính
+1. Admin đăng nhập web app.
+2. Frontend mở trang `/admin/dashboard`.
+3. Frontend gọi `GET /admin/dashboard/summary` kèm access token.
+4. Backend kiểm tra JWT và role `ADMIN`.
+5. Backend tổng hợp các chỉ số từ database.
+6. API trả summary metrics cho frontend.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
 - User không có role `ADMIN`: `403 Forbidden`.
-- API concert create/update/delete thiếu permission tương ứng: `403 Forbidden`.
+- Database lỗi khi tổng hợp dữ liệu: API trả lỗi server.
 
-### Validation
-- UUID sai format: `400 Bad Request`.
-- Query/body sai type: `400 Bad Request`.
-- `start_time` không phải ngày tương lai khi tạo/sửa concert: `400 Bad Request`.
-- Status/role/group_by không nằm trong enum hợp lệ: `400 Bad Request`.
+### Ràng buộc
+- Chỉ admin được xem dữ liệu tổng quan hệ thống.
+- Metric phải không expose dữ liệu nhạy cảm không cần thiết.
+- Query tổng hợp cần tối ưu để không gây tải lớn lên database.
 
-### Nghiệp vụ
-- Tạo user với email đã tồn tại: request bị từ chối.
-- Update role không tồn tại: request bị từ chối.
-- Lấy detail order/concert/user không tồn tại: `404 Not Found`.
-- Tạo assignment cho checker/concert/gate không hợp lệ: request bị từ chối.
-- Xem revenue với khoảng ngày không có dữ liệu: trả mảng rỗng hoặc metric bằng 0, không coi là lỗi.
+### Tiêu chí chấp nhận
+- Admin xem được dashboard summary.
+- User thường không truy cập được API.
+- Response trả đủ các metric dashboard cần hiển thị.
 
-## Ràng buộc
+## API: `GET /admin/dashboard/revenue`
 
-- API admin không được expose dữ liệu quản trị cho user thường.
-- Các màn hình danh sách phải dùng pagination để tránh query quá lớn.
-- Các thao tác tạo/sửa/xóa phải được validate ở DTO.
-- Revenue chỉ tính trên giao dịch/order đã hoàn thành hợp lệ.
-- Assignment checker là nguồn phân quyền cho mobile check-in.
-- Gate number trong ticket tier, assignment và check-in phải thống nhất.
-- Soft delete concert không nên làm mất dữ liệu order/ticket lịch sử.
+### Mô tả
+API trả dữ liệu biểu đồ doanh thu trên dashboard, có thể group theo ngày, tuần hoặc tháng.
 
-## Tiêu chí chấp nhận
+### Luồng chính
+1. Admin mở dashboard.
+2. Frontend gửi query `from`, `to`, `group_by`.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend validate query date range và `group_by`.
+5. Backend lấy các order/payment hợp lệ trong khoảng thời gian.
+6. Backend group doanh thu theo `day`, `week` hoặc `month`.
+7. API trả dữ liệu để frontend vẽ chart.
 
-- Admin đăng nhập xem được dashboard summary, revenue chart và recent orders.
-- User không phải admin không truy cập được `/admin/*`.
-- Admin tạo/sửa/xóa concert thành công với payload hợp lệ.
-- Concert tạo mới có ticket tier và gate number để phục vụ ticketing/check-in.
-- Admin xem, lọc và mở chi tiết order bất kỳ.
-- Admin xem revenue theo range và theo concert.
-- Admin tạo user checker và gán role thành công.
-- Admin đổi status/roles của user thành công.
-- Admin tạo assignment checker cho concert/gate thành công.
-- Checker sau khi được assign thấy assignment trong mobile app.
-- Gate đã assign được dùng để prefetch và scan ticket đúng cổng.
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- `from/to` sai định dạng date: `400 Bad Request`.
+- `group_by` không thuộc `day/week/month`: `400 Bad Request`.
+- Không có dữ liệu trong range: trả mảng rỗng hoặc value bằng 0.
 
-## Kiểm thử đề xuất
+### Ràng buộc
+- Chỉ tính doanh thu từ order/payment đã hoàn thành hợp lệ.
+- Không tính order `PENDING` hoặc `CANCELLED`.
+- Range thời gian cần được xử lý nhất quán với timezone.
 
-### Manual test
-- Đăng nhập bằng admin, mở `/admin/dashboard`, kiểm tra summary/revenue/recent orders có data.
-- Mở `/admin/create-event`, tạo concert có ít nhất một ticket tier và `gate_number`.
-- Mở `/admin/events`, search/filter concert, sửa concert, kiểm tra detail thay đổi.
-- Mở `/admin/users`, tạo checker mới, gán role `Checker`, đổi status.
-- Mở `/admin/assignments`, chọn concert PUBLISHED, chọn checker, chọn gate, tạo assignment.
-- Đăng nhập mobile bằng checker, kiểm tra assignment vừa tạo xuất hiện.
-- Mở `/admin/orders`, filter theo status/concert, vào chi tiết order.
-- Mở `/admin/revenue`, chọn range ngày, kiểm tra trend và revenue by concert hiện đúng range.
+### Tiêu chí chấp nhận
+- Admin xem được chart doanh thu.
+- Filter theo range hoạt động đúng.
+- Group theo ngày/tuần/tháng trả đúng cấu trúc dữ liệu.
+- User thường bị chặn.
 
-### Automated test nên có
-- Guard test: user không có role admin bị chặn với `/admin/*`.
-- DTO validation test cho create/update concert.
-- Service test cho admin users: email trùng, role không tồn tại, update status.
-- Service test cho checker assignment: gate không hợp lệ, assignment trùng, delete assignment.
-- Revenue test: chỉ tính order paid/completed, không tính pending/cancelled.
-## Phân tích trade-off
+## API: `GET /admin/dashboard/recent-orders`
 
-### Gom nhiều admin API dưới role `ADMIN`
-- Ưu điểm: đơn giản, dễ kiểm soát, phù hợp dashboard quản trị tập trung.
-- Nhược điểm: chưa đủ mịn nếu production cần nhiều vai trò như finance admin, event manager, support.
-- Lý do phù hợp: hiện tại ưu tiên chính là chặn user thường khỏi dữ liệu và thao tác quản trị.
+### Mô tả
+API trả danh sách order mới nhất để hiển thị nhanh trên dashboard admin.
 
-### Pagination cho danh sách quản trị
-- Ưu điểm: tránh query quá lớn ở users, orders, assignments, jobs.
-- Nhược điểm: FE phải quản lý state page/filter và có thể cần nhiều request hơn khi admin duyệt dữ liệu.
-- Lý do phù hợp: dữ liệu quản trị tăng theo thời gian, pagination là bắt buộc để UI và DB ổn định.
+### Luồng chính
+1. Frontend dashboard gọi API với query `limit`.
+2. Backend kiểm tra JWT và role `ADMIN`.
+3. Backend validate `limit`.
+4. Backend lấy các order mới nhất theo thời gian tạo.
+5. API trả danh sách order rút gọn.
 
-### Soft delete concert
-- Ưu điểm: giữ được lịch sử order, ticket, revenue liên quan đến concert.
-- Nhược điểm: query phải cẩn thận để không hiển thị dữ liệu đã xóa ở nơi không cần.
-- Lý do phù hợp: hệ thống ticketing cần audit lịch sử, không nên hard delete concert đã có giao dịch.
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- `limit` không hợp lệ hoặc vượt giới hạn: `400 Bad Request`.
+- DB lỗi: API trả lỗi server.
+
+### Ràng buộc
+- `limit` phải có giới hạn để tránh query quá lớn.
+- Chỉ admin được xem order của toàn hệ thống.
+- Response nên đủ cho dashboard, không cần toàn bộ chi tiết order.
+
+### Tiêu chí chấp nhận
+- Admin xem được danh sách recent orders.
+- `limit` hoạt động đúng.
+- User thường không truy cập được.
+
+## API: `GET /admin/users`
+
+### Mô tả
+API lấy danh sách user cho màn hình quản lý người dùng của admin, hỗ trợ pagination, search, filter status và role.
+
+### Luồng chính
+1. Admin mở trang `/admin/users`.
+2. Frontend gọi `GET /admin/users` với query filter.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend validate query.
+5. Backend query user theo `search`, `status`, `role`.
+6. Backend phân trang kết quả.
+7. API trả `data` và `meta`.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- Query sai kiểu dữ liệu: `400 Bad Request`.
+- Status không thuộc enum hợp lệ: `400 Bad Request`.
+- DB lỗi: API trả lỗi server.
+
+### Ràng buộc
+- Phải dùng pagination.
+- Không trả password hash.
+- Chỉ admin được xem danh sách user.
+- Filter role/status phải dựa trên dữ liệu hợp lệ trong hệ thống.
+
+### Tiêu chí chấp nhận
+- Admin xem được danh sách user.
+- Search theo email/full name hoạt động.
+- Filter status/role hoạt động.
+- Response có pagination metadata.
+
+## API: `POST /admin/users`
+
+### Mô tả
+API cho admin tạo user mới, ví dụ tạo tài khoản checker hoặc organizer.
+
+### Luồng chính
+1. Admin mở modal tạo user.
+2. Frontend gửi email, password, full name, status và roles.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend validate body.
+5. Backend kiểm tra email đã tồn tại chưa.
+6. Backend kiểm tra các role trong request tồn tại.
+7. Backend hash password.
+8. Backend tạo user và gán roles.
+9. API trả user vừa tạo.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- Email sai định dạng: `400 Bad Request`.
+- Password quá ngắn: `400 Bad Request`.
+- Email đã tồn tại: request bị từ chối.
+- Role không tồn tại: request bị từ chối.
+
+### Ràng buộc
+- Password phải hash bằng bcrypt.
+- Không trả password hash trong response.
+- Role request phải tồn tại trong DB.
+- Status chỉ thuộc `ACTIVE`, `INACTIVE`, `BANNED`, `PENDING`.
+
+### Tiêu chí chấp nhận
+- Admin tạo user mới thành công.
+- Email trùng bị chặn.
+- User mới có đúng roles.
+- User thường không tạo được user.
+
+## API: `GET /admin/users/:id`
+
+### Mô tả
+API lấy chi tiết một user cho admin, dùng trong drawer/detail view.
+
+### Luồng chính
+1. Admin chọn một user trong bảng.
+2. Frontend gọi `GET /admin/users/:id`.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend tìm user theo `id`.
+5. Backend lấy roles và thông tin liên quan.
+6. API trả user detail.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- User ID không tồn tại: `404 Not Found`.
+- DB lỗi: API trả lỗi server.
+
+### Ràng buộc
+- Không trả password hash.
+- Chỉ admin được xem user detail.
+- ID phải tham chiếu đúng user trong hệ thống.
+
+### Tiêu chí chấp nhận
+- Admin xem được chi tiết user.
+- User không tồn tại trả lỗi.
+- Response có roles của user.
+
+## API: `PATCH /admin/users/:id/status`
+
+### Mô tả
+API cho admin cập nhật trạng thái user, ví dụ active, inactive, banned hoặc pending.
+
+### Luồng chính
+1. Admin chọn action đổi trạng thái user.
+2. Frontend gửi `{ status }`.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend validate status.
+5. Backend tìm user cần cập nhật.
+6. Backend cập nhật status.
+7. API trả user đã cập nhật.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- Status không hợp lệ: `400 Bad Request`.
+- User không tồn tại: `404 Not Found`.
+
+### Ràng buộc
+- Status chỉ thuộc enum hợp lệ.
+- Cần tránh vô tình khóa toàn bộ admin nếu hệ thống có rule bảo vệ admin cuối cùng.
+- User bị banned/inactive không nên đăng nhập được.
+
+### Tiêu chí chấp nhận
+- Admin đổi status user thành công.
+- Status mới được phản ánh ở danh sách/detail.
+- Status sai bị từ chối.
+
+## API: `PATCH /admin/users/:id/roles`
+
+### Mô tả
+API cho admin cập nhật danh sách role của user.
+
+### Luồng chính
+1. Admin mở phần role của user.
+2. Frontend gửi danh sách roles mới.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend validate danh sách roles không rỗng.
+5. Backend kiểm tra từng role tồn tại.
+6. Backend thay thế role hiện tại bằng danh sách mới.
+7. API trả user với roles đã cập nhật.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- Roles rỗng hoặc sai kiểu dữ liệu: `400 Bad Request`.
+- Có role không tồn tại: request bị từ chối.
+- User không tồn tại: `404 Not Found`.
+
+### Ràng buộc
+- Role phải tồn tại trong DB.
+- Cần đảm bảo không làm mất quyền admin cuối cùng nếu có rule vận hành tương ứng.
+- Cập nhật role ảnh hưởng trực tiếp quyền truy cập API.
+
+### Tiêu chí chấp nhận
+- Admin cập nhật roles thành công.
+- Role không tồn tại bị từ chối.
+- User nhận quyền mới đúng sau khi đăng nhập/lấy token mới.
+
+## API: `GET /orders/admin`
+
+### Mô tả
+API cho admin xem và tìm kiếm danh sách order toàn hệ thống.
+
+### Luồng chính
+1. Admin mở trang `/admin/orders`.
+2. Frontend gửi query pagination/filter.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend validate query.
+5. Backend lọc order theo status, payment method, user, concert hoặc search text.
+6. Backend phân trang kết quả.
+7. API trả danh sách order và metadata.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- Query status không hợp lệ: `400 Bad Request`.
+- DB lỗi: API trả lỗi server.
+
+### Ràng buộc
+- Chỉ admin được xem tất cả order.
+- Phải dùng pagination.
+- User thường chỉ được xem order của chính mình qua API user.
+
+### Tiêu chí chấp nhận
+- Admin xem được order toàn hệ thống.
+- Filter/search hoạt động đúng.
+- Response có pagination metadata.
+- User thường bị chặn.
+
+## API: `GET /orders/admin/:id`
+
+### Mô tả
+API lấy chi tiết bất kỳ order nào cho admin, gồm thông tin user, concert, payment transaction và tickets.
+
+### Luồng chính
+1. Admin chọn một order.
+2. Frontend gọi `GET /orders/admin/:id`.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend tìm order theo `id`.
+5. Backend include thông tin concert, user, transactions và tickets.
+6. API trả order detail.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- Order không tồn tại: `404 Not Found`.
+- DB lỗi: API trả lỗi server.
+
+### Ràng buộc
+- Chỉ admin được xem order của mọi user.
+- Không giới hạn theo `req.user.sub` như API user order detail.
+- Response cần đủ dữ liệu để kiểm tra thanh toán/vé/check-in.
+
+### Tiêu chí chấp nhận
+- Admin xem được chi tiết order bất kỳ.
+- Order không tồn tại trả `404`.
+- User thường không truy cập được.
+
+## API: `GET /admin/revenue/trend`
+
+### Mô tả
+API trả dữ liệu xu hướng doanh thu toàn hệ thống trong một khoảng thời gian.
+
+### Luồng chính
+1. Admin mở trang revenue.
+2. Frontend gửi `from`, `to`, `group_by`.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend validate query.
+5. Backend lấy order/payment hợp lệ trong range.
+6. Backend group doanh thu theo ngày/tuần/tháng.
+7. API trả dữ liệu chart.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- `from/to` sai định dạng: `400 Bad Request`.
+- `group_by` không hợp lệ: `400 Bad Request`.
+- Không có dữ liệu: trả mảng rỗng.
+
+### Ràng buộc
+- Chỉ tính giao dịch/order đã hoàn thành hợp lệ.
+- Không tính pending/cancelled.
+- FE nên normalize `to` về cuối ngày khi user chọn ngày.
+
+### Tiêu chí chấp nhận
+- Admin xem được biểu đồ doanh thu.
+- Range và group_by hoạt động đúng.
+- Không có dữ liệu không làm API lỗi.
+
+## API: `GET /admin/revenue/by-concert`
+
+### Mô tả
+API trả doanh thu được nhóm theo từng concert để admin so sánh hiệu quả sự kiện.
+
+### Luồng chính
+1. Admin mở bảng doanh thu theo sự kiện.
+2. Frontend gửi range ngày, status và limit nếu có.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend validate query.
+5. Backend tính doanh thu/ticket sold theo từng concert.
+6. API trả danh sách concert revenue.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- Status không hợp lệ: `400 Bad Request`.
+- Limit ngoài khoảng cho phép: `400 Bad Request`.
+- Không có doanh thu: trả metric bằng 0 hoặc danh sách rỗng.
+
+### Ràng buộc
+- Chỉ admin được xem revenue.
+- Limit phải có ngưỡng tối đa để tránh query lớn.
+- Khoảng ngày phải được hiển thị rõ trên UI.
+
+### Tiêu chí chấp nhận
+- Admin xem được doanh thu theo concert.
+- Filter status/range hoạt động.
+- Concert không có doanh thu trong range hiển thị đúng 0 hoặc không xuất hiện theo logic UI.
+
+## API: `GET /admin/revenue/concerts/:concert_id/detail`
+
+### Mô tả
+API trả chi tiết doanh thu của một concert, gồm tổng doanh thu, số vé bán và breakdown theo ticket tier.
+
+### Luồng chính
+1. Admin chọn một concert trong bảng revenue.
+2. Frontend gọi API detail với `concert_id` và range ngày.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend validate `concert_id`, `from`, `to`.
+5. Backend lấy dữ liệu order/payment/ticket theo concert.
+6. Backend tính breakdown theo tier.
+7. API trả detail cho drawer/modal.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- `concert_id` sai UUID: `400 Bad Request`.
+- Concert không tồn tại: `404 Not Found`.
+- Range ngày sai format: `400 Bad Request`.
+
+### Ràng buộc
+- Chỉ tính giao dịch hợp lệ.
+- Breakdown theo tier cần khớp ticket category.
+- Không làm sai dữ liệu lịch sử nếu concert đã soft delete/completed.
+
+### Tiêu chí chấp nhận
+- Admin xem được chi tiết doanh thu concert.
+- Breakdown theo tier đúng.
+- Range ngày ảnh hưởng đúng đến số liệu.
+
+## API: `GET /checkin/assignments`
+
+### Mô tả
+API lấy danh sách phân công checker theo concert/gate cho màn hình admin assignments.
+
+### Luồng chính
+1. Admin mở trang assignments.
+2. Frontend gọi API với pagination/filter.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend lọc theo `concert_id` hoặc `checker_id` nếu có.
+5. Backend phân trang kết quả.
+6. API trả danh sách assignment.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- UUID filter sai định dạng: `400 Bad Request`.
+- DB lỗi: API trả lỗi server.
+
+### Ràng buộc
+- Chỉ admin được xem assignment toàn hệ thống.
+- Phải dùng pagination.
+- Assignment là nguồn phân quyền cho mobile check-in.
+
+### Tiêu chí chấp nhận
+- Admin xem được danh sách assignment.
+- Filter theo concert/checker hoạt động.
+- User thường bị chặn.
+
+## API: `POST /checkin/assignments`
+
+### Mô tả
+API tạo phân công checker vào một gate của concert.
+
+### Luồng chính
+1. Admin chọn concert, checker và gate.
+2. Frontend gửi `checker_id`, `concert_id`, `gate_number`.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend validate body.
+5. Backend kiểm tra checker/concert/gate hợp lệ.
+6. Backend tạo assignment.
+7. API trả assignment mới.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- `checker_id` hoặc `concert_id` sai UUID: `400 Bad Request`.
+- Checker không tồn tại hoặc không phù hợp: request bị từ chối.
+- Concert không tồn tại: request bị từ chối.
+- Gate không hợp lệ hoặc đã được phân công: request bị từ chối.
+
+### Ràng buộc
+- Chỉ admin được tạo assignment.
+- Checker phải là user hợp lệ có role checker.
+- Gate number phải thuộc ticket tier của concert.
+- Không nên phân công trùng một gate nếu không có chủ đích vận hành.
+
+### Tiêu chí chấp nhận
+- Admin tạo assignment thành công.
+- Checker thấy assignment trong mobile app.
+- Gate được dùng để prefetch/scan đúng.
+- Assignment trùng hoặc gate sai bị từ chối.
+
+## API: `GET /checkin/assignments/concerts`
+
+### Mô tả
+API lấy danh sách concert đang active/published để admin chọn khi tạo assignment.
+
+### Luồng chính
+1. Admin mở form tạo assignment.
+2. Frontend gọi API concerts.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend lấy concert đủ điều kiện phân công.
+5. API trả danh sách concert option.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- DB lỗi: API trả lỗi server.
+
+### Ràng buộc
+- Chỉ trả concert phù hợp để phân công check-in.
+- Không trả quá nhiều dữ liệu không cần thiết.
+
+### Tiêu chí chấp nhận
+- Admin thấy danh sách concert để chọn.
+- Concert chưa phù hợp không xuất hiện theo logic backend.
+
+## API: `GET /checkin/assignments/checkers`
+
+### Mô tả
+API lấy danh sách tài khoản checker đang hoạt động để admin chọn khi tạo assignment.
+
+### Luồng chính
+1. Admin mở form assignment.
+2. Frontend gọi API checkers.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend lấy user có role checker và trạng thái hợp lệ.
+5. API trả danh sách checker option.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- DB lỗi: API trả lỗi server.
+
+### Ràng buộc
+- Chỉ trả tài khoản checker hợp lệ.
+- Không trả password hash hoặc dữ liệu nhạy cảm.
+
+### Tiêu chí chấp nhận
+- Admin chọn được checker khi tạo assignment.
+- User không phải checker không xuất hiện.
+
+## API: `GET /checkin/assignments/gates/:concert_id`
+
+### Mô tả
+API lấy danh sách gate còn có thể phân công của một concert.
+
+### Luồng chính
+1. Admin chọn concert trong form assignment.
+2. Frontend gọi API gates với `concert_id`.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend lấy gate number từ ticket tiers của concert.
+5. Backend loại các gate đã được phân công nếu logic yêu cầu.
+6. API trả danh sách gate available.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- `concert_id` sai UUID: `400 Bad Request`.
+- Concert không tồn tại: request bị từ chối.
+
+### Ràng buộc
+- Gate phải xuất phát từ ticket tier của concert.
+- Không nên cho chọn gate đã phân công nếu hệ thống muốn mỗi gate chỉ có một checker/phân công.
+
+### Tiêu chí chấp nhận
+- Admin thấy gate hợp lệ của concert.
+- Gate đã phân công không xuất hiện nếu backend loại trừ.
+- Concert sai không trả gate.
+
+## API: `PUT /checkin/assignments/:id`
+
+### Mô tả
+API cập nhật gate number của một checker assignment.
+
+### Luồng chính
+1. Admin chọn assignment cần sửa.
+2. Frontend gửi `gate_number` mới.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend validate assignment id và body.
+5. Backend kiểm tra gate mới hợp lệ.
+6. Backend cập nhật assignment.
+7. API trả assignment đã cập nhật.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- Assignment id sai UUID: `400 Bad Request`.
+- Assignment không tồn tại: `404 Not Found`.
+- Gate mới không hợp lệ hoặc bị trùng: request bị từ chối.
+
+### Ràng buộc
+- Cập nhật assignment ảnh hưởng trực tiếp quyền prefetch/scan của checker.
+- Không nên đổi gate trong lúc ca check-in đang diễn ra nếu chưa có quy trình vận hành.
+
+### Tiêu chí chấp nhận
+- Admin cập nhật gate assignment thành công.
+- Checker dùng assignment mới khi mở lại session.
+- Gate sai/trùng bị từ chối.
+
+## API: `DELETE /checkin/assignments/:id`
+
+### Mô tả
+API xóa phân công checker khỏi một concert/gate.
+
+### Luồng chính
+1. Admin chọn assignment cần xóa.
+2. Frontend gọi delete.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend kiểm tra assignment tồn tại.
+5. Backend xóa assignment.
+6. API trả kết quả thành công.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- Assignment id sai UUID: `400 Bad Request`.
+- Assignment không tồn tại: `404 Not Found`.
+
+### Ràng buộc
+- Xóa assignment sẽ làm checker không còn prefetch/scan gate đó.
+- Cần tránh xóa nhầm trong lúc check-in đang vận hành nếu không có quy trình thay thế.
+
+### Tiêu chí chấp nhận
+- Admin xóa assignment thành công.
+- Checker không còn thấy assignment sau khi reload.
+- Checker không prefetch/scan được gate đã bị xóa assignment.
+
+## API: `GET /admin/notifications`
+
+### Mô tả
+API cho admin xem danh sách notification trong hệ thống theo query quản trị.
+
+### Luồng chính
+1. Admin mở trang notifications.
+2. Frontend gọi `GET /admin/notifications` với query.
+3. Backend kiểm tra JWT và role `ADMIN`.
+4. Backend validate query.
+5. Backend lấy notification theo filter/pagination.
+6. API trả danh sách notification.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- Query sai định dạng: `400 Bad Request`.
+- DB lỗi: API trả lỗi server.
+
+### Ràng buộc
+- Chỉ admin được xem notification toàn hệ thống.
+- Phải dùng pagination nếu dữ liệu lớn.
+- Không để user thường xem notification của người khác.
+
+### Tiêu chí chấp nhận
+- Admin xem được notification list.
+- Filter/pagination hoạt động.
+- User thường bị chặn.
+
+## API: `POST /tickets/init`
+
+### Mô tả
+API admin dùng để prewarm Redis inventory cho một ticket category trước demo hoặc trước thời điểm mở bán.
+
+### Luồng chính
+1. Admin xác định category cần warm up.
+2. Admin tính số vé còn lại hợp lý dựa trên `total_quantity`, vé đã bán và order pending nếu có.
+3. Frontend/tool gửi `category_id`, `available`, `max_per_user`.
+4. Backend kiểm tra JWT và role `ADMIN`.
+5. Backend validate body.
+6. Backend ghi inventory và `max_per_user` vào Redis.
+7. API trả trạng thái thành công.
+
+### Kịch bản lỗi
+- Thiếu/sai JWT: `401 Unauthorized`.
+- User không có role `ADMIN`: `403 Forbidden`.
+- Body thiếu/sai dữ liệu: `400 Bad Request`.
+- Redis lỗi: API trả lỗi server.
+- `available` nhập sai làm inventory demo sai.
+
+### Ràng buộc
+- API này chỉ dùng cho admin/test/seeding.
+- Production nên ưu tiên lazy seed hoặc đối soát DB.
+- Không tạo order/ticket khi init.
+- `available` cần phản ánh số vé còn lại hợp lệ.
+
+### Tiêu chí chấp nhận
+- Admin init category thành công.
+- Redis có inventory và max per user đúng.
+- Reserve sau init dùng đúng dữ liệu đã warm up.
