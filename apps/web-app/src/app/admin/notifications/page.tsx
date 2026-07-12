@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Bell,
-  ChevronLeft,
-  ChevronRight,
   Clock3,
   Mail,
   Search,
@@ -16,6 +14,7 @@ import {
   AdminNotification,
   getAdminNotifications,
 } from "@/services/admin-notification.service";
+import { Pagination } from "@/app/admin/_components/Pagination";
 
 const typeMeta = {
   TICKET_PURCHASED: {
@@ -349,44 +348,16 @@ export default function AdminNotificationsPage() {
           </>
         )}
         {!loading && !error && totalPages > 0 && (
-          <footer className="flex flex-col gap-3 border-t border-border bg-background/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <span>
-                Trang <strong className="text-foreground">{page}</strong> /{" "}
-                {totalPages}
-              </span>
-              <select
-                aria-label="Số dòng mỗi trang"
-                value={limit}
-                onChange={(event) => {
-                  setLimit(Number(event.target.value));
-                  setPage(1);
-                }}
-                className="rounded-md border border-border bg-background px-2 py-1.5 text-foreground outline-none focus:border-primary"
-              >
-                <option value={10}>10 dòng</option>
-                <option value={20}>20 dòng</option>
-                <option value={50}>50 dòng</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                aria-label="Trang trước"
-                disabled={page <= 1}
-                onClick={() => setPage((value) => value - 1)}
-                className="rounded-lg border border-border p-2 text-foreground transition hover:border-primary/60 hover:text-primary disabled:opacity-30"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <button
-                aria-label="Trang sau"
-                disabled={page >= totalPages}
-                onClick={() => setPage((value) => value + 1)}
-                className="rounded-lg border border-border p-2 text-foreground transition hover:border-primary/60 hover:text-primary disabled:opacity-30"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
+          <footer className="bg-background/30 px-4 pb-4">
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              totalItems={total}
+              itemsPerPage={limit}
+              itemLabel="thông báo"
+              onPageChange={setPage}
+              onLimitChange={setLimit}
+            />
           </footer>
         )}
       </section>
