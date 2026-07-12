@@ -22,6 +22,8 @@ interface RevenueTrendChartProps {
   trendItems: RevenueTrendItem[];
   isTrendLoading: boolean;
   groupBy: "day" | "week" | "month";
+  fromDate: string;
+  toDate: string;
   hoveredIndex: number | null;
   onHover: (idx: number | null) => void;
 }
@@ -30,6 +32,8 @@ export function RevenueTrendChart({
   trendItems,
   isTrendLoading,
   groupBy,
+  fromDate,
+  toDate,
   hoveredIndex,
   onHover,
 }: RevenueTrendChartProps) {
@@ -138,6 +142,21 @@ export function RevenueTrendChart({
     return period;
   };
 
+  const formatDateRangeLabel = () => {
+    const formatDate = (date: string) =>
+      new Date(date).toLocaleDateString("vi-VN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+
+    if (fromDate && toDate)
+      return `${formatDate(fromDate)} - ${formatDate(toDate)}`;
+    if (fromDate) return `Tá»« ${formatDate(fromDate)}`;
+    if (toDate) return `Äáº¿n ${formatDate(toDate)}`;
+    return "Táº¥t cáº£ thá»i gian";
+  };
+
   return (
     <section className="bg-surface rounded-2xl border border-border p-6 shadow-sm flex flex-col min-h-[480px]">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -148,6 +167,9 @@ export function RevenueTrendChart({
           <h3 className="font-display text-lg font-bold text-foreground">
             Revenue trend
           </h3>
+          <span className="text-xs font-semibold text-muted-foreground">
+            {formatDateRangeLabel()}
+          </span>
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs font-semibold">
           <div className="flex items-center gap-1.5 text-blue-400">
