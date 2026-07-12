@@ -108,8 +108,10 @@ function getChangedFiles() {
 
   // ── Mode 2: manual run or hook stdin fallback ─
   //    Diff HEAD against upstream tracking branch, or origin/main.
+  //    Note: @{u} gives us the remote-tracking ref name (e.g. "origin/develop");
+  //    we pass it directly to git diff which accepts branch names fine.
   const upstream =
-    git('git rev-parse --abbrev-ref --symbolic-full-name @{u}') || // e.g. origin/develop
+    git('git rev-parse --abbrev-ref @{u}') ||          // e.g. "origin/develop"
     git('git merge-base HEAD origin/main') ||
     git('git merge-base HEAD origin/master') ||
     'HEAD~1';
@@ -133,17 +135,24 @@ function getChangedFiles() {
 // ──────────────────────────────────────────────
 
 /**
- * Files that are "shared infrastructure" (root-level config).
- * Changing them triggers BOTH FE and BE checks.
+ * Root-level config that belongs primarily to the Backend.
+ *
+ * WHY not shared:
+ *   - root package.json / package-lock.json manage BE (NestJS, Prisma) deps.
+ *     The web-app has its OWN package.json at apps/web-app/package.json,
+ *     which is already caught by FE_PATTERNS.
+ *   - root tsconfig.json is referenced by apps/backend-api/tsconfig.json.
+ *   - root eslint.config.mjs lints only BE source (see the lint script).
+ *   - .gitignore changes are unlikely to break either side's build.
+ *
+ * Adding a BE npm package updates root package.json + package-lock.json
+ * → should NOT trigger FE checks.
  */
-const SHARED_PATTERNS = [
+const BE_ROOT_PATTERNS = [
   /^package\.json$/,
   /^package-lock\.json$/,
   /^tsconfig\.json$/,
   /^eslint\.config\.mjs$/,
-  /^\.gitignore$/,
-  /^\.githooks\//,
-  /^\.github\/workflows\//,
 ];
 
 /**
@@ -151,6 +160,8 @@ const SHARED_PATTERNS = [
  */
 const FE_PATTERNS = [
   /^apps\/web-app\//,
+  // FE-specific workflow
+  /^\.github\/workflows\/frontend-ci\.yml$/,
 ];
 
 /**
@@ -161,6 +172,19 @@ const BE_PATTERNS = [
   /^prisma\//,
   /^Dockerfile$/,
   /^\.dockerignore$/,
+  // BE-specific workflow
+  /^\.github\/workflows\/ci\.yml$/,
+];
+
+/**
+ * Files that are truly shared — changing them triggers BOTH FE and BE checks.
+ * Keep this list small and intentional.
+ */
+const SHARED_PATTERNS = [
+  // Hook scripts affect both pipelines
+  /^\.githooks\//,
+  // Any other workflow file not already matched above
+  /^\.github\/workflows\//,
 ];
 
 function classify(files) {
@@ -172,7 +196,7 @@ function classify(files) {
   for (const f of files) {
     if (FE_PATTERNS.some(p => p.test(f))) {
       feFiles.push(f);
-    } else if (BE_PATTERNS.some(p => p.test(f))) {
+    } else if (BE_PATTERNS.some(p => p.test(f)) || BE_ROOT_PATTERNS.some(p => p.test(f))) {
       beFiles.push(f);
     } else if (SHARED_PATTERNS.some(p => p.test(f))) {
       sharedFiles.push(f);

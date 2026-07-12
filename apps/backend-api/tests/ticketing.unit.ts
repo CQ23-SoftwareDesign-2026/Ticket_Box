@@ -7,6 +7,10 @@ function createService() {
     const mockRedisClient = {
         hSet: fn(),
         hGetAll: fn(),
+        set: fn().mockResolvedValue('OK'),
+        get: fn().mockResolvedValue(null),
+        del: fn(),
+        exists: fn().mockResolvedValue(0),
         isOpen: true,
     };
 

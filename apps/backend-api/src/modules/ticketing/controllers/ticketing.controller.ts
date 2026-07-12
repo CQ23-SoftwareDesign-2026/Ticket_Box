@@ -5,6 +5,7 @@ import { RolesGuard } from '../../../shared/guards/roles.guard';
 import { Roles } from '../../../shared/decorators/roles.decorator';
 import { ReserveTicketDto, InitCategoryDto } from '../dtos/reserve-ticket.dto';
 import { TicketingService } from '../services/ticketing.service';
+import { TicketReserveRateLimitGuard } from '../guards/ticket-reserve-rate-limit.guard';
 
 @Controller('tickets')
 @ApiTags('Tickets')
@@ -15,6 +16,7 @@ export class TicketingController {
     constructor(private readonly ticketingService: TicketingService) { }
 
     @Post('reserve')
+    @UseGuards(TicketReserveRateLimitGuard)
     @ApiOperation({ summary: 'Reserve ticket in memory atomically' })
     async reserveTicket(@Req() req: any, @Body() dto: ReserveTicketDto) {
         return this.ticketingService.reserveTicket(req.user.sub, dto);
