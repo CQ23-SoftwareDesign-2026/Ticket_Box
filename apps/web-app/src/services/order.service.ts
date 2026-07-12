@@ -81,9 +81,19 @@ export async function getOrders(
 
 const orderRequests = new Map<string, Promise<OrderDetail | null>>();
 
+type GetOrderByIdOptions = {
+  retries?: number;
+  retryDelayMs?: number;
+};
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 export async function getOrderById(
   orderId: string,
   isAdmin = false,
+  options: GetOrderByIdOptions = {},
 ): Promise<OrderDetail | null> {
   if (
     !orderId ||
@@ -94,21 +104,35 @@ export async function getOrderById(
     return null;
   }
 
-  const cacheKey = `${orderId}-${isAdmin}`;
+  const retries = options.retries ?? (isAdmin ? 0 : 5);
+  const retryDelayMs = options.retryDelayMs ?? 500;
+  const cacheKey = `${orderId}-${isAdmin}-${retries}-${retryDelayMs}`;
   let promise = orderRequests.get(cacheKey);
   if (!promise) {
     const endpoint = isAdmin
       ? `/orders/admin/${orderId}`
       : `/orders/${orderId}`;
-    promise = apiClient.get<OrderDetail>(endpoint).catch((err) => {
-      if (err && typeof err === "object" && "response" in err) {
-        const response = (err as { response?: { status?: number } }).response;
-        if (response?.status === 404) {
-          return null;
+    promise = (async () => {
+      for (let attempt = 0; attempt <= retries; attempt += 1) {
+        try {
+          return await apiClient.get<OrderDetail>(endpoint);
+        } catch (err) {
+          if (err && typeof err === "object" && "response" in err) {
+            const response = (err as { response?: { status?: number } })
+              .response;
+            if (response?.status === 404) {
+              if (attempt < retries) {
+                await sleep(retryDelayMs);
+                continue;
+              }
+              return null;
+            }
+          }
+          throw err;
         }
       }
-      throw err;
-    });
+      return null;
+    })();
     orderRequests.set(cacheKey, promise);
     void promise.then(
       () => {

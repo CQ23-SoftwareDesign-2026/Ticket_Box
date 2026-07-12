@@ -6,10 +6,11 @@ import { ConcertController } from './controllers/concert.controller';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { RedisModule } from '../../shared/redis/redis.module';
 import { TicketingModule } from '../ticketing/ticketing.module';
+import { ConcertDetailRateLimitGuard } from './guards/concert-detail-rate-limit.guard';
 
 @Module({
   imports: [RedisModule, TicketingModule],
-  providers: [PrismaService, ConcertRepository, ConcertService, RolesGuard],
+  providers: [PrismaService, ConcertRepository, ConcertService, RolesGuard, ConcertDetailRateLimitGuard],
   controllers: [ConcertController],
   exports: [ConcertRepository, ConcertService],
 })

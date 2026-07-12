@@ -31,6 +31,7 @@ import { ConcertResponseDto } from '../entities/concert-response.dto';
 import { ConcertListResponseDto } from '../dtos/concert-list-response.dto';
 import { ConcertListQueryDto } from '../dtos/concert-list-query.dto';
 import { Permissions } from '../../../shared/decorators/permissions.decorator';
+import { ConcertDetailRateLimitGuard } from '../guards/concert-detail-rate-limit.guard';
 
 @Controller('concerts')
 @ApiTags('Catalog - Concerts')
@@ -50,6 +51,7 @@ export class ConcertController {
   }
 
   @Get(':id')
+  @UseGuards(ConcertDetailRateLimitGuard)
   @ApiOperation({ summary: 'Get concert detail by id' })
   @ApiParam({ name: 'id', description: 'Concert id (UUID)' })
   @ApiOkResponse({ type: ConcertResponseDto })

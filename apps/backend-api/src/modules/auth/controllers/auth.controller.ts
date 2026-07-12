@@ -31,6 +31,7 @@ import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { RefreshTokenDto } from '../dtos/refresh-token.dto';
 import { LoginResponseDto, RegisterResponseDto } from '../dtos/auth-response.dto';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
+import { AuthLoginRateLimitGuard } from '../guards/auth-login-rate-limit.guard';
 
 @Controller('auth')
 @ApiTags('Authentication')
@@ -51,6 +52,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthLoginRateLimitGuard)
   @ApiOperation({ summary: 'Login and receive access token' })
   @ApiOkResponse({
     description: 'Login successful',
