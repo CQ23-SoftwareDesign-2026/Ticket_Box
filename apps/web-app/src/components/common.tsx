@@ -14,6 +14,7 @@ import {
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Suspense } from "react";
+import { NotificationBell } from "@/components/notification-bell";
 
 type ButtonProps = {
   children: ReactNode;
@@ -440,62 +441,65 @@ export function SiteShell({
             </Suspense>
 
             {isAuthenticated ? (
-              <div className="relative group">
-                <button className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-primary to-purple-500 text-white font-bold shadow-md shadow-primary/10 ring-2 ring-transparent transition-all duration-200 hover:ring-primary/45 hover:shadow-lg active:scale-95 cursor-pointer">
-                  {user?.fullName?.charAt(0).toUpperCase() || "U"}
-                </button>
+              <div className="flex items-center gap-3">
+                <NotificationBell />
+                <div className="relative group">
+                  <button className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-primary to-purple-500 text-white font-bold shadow-md shadow-primary/10 ring-2 ring-transparent transition-all duration-200 hover:ring-primary/45 hover:shadow-lg active:scale-95 cursor-pointer">
+                    {user?.fullName?.charAt(0).toUpperCase() || "U"}
+                  </button>
 
-                {/* Dropdown Menu */}
-                <div
-                  className="absolute right-0 mt-3 w-52 origin-top-right rounded-2xl border border-slate-800 bg-[#16222f]/95 backdrop-blur-md shadow-2xl ring-1 ring-black/5
+                  {/* Dropdown Menu */}
+                  <div
+                    className="absolute right-0 mt-3 w-52 origin-top-right rounded-2xl border border-slate-800 bg-[#16222f]/95 backdrop-blur-md shadow-2xl ring-1 ring-black/5
               opacity-0 invisible translate-y-1 scale-95
               group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100
               transition-all duration-200 ease-out z-50 overflow-hidden"
-                >
-                  <div className="p-1.5 flex flex-col gap-0.5 text-left">
-                    <Link
-                      href="/profile"
-                      className="flex items-center gap-2.5 px-3 py-2.5 text-sm font-semibold text-on-surface-variant/90 hover:bg-slate-900 hover:text-on-surface rounded-xl transition-colors"
-                    >
-                      <UserIcon
-                        size={16}
-                        className="text-on-surface-variant/70"
-                      />{" "}
-                      Hồ sơ cá nhân
-                    </Link>
-                    <Link
-                      href="/my-tickets"
-                      className="flex items-center gap-2.5 px-3 py-2.5 text-sm font-semibold text-on-surface-variant/90 hover:bg-slate-900 hover:text-on-surface rounded-xl transition-colors"
-                    >
-                      <Ticket
-                        size={16}
-                        className="text-on-surface-variant/70"
-                      />{" "}
-                      Thư viện vé
-                    </Link>
-                    {isAdmin && (
+                  >
+                    <div className="p-1.5 flex flex-col gap-0.5 text-left">
                       <Link
-                        href="/admin/dashboard"
+                        href="/profile"
                         className="flex items-center gap-2.5 px-3 py-2.5 text-sm font-semibold text-on-surface-variant/90 hover:bg-slate-900 hover:text-on-surface rounded-xl transition-colors"
                       >
-                        <LayoutDashboard
+                        <UserIcon
                           size={16}
                           className="text-on-surface-variant/70"
                         />{" "}
-                        Quản trị hệ thống
+                        Hồ sơ cá nhân
                       </Link>
-                    )}
+                      <Link
+                        href="/my-tickets"
+                        className="flex items-center gap-2.5 px-3 py-2.5 text-sm font-semibold text-on-surface-variant/90 hover:bg-slate-900 hover:text-on-surface rounded-xl transition-colors"
+                      >
+                        <Ticket
+                          size={16}
+                          className="text-on-surface-variant/70"
+                        />{" "}
+                        Thư viện vé
+                      </Link>
+                      {isAdmin && (
+                        <Link
+                          href="/admin/dashboard"
+                          className="flex items-center gap-2.5 px-3 py-2.5 text-sm font-semibold text-on-surface-variant/90 hover:bg-slate-900 hover:text-on-surface rounded-xl transition-colors"
+                        >
+                          <LayoutDashboard
+                            size={16}
+                            className="text-on-surface-variant/70"
+                          />{" "}
+                          Quản trị hệ thống
+                        </Link>
+                      )}
 
-                    <div className="h-px bg-slate-850 my-1.5 mx-1" />
+                      <div className="h-px bg-slate-850 my-1.5 mx-1" />
 
-                    <button
-                      onClick={() => {
-                        void logout().then(() => router.replace("/login"));
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-bold text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer text-left"
-                    >
-                      <LogOut size={16} /> Đăng xuất
-                    </button>
+                      <button
+                        onClick={() => {
+                          void logout().then(() => router.replace("/login"));
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-bold text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer text-left"
+                      >
+                        <LogOut size={16} /> Đăng xuất
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

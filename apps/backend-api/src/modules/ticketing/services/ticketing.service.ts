@@ -79,6 +79,9 @@ end
 return {"ROLLED_BACK"}
 `;
 
+const SEED_LOCK_TTL_MS = 5000;
+const SEED_RETRY_DELAY_MS = 75;
+
 @Injectable()
 export class TicketingService implements OnModuleInit {
     private readonly logger = new Logger(TicketingService.name);
@@ -123,23 +126,7 @@ export class TicketingService implements OnModuleInit {
                     where: { category_id: cat.id },
                 });
 
-                // Count pending unexpired tickets
-                const pendingOrders = await this.prisma.order.findMany({
-                    where: {
-                        status: 'PENDING',
-                        expires_at: {
-                            gt: new Date(),
-                        },
-                    },
-                });
-
-                let pendingCount = 0;
-                for (const order of pendingOrders) {
-                    const metadata = order.ticket_metadata as any;
-                    if (metadata && metadata.category_id === cat.id) {
-                        pendingCount += metadata.quantity || 0;
-                    }
-                }
+                const pendingCount = await this.countPendingTicketsForCategory(cat.id);
 
                 const available = Math.max(0, cat.total_quantity - (soldCount + pendingCount));
 
@@ -209,50 +196,10 @@ export class TicketingService implements OnModuleInit {
                 // Lazy Seeding: If Redis is not initialized, calculate and seed from DB, then retry
                 if (status === 'ERR_NOT_INITIALIZED') {
                     const failedCategoryId = result[1];
-                    this.logger.log(`[Lazy Seeding] Category ${failedCategoryId} not found in Redis. Seeding from DB...`);
-                    const category = await this.prisma.ticketCategory.findUnique({
-                        where: { id: failedCategoryId },
-                    });
-                    if (!category) {
-                        throw new BadRequestException('Hạng vé này không tồn tại hoặc đã bị xóa.');
-                    }
-
-                    // Count sold tickets
-                    const soldCount = await this.prisma.ticket.count({
-                        where: { category_id: failedCategoryId },
-                    });
-
-                    // Count pending unexpired tickets
-                    const pendingOrders = await this.prisma.order.findMany({
-                        where: {
-                            status: 'PENDING',
-                            expires_at: {
-                                gt: new Date(),
-                            },
-                        },
-                    });
-
-                    let pendingCount = 0;
-                    for (const order of pendingOrders) {
-                        const metadata = order.ticket_metadata as any;
-                        if (metadata) {
-                            if (metadata.category_id === failedCategoryId) {
-                                pendingCount += metadata.quantity || 0;
-                            } else if (Array.isArray(metadata.ticket_breakdown)) {
-                                for (const breakItem of metadata.ticket_breakdown) {
-                                    if (breakItem.category_id === failedCategoryId) {
-                                        pendingCount += breakItem.quantity || 0;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    const available = Math.max(0, category.total_quantity - (soldCount + pendingCount));
-                    this.logger.log(`[Lazy Seeding] Category ${failedCategoryId}: total=${category.total_quantity}, sold=${soldCount}, pending=${pendingCount}. Seeding available=${available}`);
-
-                    await this.seedCategoryInventory(failedCategoryId, available, category.max_per_user);
+                    this.logger.log(`[Lazy Seeding] Category ${failedCategoryId} not found in Redis. Ensuring single-flight seed...`);
+                    await this.ensureCategoryInventorySeeded(failedCategoryId);
                     retryCount++;
+                    continue;
                 } else {
                     break;
                 }
@@ -369,6 +316,54 @@ export class TicketingService implements OnModuleInit {
         this.logger.log(`Seeded category ${categoryId} with available: ${available}, max_per_user: ${maxPerUser}, sales_start_at: ${salesStartAt ?? 'none'}`);
     }
 
+    private async ensureCategoryInventorySeeded(categoryId: string): Promise<void> {
+        const client = this.redisService.getClient();
+        if (!client || !client.isOpen) {
+            throw new Error('Redis is not available');
+        }
+
+        const categoryKey = `category:${categoryId}`;
+        const lockKey = `seed:${categoryId}:lock`;
+        const lockToken = randomUUID();
+        const acquired = await client.set(lockKey, lockToken, {
+            NX: true,
+            PX: SEED_LOCK_TTL_MS,
+        });
+
+        if (acquired !== 'OK') {
+            await this.sleep(SEED_RETRY_DELAY_MS);
+            return;
+        }
+
+        try {
+            const exists = await client.exists(categoryKey);
+            if (exists) {
+                return;
+            }
+
+            const category = await this.prisma.ticketCategory.findUnique({
+                where: { id: categoryId },
+            });
+            if (!category) {
+                throw new BadRequestException('Hạng vé này không tồn tại hoặc đã bị xóa.');
+            }
+
+            const soldCount = await this.prisma.ticket.count({
+                where: { category_id: categoryId },
+            });
+            const pendingCount = await this.countPendingTicketsForCategory(categoryId);
+            const available = Math.max(0, category.total_quantity - (soldCount + pendingCount));
+
+            this.logger.log(`[Lazy Seeding] Category ${categoryId}: total=${category.total_quantity}, sold=${soldCount}, pending=${pendingCount}. Seeding available=${available}`);
+            await this.seedCategoryInventory(categoryId, available, category.max_per_user, category.sales_start_at);
+        } finally {
+            const currentToken = await client.get(lockKey);
+            if (currentToken === lockToken) {
+                await client.del(lockKey);
+            }
+        }
+    }
+
     async getCategoryInventory(categoryId: string) {
         const client = this.redisService.getClient();
         if (!client || !client.isOpen) {
@@ -443,6 +438,50 @@ export class TicketingService implements OnModuleInit {
         }
 
         return available;
+    }
+
+    private async countPendingTicketsForCategory(categoryId: string): Promise<number> {
+        const pendingOrders = await this.prisma.order.findMany({
+            where: {
+                status: 'PENDING',
+                expires_at: {
+                    gt: new Date(),
+                },
+            },
+            select: {
+                id: true,
+                ticket_metadata: true,
+            },
+        });
+
+        let pendingCount = 0;
+        for (const order of pendingOrders) {
+            const rawMetadata = order.ticket_metadata;
+            if (!rawMetadata) {
+                continue;
+            }
+
+            try {
+                const metadata = typeof rawMetadata === 'string' ? JSON.parse(rawMetadata) : (rawMetadata as any);
+                if (metadata.category_id === categoryId) {
+                    pendingCount += metadata.quantity || 0;
+                } else if (Array.isArray(metadata.ticket_breakdown)) {
+                    for (const breakItem of metadata.ticket_breakdown) {
+                        if (breakItem.category_id === categoryId) {
+                            pendingCount += breakItem.quantity || 0;
+                        }
+                    }
+                }
+            } catch (jsonErr) {
+                this.logger.error(`Failed to parse ticket_metadata for order ${order.id}`, jsonErr);
+            }
+        }
+
+        return pendingCount;
+    }
+
+    private sleep(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     async getUserReservations(userId: string) {

@@ -13,7 +13,10 @@
         "setup:hooks": "git config core.hooksPath .githooks",
         "prettier:check:web": "cd apps/web-app && npx prettier --check .",
         "prettier:fix:web": "cd apps/web-app && npx prettier --write .",
-        "verify:push": "npm run prettier:check:web && npm run lint && npm run typecheck:api && npm run test:api:unit",
+        "verify:push": "node scripts/verify-push.js",
+        "verify:push:all": "node scripts/verify-push.js --all",
+        "verify:push:fe": "node scripts/verify-push.js --fe-only",
+        "verify:push:be": "node scripts/verify-push.js --be-only",
         "lint": "eslint \"apps/backend-api/src/**/*.ts\" \"prisma/**/*.ts\" \"prisma/seed.ts\" --cache --cache-location .cache/eslint",
         "typecheck:api": "npm run prisma:generate && tsc -p apps/backend-api/tsconfig.json --noEmit",
         "test:api:unit": "node --test --import tsx apps/backend-api/tests/**/*.unit.ts",
@@ -23,7 +26,8 @@
         "start:api": "ts-node --project apps/backend-api/tsconfig.json apps/backend-api/src/main.ts",
         "start:api:prod": "node apps/backend-api/dist/main.js",
         "start:web": "cd apps/web-app && npm run dev",
-        "start:web:prod": "cd apps/web-app && npm run start"
+        "start:web:prod": "cd apps/web-app && npm run start",
+        "start:mobile": "cd apps/mobile-app/ticketbox && npm run start"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
@@ -35,6 +39,7 @@
         "@types/node": "^22.13.5",
         "@types/nodemailer": "^8.0.0",
         "@types/opossum": "^8.1.9",
+        "@types/qrcode": "^1.5.6",
         "@types/swagger-ui-express": "^4.1.8",
         "@typescript-eslint/eslint-plugin": "^8.60.0",
         "@typescript-eslint/parser": "^8.60.0",
@@ -65,6 +70,7 @@
         "openai": "^6.42.0",
         "opossum": "^9.0.0",
         "pdf-parse": "^2.4.5",
+        "qrcode": "^1.5.4",
         "redis": "^6.0.0",
         "reflect-metadata": "^0.2.2",
         "rxjs": "^7.8.2",

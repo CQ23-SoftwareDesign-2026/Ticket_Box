@@ -27,14 +27,14 @@ Các module giao tiếp bằng event nội bộ (in-process) và message qua Rab
 
 Sơ đồ ngữ cảnh cấp 1 định vị TicketBox trong bức tranh toàn cảnh: các tác nhân (Actors) sử dụng hệ thống và các hệ thống ngoại vi (External Systems) mà TicketBox phụ thuộc.
 
-![alt text](.\diagram\SystemContext.drawio.svg)
+![System Context Diagram](./diagram/SystemContext.drawio.svg)
 
 ---
 
 ### 2.2. Level 2 — Container
 
 Sơ đồ cấp 2 "mở hộp" hệ thống TicketBox, thể hiện sự phân rã thành các khối hạ tầng (Containers) và Tech Stack cốt lõi được lựa chọn.
-![alt text](.\diagram\Container.drawio.svg)
+![Container Diagram](./diagram/Container.drawio.svg)
 
 ---
 
@@ -42,7 +42,7 @@ Sơ đồ cấp 2 "mở hộp" hệ thống TicketBox, thể hiện sự phân r
 
 Sơ đồ này đi sâu vào cách dữ liệu luân chuyển (Data Flow) để giải quyết bài toán tải cao và tích hợp bất đồng bộ.
 
-![alt text](.\diagram\HighLevelArchitecture.png)
+![High-Level Architecture Diagram](./diagram/HighLevelArchitecture.png)
 
 ---
 
@@ -121,7 +121,7 @@ Hệ thống áp dụng mô hình **RBAC (Role-Based Access Control)** kết h�
 * **Cơ chế xác thực (JWT vs Stateful Session):**
 * *Phương án Session:* Lưu session trên RAM/Redis. Nhược điểm: tốn RAM, mỗi request phải chọc vào Redis để xác thực, dễ nghẽn cổ chai.
 * *Phương án JWT (được chọn):* Mã hóa trực tiếp thông tin `Role` và `Permissions` (vd: `CREATE_CONCERT`) vào payload của JWT.
-* *Lợi ích dưới tải cao:* Tại tầng API Gateway/Middleware, hệ thống tự động giải mã chữ ký điện tử (Signature) bằng secret key trên RAM và kiểm tra chuỗi permission mà không cần truy vấn xuống Database hay Redis.
+* *Lợi ích dưới tải cao:* Tại tầng middleware/guard của backend, hệ thống tự động giải mã chữ ký điện tử (Signature) bằng secret key trên RAM và kiểm tra role/permission trong token mà không cần truy vấn xuống Database hay Redis cho mỗi request.
 * *Trade-off:* JWT không thể thu hồi tức thì (revoke). Giải pháp: set TTL cho access token cực ngắn (15 phút) và dùng refresh token.
 
 ---
@@ -133,15 +133,15 @@ Hệ thống áp dụng mô hình **RBAC (Role-Based Access Control)** kết h�
 ### 6.1. Kiểm soát tải đột biến (Traffic Spikes)
 
 * **Vấn đề:** 80.000 khán giả cùng F5 trang và bấm nút "Mua vé" liên tục.
-* **Giải pháp 1 (tầng mạng):** Triển khai thuật toán **Token Bucket** tại API Gateway. Thuật toán này cho phép hệ thống chịu được một đợt bùng nổ request ngắn hạn, nhưng drop các request vượt ngưỡng (vd: giới hạn mỗi IP 10 requests/giây). Hành vi khi vượt ngưỡng: trả về HTTP 429 (Too Many Requests).
+* **Giải pháp 1 (tầng backend hiện tại):** Triển khai thuật toán **Token Bucket** bằng NestJS guard kết hợp Redis. Thuật toán này cho phép hệ thống chịu được một đợt bùng nổ request ngắn hạn, nhưng drop các request vượt ngưỡng theo IP/account/endpoint. Hành vi khi vượt ngưỡng: trả về HTTP 429 (Too Many Requests). Khi triển khai production lớn hơn, lớp này có thể được đưa thêm ra API Gateway/edge để chặn sớm hơn.
 * **Giải pháp 2 (chống overbooking - quan trọng nhất):** Tuyệt đối không dùng DB locking. Sử dụng **Redis Lua Script** để gom 3 lệnh (kiểm tra vé trống -> kiểm tra giới hạn vé của tài khoản -> trừ vé) thành 1 thao tác nguyên tử (atomic) chạy đơn luồng trên RAM. Giải quyết bài toán tranh chấp mà không bị race condition.
 
 ### 6.2. Xử lý cổng thanh toán không ổn định
 
-* **Vấn đề:** Cổng VNPAY/MoMo có thể bị nghẽn, phản hồi mất 30 giây. Nếu backend đợi, thread pool sẽ cạn kiệt, kéo sập toàn bộ hệ thống.
+* **Vấn đề:** Cổng thanh toán bên thứ ba như PayOS/VNPAY/MoMo có thể bị nghẽn, phản hồi mất 30 giây. Nếu backend đợi vô hạn, tài nguyên xử lý request sẽ cạn kiệt và ảnh hưởng các luồng khác.
 * **Giải pháp:** Áp dụng **Circuit Breaker Pattern (cầu dao tự ngắt)**.
 * **Trạng thái CLOSED:** Hoạt động bình thường, ghi nhận error rate.
-* **Trạng thái OPEN:** Kích hoạt nếu tỷ lệ timeout > 50% trong 10 giây. Toàn bộ request thanh toán bị từ chối ngay lập tức (fast-fail) mà không cần chờ gửi mạng. Thread được giải phóng tức thì. Áp dụng graceful degradation, tự động ẩn nút VNPAY và báo bảo trì.
+* **Trạng thái OPEN:** Kích hoạt nếu tỷ lệ timeout/error vượt ngưỡng cấu hình. Toàn bộ request thanh toán bị từ chối ngay lập tức (fast-fail) mà không cần chờ gửi mạng. Tài nguyên backend được giải phóng tức thì. Áp dụng graceful degradation, báo phương thức thanh toán tạm thời không khả dụng.
 * **Trạng thái HALF-OPEN:** Sau 60 giây, cho phép 5 request đi qua thăm dò. Nếu thành công -> CLOSED, nếu lỗi -> OPEN lại.
 
 ### 6.3. Chống trừ tiền hai lần (Double Charging)
@@ -150,12 +150,12 @@ Hệ thống áp dụng mô hình **RBAC (Role-Based Access Control)** kết h�
 * **Giải pháp:** Áp dụng **Idempotency Key (khóa lũy đẳng)**.
 1. Frontend sinh mã UUID (Idempotency-Key) gắn vào header.
 2. Backend dùng lệnh `SETNX` (Set if Not eXists) đẩy key vào Redis với TTL = 24h.
-3. Nếu key chưa tồn tại: cho phép gọi sang VNPAY.
+3. Nếu key chưa tồn tại: cho phép tạo phiên thanh toán qua gateway đang được cấu hình, hiện tại là PayOS.
 4. Nếu key đã tồn tại (khán giả bấm đúp): hệ thống chặn request ngay tại cửa, trả về kết quả giao dịch cũ, chặn đứng yêu cầu trừ tiền thứ hai.
 
 ### 6.4. Chiến lược Caching (Giải quyết Read-Heavy)
 
-* **Các đối tượng cần cache:** Trang chủ, thông tin chi tiết sự kiện, số vé còn lại. Sơ đồ chỗ ngồi SVG cực nặng được đẩy ra mạng CDN (Cloudflare).
+* **Các đối tượng cần cache:** Trang chủ, thông tin chi tiết sự kiện, số vé còn lại. Trong phạm vi hiện tại, Redis chịu trách nhiệm cache/counter ở backend; khi production có traffic lớn, tài nguyên tĩnh như ảnh/SVG sơ đồ chỗ ngồi nên được đưa thêm lên CDN/edge cache.
 * **Chiến lược cho dữ liệu tĩnh (thông tin concert):** Dùng **Cache-Aside**. TTL cấu hình dài (24h). Invalidate chủ động (write-through) ngay khi admin cập nhật thông tin sự kiện.
 * **Chiến lược cho dữ liệu động (số vé còn lại):** Không dùng cache-aside vì sẽ gây độ trễ hiển thị (stale data). Lưu số vé bằng một biến counter trong Redis. Biến này tự động giảm ngay khi Redis Lua Script chốt vé thành công, đảm bảo frontend luôn thấy số lượng tồn kho gần realtime.
 
@@ -167,8 +167,8 @@ Hệ thống áp dụng mô hình **RBAC (Role-Based Access Control)** kết h�
 
 * **Vấn đề:** Một vé giấy in ra hai bản, mang đến hai cổng từ đang mất mạng Internet để quét.
 * **Lựa chọn:** Giải quyết bằng kỹ thuật (mesh network) vs giải quyết bằng nghiệp vụ (gate segregation).
-* **Quyết định:** Chọn **Gate Segregation (phân luồng cổng)** kết hợp **Local SQLite**.
-* **Trade-offs:** Thay vì thiết kế mạng nội bộ phức tạp, ta chia luồng: Gate 1 chỉ quét vé VIP, Gate 2 chỉ vé GA. Buổi sáng, thiết bị ở Gate 1 chỉ fetch danh sách QR hash của vé VIP vào SQLite. Nếu kẻ gian mang hai vé VIP đến Gate 1, SQLite đánh dấu `is_scanned = true` sau lần quét đầu và chặn lần hai. Nếu mang sang Gate 2, SQLite Gate 2 không có data -> báo vé giả. Khi mạng phục hồi, app tự động bulk-sync lên server.
+* **Quyết định:** Chọn **Gate Segregation (phân luồng cổng)** kết hợp lưu trữ cục bộ trên mobile bằng AsyncStorage/local persistent storage.
+* **Trade-offs:** Thay vì thiết kế mạng nội bộ phức tạp, ta chia luồng: Gate 1 chỉ quét vé VIP, Gate 2 chỉ vé GA. Trước ca làm việc, thiết bị ở mỗi gate fetch danh sách QR hash thuộc phạm vi được phân công và lưu cục bộ. Nếu một vé được quét lại trên cùng thiết bị/gate, app đánh dấu đã quét và chặn lần hai ngay cả khi mất mạng. Nếu vé thuộc gate khác, app không có dữ liệu hợp lệ trong tập prefetch -> báo không thuộc cổng hoặc vé không hợp lệ. Khi mạng phục hồi, app tự động bulk-sync lên server.
 * **Đồng bộ và xử lý xung đột:** Mỗi lần quét tạo một bản ghi `checkin_event_id`, kèm `ticket_id`, `gate_id`, `timestamp`. Server chấp nhận lần quét đầu tiên theo `ticket_id`, các lần sau bị từ chối và ghi audit log để truy vết.
 
 ### ADR 2: SQL Locking vs Redis Lua Script (Giải quyết Race Condition)
@@ -182,7 +182,7 @@ Hệ thống áp dụng mô hình **RBAC (Role-Based Access Control)** kết h�
 
 * **Vấn đề:** Chọn hệ thống điều phối thông điệp bất đồng bộ.
 * **Quyết định:** Chọn **RabbitMQ**.
-* **Lý do và đánh đổi:** Kafka chịu tải throughput cao hơn, nhưng overhead lớn và setup phức tạp cho tính năng hàng đợi trễ (delay message). Hệ thống TicketBox yêu cầu tính năng sống còn: "Nếu khán giả không thanh toán sau 10 phút, tự động nhả vé lại". RabbitMQ hỗ trợ native cơ chế **Dead Letter Exchange (DLX)** và **Delay Queue** phù hợp cho kịch bản hẹn giờ hủy đơn.
+* **Lý do và đánh đổi:** Kafka chịu tải throughput cao hơn, nhưng overhead lớn và không cần thiết cho phạm vi đồ án. RabbitMQ phù hợp hơn với bài toán command/job queue của TicketBox: tạo order bất đồng bộ, import CSV, xử lý tác vụ nền và dễ vận hành trong môi trường nhóm. Riêng yêu cầu "nếu khán giả không thanh toán sau thời gian giữ chỗ thì tự động nhả vé" hiện được xử lý bằng cron cleanup định kỳ trên order PENDING; nếu production cần độ chính xác thời gian cao hơn, có thể mở rộng sang delay queue/DLX sau.
 
 ---
 

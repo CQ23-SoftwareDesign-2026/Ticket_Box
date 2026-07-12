@@ -30,6 +30,8 @@ interface ConcertRevenueTableProps {
   filteredConcerts: RevenueByConcertItem[];
   isConcertsLoading: boolean;
   tableSearch: string;
+  fromDate: string;
+  toDate: string;
   currentPage: number;
   totalPages: number;
   itemsPerPage: number;
@@ -43,6 +45,8 @@ export function ConcertRevenueTable({
   filteredConcerts,
   isConcertsLoading,
   tableSearch,
+  fromDate,
+  toDate,
   currentPage,
   totalPages,
   itemsPerPage,
@@ -50,6 +54,21 @@ export function ConcertRevenueTable({
   onPageChange,
   onViewDetail,
 }: ConcertRevenueTableProps) {
+  const formatDateRangeLabel = () => {
+    const formatDate = (date: string) =>
+      new Date(date).toLocaleDateString("vi-VN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+
+    if (fromDate && toDate)
+      return `${formatDate(fromDate)} - ${formatDate(toDate)}`;
+    if (fromDate) return `Tá»« ${formatDate(fromDate)}`;
+    if (toDate) return `Äáº¿n ${formatDate(toDate)}`;
+    return "Táº¥t cáº£ thá»i gian";
+  };
+
   return (
     <section className="bg-surface rounded-2xl border border-border p-6 shadow-sm space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -60,6 +79,9 @@ export function ConcertRevenueTable({
           <h3 className="font-display text-lg font-bold text-foreground">
             Doanh thu theo sự kiện
           </h3>
+          <span className="text-xs font-semibold text-muted-foreground">
+            {formatDateRangeLabel()}
+          </span>
         </div>
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

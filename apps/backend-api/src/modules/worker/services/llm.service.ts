@@ -1,80 +1,121 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from "@nestjs/common";
 
 @Injectable()
 export class LlmService {
   private readonly logger = new Logger(LlmService.name);
-  private readonly timeoutMs = 15000;
-  private readonly maxRetries = 3;
 
   async synthesizeBio(textProfile: string): Promise<string> {
     const apiKey = process.env.GEMINI_API_KEY;
+    const mockEnabled = process.env.LLM_MOCK_ENABLED === "true";
     if (!apiKey) {
-      this.logger.warn('GEMINI_API_KEY is not defined in environment. Falling back to mock biography.');
-      return this.generateMockBio(textProfile);
+      if (mockEnabled) {
+        this.logger.warn(
+          "GEMINI_API_KEY is missing; explicit mock mode is enabled.",
+        );
+        return this.generateMockBio();
+      }
+      throw new Error("GEMINI_API_KEY is not configured");
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+    const model = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+    const timeoutMs = this.positiveNumber(
+      process.env.GEMINI_TIMEOUT_MS,
+      60_000,
+    );
+    const maxRetries = this.positiveNumber(process.env.GEMINI_MAX_RETRIES, 3);
+    const retryDelayMs = this.nonNegativeNumber(
+      process.env.GEMINI_RETRY_DELAY_MS,
+      1_000,
+    );
+    const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+    const prompt = `System Instruction: Bạn là một biên tập viên tiểu sử âm nhạc chuyên nghiệp. Hãy viết lại hồ sơ nghệ sĩ/press kit dưới đây thành một bài giới thiệu hấp dẫn, súc tích gồm 2-3 đoạn văn bằng tiếng Việt tự nhiên. Tập trung vào phong cách âm nhạc, hành trình, thành tựu và dấu ấn nổi bật của nghệ sĩ.
 
-    const prompt = `System Instruction: You are a professional music biographer. Summarize the following artist profile/press kit into a concise, engaging biography of 2-3 paragraphs. Focus on their musical style, achievements, and background. Output only the summarized biography text without any markdown formatting, commentary or introduction.
+Yêu cầu bắt buộc:
+- Chỉ trả về nội dung tiểu sử bằng tiếng Việt, không dùng Markdown, tiêu đề, lời dẫn hay bình luận.
+- Giữ nguyên tên riêng, nghệ danh, tên tác phẩm, giải thưởng và số liệu quan trọng.
+- Không bịa đặt hoặc bổ sung thông tin không xuất hiện trong press kit.
+- Nếu press kit viết bằng ngôn ngữ khác, hãy dịch và biên tập mượt mà sang tiếng Việt.
 
-Here is the artist press kit:
+Nội dung press kit:
 
 ${textProfile}`;
 
-    const body = {
-      contents: [
-        {
-          parts: [
-            {
-              text: prompt
-            }
-          ]
-        }
-      ]
-    };
-
-    let attempt = 0;
-    while (attempt < this.maxRetries) {
-      attempt++;
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        this.logger.log(`Dispatching query to Gemini API (Attempt ${attempt}/${this.maxRetries})...`);
+        this.logger.log(
+          `Dispatching query to Gemini model ${model} (attempt ${attempt}/${maxRetries})`,
+        );
         const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(body),
-          signal: AbortSignal.timeout(this.timeoutMs),
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+          signal: AbortSignal.timeout(timeoutMs),
         });
 
         if (!response.ok) {
-          const errText = await response.text();
-          throw new Error(`Gemini API returned status ${response.status}: ${errText}`);
+          const details = await response.text();
+          const error = new Error(
+            `Gemini API returned ${response.status}: ${details}`,
+          );
+          if (
+            response.status >= 400 &&
+            response.status < 500 &&
+            response.status !== 429
+          ) {
+            throw new NonRetryableLlmError(error.message);
+          }
+          throw error;
         }
 
-        const data = await response.json() as any;
+        const data = (await response.json()) as any;
         const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!candidateText || typeof candidateText !== 'string') {
-          throw new Error('Invalid JSON response format from Gemini API');
+        if (!candidateText || typeof candidateText !== "string") {
+          throw new Error("Gemini API returned no biography text");
         }
-
         return candidateText.trim();
-      } catch (error: any) {
-        this.logger.error(`Attempt ${attempt} failed: ${error.message}`);
-        if (attempt >= this.maxRetries) {
-          this.logger.warn('All retries to Gemini API exhausted. Falling back to mock biography.');
-          return this.generateMockBio(textProfile);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        this.logger.error(
+          `Gemini attempt ${attempt} failed: ${lastError.message}`,
+        );
+        if (error instanceof NonRetryableLlmError || attempt >= maxRetries)
+          break;
+        if (retryDelayMs > 0) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, attempt * retryDelayMs),
+          );
         }
-        // Wait with simple backoff before retrying
-        await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
       }
     }
 
-    return this.generateMockBio(textProfile);
+    if (mockEnabled) {
+      this.logger.warn(
+        `Gemini failed; explicit mock mode is enabled: ${lastError?.message}`,
+      );
+      return this.generateMockBio();
+    }
+    throw new Error(
+      `Gemini biography generation failed: ${lastError?.message || "unknown error"}`,
+    );
   }
 
-  private generateMockBio(_textProfile: string): string {
-    this.logger.log('Generating fallback biography from mock engine.');
+  private positiveNumber(value: string | undefined, fallback: number): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  }
+
+  private nonNegativeNumber(
+    value: string | undefined,
+    fallback: number,
+  ): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+  }
+
+  private generateMockBio(): string {
     return `The artist has captured audiences globally with their unique style and performance energy. According to their press materials, they have dedicated years to honing their craft, blending multiple genres to create a distinctive and memorable sonic experience.\n\nWith various notable projects and live shows under their belt, they continue to push boundaries and connect with listeners through emotional depth and artistic authenticity. This biography was generated via the system fallback engine.`;
   }
 }
+
+class NonRetryableLlmError extends Error {}

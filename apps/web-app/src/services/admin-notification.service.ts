@@ -1,120 +1,38 @@
 import apiClient from "./api";
 
-export interface NotificationTemplate {
+export type AdminNotification = {
   id: string;
-  code: string;
-  channel: string;
-  subject: string;
-  content: string;
-}
-
-export interface NotificationLog {
-  id: string;
-  user_id: string;
-  template_id: string;
-  target: string;
-  status: string;
-  error_message: string | null;
-  retry_count: number;
+  type: "TICKET_PURCHASED" | "CONCERT_REMINDER";
+  title: string;
+  message: string;
+  read_at: string | null;
   created_at: string;
-  sent_at: string | null;
-  user?: {
-    full_name: string;
-    email: string;
-  };
-  template?: {
-    code: string;
-    channel: string;
-    subject: string;
-  };
-}
+  user: { id: string; full_name: string; email: string };
+  concert: { id: string; name: string; start_time: string } | null;
+  order: { id: string; status: string } | null;
+};
 
-export interface NotificationLogsResponse {
-  data: NotificationLog[];
-  meta: {
-    totalItems: number;
-    itemCount: number;
-    itemsPerPage: number;
-    totalPages: number;
-    currentPage: number;
-  };
-}
-
-export interface CreateTemplatePayload {
-  code: string;
-  channel: string;
-  subject: string;
-  content: string;
-}
-
-export interface UpdateTemplatePayload {
-  channel?: string;
-  subject?: string;
-  content?: string;
-}
-
-export async function getNotificationLogs(params?: {
+export type AdminNotificationQuery = {
   page?: number;
   limit?: number;
-  status?: string;
-  template_code?: string;
+  type?: string;
+  read?: boolean;
   search?: string;
-}): Promise<NotificationLogsResponse> {
-  const queryParams = new URLSearchParams();
-  if (params?.page) queryParams.append("page", params.page.toString());
-  if (params?.limit) queryParams.append("limit", params.limit.toString());
-  if (params?.status && params.status !== "All")
-    queryParams.append("status", params.status);
-  if (params?.template_code && params.template_code !== "All")
-    queryParams.append("template_code", params.template_code);
-  if (params?.search) queryParams.append("search", params.search);
+};
 
-  const queryString = queryParams.toString();
-  const endpoint = `/admin/notifications/logs${queryString ? `?${queryString}` : ""}`;
-  return apiClient.get<NotificationLogsResponse>(endpoint);
-}
+export type AdminNotificationResponse = {
+  data: AdminNotification[];
+  meta: { page: number; limit: number; total: number; totalPages: number };
+};
 
-export async function getNotificationLogDetail(
-  id: string,
-): Promise<NotificationLog> {
-  return apiClient.get<NotificationLog>(`/admin/notifications/logs/${id}`);
-}
-
-export async function getNotificationTemplates(): Promise<
-  NotificationTemplate[]
-> {
-  return apiClient.get<NotificationTemplate[]>(
-    "/admin/notifications/templates",
+export function getAdminNotifications(query: AdminNotificationQuery) {
+  const params = new URLSearchParams();
+  if (query.page) params.set("page", String(query.page));
+  if (query.limit) params.set("limit", String(query.limit));
+  if (query.type) params.set("type", query.type);
+  if (query.read !== undefined) params.set("read", String(query.read));
+  if (query.search) params.set("search", query.search);
+  return apiClient.get<AdminNotificationResponse>(
+    `/admin/notifications?${params.toString()}`,
   );
-}
-
-export async function getNotificationTemplateDetail(
-  id: string,
-): Promise<NotificationTemplate> {
-  return apiClient.get<NotificationTemplate>(
-    `/admin/notifications/templates/${id}`,
-  );
-}
-
-export async function createNotificationTemplate(
-  payload: CreateTemplatePayload,
-): Promise<NotificationTemplate> {
-  return apiClient.post<NotificationTemplate>(
-    "/admin/notifications/templates",
-    payload,
-  );
-}
-
-export async function updateNotificationTemplate(
-  id: string,
-  payload: UpdateTemplatePayload,
-): Promise<NotificationTemplate> {
-  return apiClient.patch<NotificationTemplate>(
-    `/admin/notifications/templates/${id}`,
-    payload,
-  );
-}
-
-export async function deleteNotificationTemplate(id: string): Promise<void> {
-  return apiClient.delete<void>(`/admin/notifications/templates/${id}`);
 }

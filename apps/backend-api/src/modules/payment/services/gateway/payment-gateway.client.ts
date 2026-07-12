@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import CircuitBreaker from 'opossum';
 import { PaymentMethod } from '../../dtos/payment-method.enum';
-import { PaymentGatewaySessionInput, PaymentGatewaySessionResult, PaymentGatewayState, PaymentGatewayStrategy } from './payment-gateway.types';
+import { PaymentGatewayLookupResult, PaymentGatewaySessionInput, PaymentGatewaySessionResult, PaymentGatewayState, PaymentGatewayStrategy } from './payment-gateway.types';
 import { PayOsStrategy } from './payos.strategy';
 
 @Injectable()
@@ -24,6 +24,21 @@ export class PaymentGatewayClient {
 
     getCircuitState(paymentMethod: PaymentMethod): PaymentGatewayState {
         return this.states.get(paymentMethod) ?? 'CLOSED';
+    }
+
+    async getPaymentSession(
+        paymentMethod: PaymentMethod,
+        providerOrderCode: number,
+    ): Promise<PaymentGatewayLookupResult> {
+        return this.getStrategy(paymentMethod).getPaymentSession(providerOrderCode);
+    }
+
+    async cancelPaymentSession(
+        paymentMethod: PaymentMethod,
+        providerOrderCode: number,
+        reason: string,
+    ): Promise<PaymentGatewayLookupResult> {
+        return this.getStrategy(paymentMethod).cancelPaymentSession(providerOrderCode, reason);
     }
 
     async verifyWebhookSignature(paymentMethod: PaymentMethod, payload: unknown): Promise<void> {

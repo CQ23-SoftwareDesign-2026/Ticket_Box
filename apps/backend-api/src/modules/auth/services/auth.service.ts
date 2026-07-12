@@ -57,7 +57,7 @@ export class AuthService {
     });
 
     // Hash and store the refresh token in the database
-    const hashed = bcrypt.hashSync(refreshToken, BCRYPT_ROUNDS);
+    const hashed = await bcrypt.hash(refreshToken, BCRYPT_ROUNDS);
     await this.prisma.user.update({
       where: { id: userId },
       data: { refresh_token: hashed },
@@ -81,7 +81,7 @@ export class AuthService {
     }
 
     // 2. Hash password
-    const passwordHash = bcrypt.hashSync(dto.password, BCRYPT_ROUNDS);
+    const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
 
     // 3. Find the default "Audience" role
     const audienceRole = await this.prisma.role.findUnique({
@@ -171,7 +171,7 @@ export class AuthService {
     }
 
     // 3. Verify password
-    const passwordValid = bcrypt.compareSync(dto.password, user.password_hash);
+    const passwordValid = await bcrypt.compare(dto.password, user.password_hash);
     if (!passwordValid) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -323,12 +323,12 @@ export class AuthService {
       throw new BadRequestException('Người dùng không tồn tại.');
     }
 
-    const passwordValid = bcrypt.compareSync(dto.oldPassword, user.password_hash);
+    const passwordValid = await bcrypt.compare(dto.oldPassword, user.password_hash);
     if (!passwordValid) {
       throw new BadRequestException('Mật khẩu hiện tại không chính xác.');
     }
 
-    const passwordHash = bcrypt.hashSync(dto.newPassword, BCRYPT_ROUNDS);
+    const passwordHash = await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS);
     await this.prisma.user.update({
       where: { id: userId },
       data: { password_hash: passwordHash },
@@ -385,7 +385,7 @@ export class AuthService {
       throw new BadRequestException('Mã khôi phục đã hết hạn hoặc không hợp lệ.');
     }
 
-    const passwordHash = bcrypt.hashSync(dto.newPassword, BCRYPT_ROUNDS);
+    const passwordHash = await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS);
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
@@ -434,7 +434,7 @@ export class AuthService {
         throw new UnauthorizedException('Phiên đăng nhập đã hết hạn.');
       }
 
-      const isRefreshTokenValid = bcrypt.compareSync(dto.refreshToken, user.refresh_token);
+      const isRefreshTokenValid = await bcrypt.compare(dto.refreshToken, user.refresh_token);
       if (!isRefreshTokenValid) {
         throw new UnauthorizedException('Mã Refresh Token không hợp lệ.');
       }

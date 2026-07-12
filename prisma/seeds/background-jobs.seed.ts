@@ -5,7 +5,7 @@ import { chunkArray } from "./seed-utils";
 
 const JOB_COUNT = 30;
 const CHUNK_SIZE = 5000;
-const JOB_TYPES = ["EXPORT_GUEST_LIST", "EXPORT_SALES_REPORT", "GENERATE_BIO"];
+const JOB_TYPES = ["GUEST_LIST_IMPORT", "GENERATE_BIO"];
 
 export async function seedBackgroundJobs(prisma: PrismaClient) {
     faker.seed(FAKER_SEED + 2);
@@ -28,7 +28,7 @@ export async function seedBackgroundJobs(prisma: PrismaClient) {
     const concertIds = concerts.map((concert) => concert.id);
     const rows = Array.from({ length: JOB_COUNT }, () => {
         const statusRoll = faker.number.int({ min: 1, max: 100 });
-        const status = statusRoll <= 60 ? "COMPLETED" : statusRoll <= 80 ? "FAILED" : "PENDING";
+        const status = statusRoll != 100 ? "COMPLETED" : "FAILED";
         const createdAt = faker.date.between({
             from: new Date("2026-04-01T00:00:00+07:00"),
             to: new Date("2026-05-20T23:59:59+07:00"),

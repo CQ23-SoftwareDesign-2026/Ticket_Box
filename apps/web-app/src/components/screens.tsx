@@ -53,6 +53,7 @@ import {
   saveCheckoutReservationState,
   type CheckoutReservationState,
 } from "@/utils/checkout-state.utils";
+import { getErrorMessage, getErrorStatus } from "@/utils/error.utils";
 import { Search } from "lucide-react";
 
 export function HeroCarousel() {
@@ -630,7 +631,8 @@ export function InteractiveTicketSelector({
 
       router.push(`/checkout/${response.order_id}`);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "";
+      const status = getErrorStatus(error);
+      const msg = getErrorMessage(error);
       if (
         msg.includes("No refresh token available") ||
         msg.includes("refresh token") ||
@@ -639,6 +641,10 @@ export function InteractiveTicketSelector({
       ) {
         toast("Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.", "error");
         router.push(`/login?returnUrl=/concerts/${concert.id}`);
+      } else if (status === 429) {
+        setError(
+          "Bạn đang thao tác quá nhanh. Vui lòng chờ vài giây rồi thử lại.",
+        );
       } else if (msg.includes("ERR_NO_TICKET")) {
         setError("Hết vé hoặc không đủ số lượng yêu cầu.");
       } else if (msg.includes("ERR_LIMIT_EXCEEDED")) {

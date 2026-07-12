@@ -152,15 +152,62 @@ export class PaymentService {
                 await this.persistIdempotencyCompletion(cacheKey, response);
                 return response;
             }
+
+            if (activeTransaction.status === 'UNKNOWN') {
+                const reconciled = await this.reconcileUnknownTransaction(
+                    activeTransaction,
+                    normalizedKey,
+                    cacheKey,
+                    dto.payment_method,
+                );
+                if (reconciled) return reconciled;
+            }
+
+            // INIT without a checkout URL means another request is still in
+            // flight (or the process stopped before recording its outcome).
+            if (activeTransaction.status === 'INIT') {
+                await this.persistIdempotencyFailure(cacheKey, normalizedKey, {
+                    order_id: order.id,
+                    payment_method: dto.payment_method,
+                    message: 'Previous payment attempt is awaiting gateway confirmation',
+                    circuit_breaker_state: this.paymentGatewayClient.getCircuitState(dto.payment_method),
+                });
+                throw new ConflictException('Payment status is being confirmed. Do not retry yet.');
+            }
         }
 
         const existingTransaction = await this.prisma.paymentTransaction.findUnique({
             where: { idempotency_key: normalizedKey },
         });
         if (existingTransaction) {
-            const mapped = this.mapProcessTransaction(existingTransaction, normalizedKey, 'CLOSED', null, null, null, 'SUCCESS');
+            const mapped = this.mapProcessTransaction(
+                existingTransaction,
+                normalizedKey,
+                this.paymentGatewayClient.getCircuitState(dto.payment_method),
+                null,
+                null,
+                null,
+                existingTransaction.status === 'UNKNOWN' ? 'UNKNOWN' : existingTransaction.status,
+            );
             await this.persistIdempotencyCompletion(cacheKey, mapped);
             return mapped;
+        }
+
+        // Fast-fail before creating an audit row when PayOS is already known to
+        // be unavailable. Opossum changes OPEN to HALF_OPEN after resetTimeout;
+        // HALF_OPEN requests must continue so the breaker can probe recovery.
+        const circuitState = this.paymentGatewayClient.getCircuitState(dto.payment_method);
+        if (circuitState === 'OPEN') {
+            await this.persistIdempotencyFailure(cacheKey, normalizedKey, {
+                order_id: order.id,
+                payment_method: dto.payment_method,
+                message: `${dto.payment_method} payment gateway is temporarily unavailable`,
+                circuit_breaker_state: circuitState,
+            });
+            throw new ServiceUnavailableException({
+                message: `${dto.payment_method} payment gateway is temporarily unavailable`,
+                circuit_breaker_state: circuitState,
+            });
         }
 
         const paymentTransaction = await this.prisma.paymentTransaction.create({
@@ -182,6 +229,7 @@ export class PaymentService {
         try {
             const gatewayResult = await this.paymentGatewayClient.createPaymentSession(dto.payment_method, {
                 orderId: order.id,
+                providerOrderCode: Number(paymentTransaction.provider_order_code),
                 amount: Number(order.total_amount),
                 userId,
                 idempotencyKey: normalizedKey,
@@ -216,13 +264,15 @@ export class PaymentService {
             await this.persistIdempotencyCompletion(cacheKey, payload);
             return payload;
         } catch (error) {
+            const timedOut = this.isGatewayTimeout(error);
             const failed = await this.prisma.paymentTransaction.update({
                 where: { id: paymentTransaction.id },
                 data: {
-                    status: 'FAILED',
+                    status: timedOut ? 'UNKNOWN' : 'FAILED',
                     raw_response: {
-                        phase: 'PROCESS_FAILED',
+                        phase: timedOut ? 'PROCESS_TIMEOUT_UNKNOWN' : 'PROCESS_FAILED',
                         message: error instanceof Error ? error.message : 'Unknown payment gateway error',
+                        requires_reconciliation: timedOut,
                     } as Prisma.JsonObject,
                 },
             });
@@ -236,8 +286,11 @@ export class PaymentService {
                 'ERROR',
             );
             await this.persistIdempotencyFailure(cacheKey, normalizedKey, {
+                order_id: order.id,
+                payment_method: dto.payment_method,
                 message: error instanceof Error ? error.message : 'Unknown payment gateway error',
                 response,
+                circuit_breaker_state: this.paymentGatewayClient.getCircuitState(dto.payment_method),
             });
             throw new ServiceUnavailableException(response);
         }
@@ -270,10 +323,18 @@ export class PaymentService {
 
         await this.paymentGatewayClient.verifyWebhookSignature(PaymentMethod.PAYOS, dto);
 
+        const providerOrderCode = dto.data.orderCode !== undefined
+            ? BigInt(dto.data.orderCode)
+            : undefined;
         const transaction = await this.prisma.paymentTransaction.findFirst({
             where: {
-                transaction_id_3rd_party: String(dto.data.paymentLinkId),
                 payment_method: PaymentMethod.PAYOS,
+                OR: [
+                    { transaction_id_3rd_party: String(dto.data.paymentLinkId) },
+                    ...(providerOrderCode !== undefined
+                        ? [{ provider_order_code: providerOrderCode }]
+                        : []),
+                ],
             },
             include: {
                 order: {
@@ -469,8 +530,10 @@ export class PaymentService {
             }
         });
 
-        // Send confirmation email and push notification asynchronously
-        void this.notificationService.sendTicketConfirmation(transaction.order_id);
+        // Payment is already committed; notification channel failures must not roll it back.
+        void this.notificationService.sendTicketConfirmation(transaction.order_id).catch((error) => {
+            this.logger.error(`Failed to dispatch ticket confirmation for order ${transaction.order_id}`, error);
+        });
 
         return new PaymentWebhookResponseDto({
             order_status: 'PAID',
@@ -498,9 +561,142 @@ export class PaymentService {
             return null;
         }
 
-        const result = this.mapProcessTransaction(existingTransaction, idempotencyKey, this.paymentGatewayClient.getCircuitState(existingTransaction.payment_method as PaymentMethod), null, null, null, 'SUCCESS');
+        const result = this.mapProcessTransaction(
+            existingTransaction,
+            idempotencyKey,
+            this.paymentGatewayClient.getCircuitState(existingTransaction.payment_method as PaymentMethod),
+            null,
+            null,
+            null,
+            existingTransaction.status === 'UNKNOWN' ? 'UNKNOWN' : existingTransaction.status,
+        );
         await this.persistIdempotencyCompletion(cacheKey, result);
         return result;
+    }
+
+    private async reconcileUnknownTransaction(
+        transaction: {
+            id: string;
+            order_id: string;
+            payment_method: string;
+            status: string;
+            idempotency_key: string;
+            provider_order_code: bigint;
+            raw_response: Prisma.JsonValue | null;
+        },
+        requestIdempotencyKey: string,
+        cacheKey: string,
+        paymentMethod: PaymentMethod,
+    ): Promise<PaymentProcessResponseDto | null> {
+        const circuitState = this.paymentGatewayClient.getCircuitState(paymentMethod);
+        if (circuitState === 'OPEN') {
+            await this.persistIdempotencyFailure(cacheKey, requestIdempotencyKey, {
+                order_id: transaction.order_id,
+                payment_method: paymentMethod,
+                message: `${paymentMethod} payment gateway is temporarily unavailable`,
+                circuit_breaker_state: circuitState,
+            });
+            throw new ServiceUnavailableException({
+                message: `${paymentMethod} payment gateway is temporarily unavailable`,
+                circuit_breaker_state: circuitState,
+            });
+        }
+
+        try {
+            const lookup = await this.paymentGatewayClient.getPaymentSession(
+                paymentMethod,
+                Number(transaction.provider_order_code),
+            );
+            const checkedAt = new Date().toISOString();
+
+            if (lookup.status === 'PENDING' && lookup.amountPaid === 0) {
+                const cancelled = await this.paymentGatewayClient.cancelPaymentSession(
+                    paymentMethod,
+                    Number(transaction.provider_order_code),
+                    'Replacing payment session after an inconclusive timeout',
+                );
+                if (cancelled.status !== 'CANCELLED') {
+                    throw new ConflictException('Previous payment session could not be safely cancelled.');
+                }
+
+                await this.prisma.paymentTransaction.update({
+                    where: { id: transaction.id },
+                    data: {
+                        status: 'FAILED',
+                        transaction_id_3rd_party: cancelled.providerTransactionId,
+                        raw_response: this.mergeTelemetry(transaction.raw_response, {
+                            reconciliation: {
+                                status: cancelled.status,
+                                checked_at: checkedAt,
+                                previous_response: lookup.raw,
+                                cancellation_response: cancelled.raw,
+                                replacement_allowed: true,
+                            },
+                        }) as Prisma.JsonObject,
+                    },
+                });
+                // Continue processPayment so this same request creates a new
+                // transaction/orderCode and receives a fresh PayOS QR payload.
+                return null;
+            }
+
+            if (lookup.status === 'PAID') {
+                await this.prisma.paymentTransaction.update({
+                    where: { id: transaction.id },
+                    data: {
+                        transaction_id_3rd_party: lookup.providerTransactionId,
+                        raw_response: this.mergeTelemetry(transaction.raw_response, {
+                            reconciliation: {
+                                status: lookup.status,
+                                checked_at: checkedAt,
+                                response: lookup.raw,
+                                awaiting_signed_webhook: true,
+                            },
+                        }) as Prisma.JsonObject,
+                    },
+                });
+                throw new ConflictException('Payment was received and is awaiting confirmation.');
+            }
+
+            if (lookup.status === 'UNDERPAID' || lookup.status === 'PROCESSING' || lookup.amountPaid > 0) {
+                throw new ConflictException('Payment has activity and is awaiting confirmation.');
+            }
+
+            // PayOS has conclusively closed this link. Mark the old attempt as
+            // failed, then let the current request create a fresh session.
+            if (['CANCELLED', 'EXPIRED', 'FAILED'].includes(lookup.status)) {
+                await this.prisma.paymentTransaction.update({
+                    where: { id: transaction.id },
+                    data: {
+                        status: 'FAILED',
+                        transaction_id_3rd_party: lookup.providerTransactionId,
+                        raw_response: this.mergeTelemetry(transaction.raw_response, {
+                            reconciliation: {
+                                status: lookup.status,
+                                checked_at: checkedAt,
+                                response: lookup.raw,
+                            },
+                        }) as Prisma.JsonObject,
+                    },
+                });
+                return null;
+            }
+
+            throw new ConflictException('Payment status is being confirmed. Do not retry yet.');
+        } catch (error) {
+            if (error instanceof ConflictException) throw error;
+
+            await this.persistIdempotencyFailure(cacheKey, requestIdempotencyKey, {
+                order_id: transaction.order_id,
+                payment_method: paymentMethod,
+                message: error instanceof Error ? error.message : 'Payment reconciliation failed',
+                circuit_breaker_state: this.paymentGatewayClient.getCircuitState(paymentMethod),
+            });
+            throw new ServiceUnavailableException({
+                message: 'Unable to confirm the previous payment attempt. Please try again later.',
+                circuit_breaker_state: this.paymentGatewayClient.getCircuitState(paymentMethod),
+            });
+        }
     }
 
     private mapProcessTransaction(
@@ -684,6 +880,14 @@ export class PaymentService {
         return `payments:idempotency:${idempotencyKey}`;
     }
 
+    private isGatewayTimeout(error: unknown): boolean {
+        if (!(error instanceof Error)) return false;
+        const candidate = error as Error & { code?: string };
+        return candidate.code === 'ETIMEDOUT'
+            || candidate.name === 'TimeoutError'
+            || /timed?\s*out|timeout/i.test(candidate.message);
+    }
+
     private getCircuitState(paymentMethod: PaymentMethod): CircuitState {
         const current = this.circuitStates.get(paymentMethod);
         if (current) {
@@ -765,7 +969,7 @@ export class PaymentService {
             gateway_status: 'FAILED',
             checkout_url: null,
             idempotency_key: idempotencyKey,
-            circuit_breaker_state: 'OPEN',
+            circuit_breaker_state: String(payload.circuit_breaker_state ?? 'CLOSED'),
         });
         await this.redisService.setJson(cacheKey, {
             state: 'FAILED',

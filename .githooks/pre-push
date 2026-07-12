@@ -1,66 +1,12 @@
 #!/usr/bin/env sh
+# .githooks/pre-push
+#
+# Git pre-push hook.
+# Reads the push refs from stdin and passes them to the quality gate script.
+#
+# Registered via:  npm run setup:hooks
+#                  (runs: git config core.hooksPath .githooks)
 
-echo ""
-echo "╔══════════════════════════════════════════════════════╗"
-echo "║     [pre-push] Frontend Quality Gate (4 steps)      ║"
-echo "╚══════════════════════════════════════════════════════╝"
-echo ""
-
-# Step 1: Code style verification (Prettier)
-echo "→ Step 1/4: Code style verification (Prettier)..."
-cd apps/web-app && npx prettier --check . && cd ../..
-if [ $? -ne 0 ]; then
-  echo ""
-  echo "✖ Prettier check failed. Auto-fix with:"
-  echo "    npm run prettier:fix:web"
-  echo ""
-  echo "✖ [pre-push] Push blocked."
-  exit 1
-fi
-echo "  ✔ Prettier passed."
-echo ""
-
-# Step 2: Static linter audits (ESLint)
-echo "→ Step 2/4: Static linter audits (ESLint)..."
-cd apps/web-app && npm run lint && cd ../..
-if [ $? -ne 0 ]; then
-  echo ""
-  echo "✖ ESLint found errors. Fix them and push again."
-  echo ""
-  echo "✖ [pre-push] Push blocked."
-  exit 1
-fi
-echo "  ✔ ESLint passed."
-echo ""
-
-# Step 3: Static compiler type-checking (TypeScript)
-echo "→ Step 3/4: Static compiler type-checking (TypeScript)..."
-cd apps/web-app && npm run type-check && cd ../..
-if [ $? -ne 0 ]; then
-  echo ""
-  echo "✖ TypeScript type errors found. Fix them and push again."
-  echo ""
-  echo "✖ [pre-push] Push blocked."
-  exit 1
-fi
-echo "  ✔ TypeScript passed."
-echo ""
-
-# Step 4: Production compilation build test
-echo "→ Step 4/4: Production compilation build test..."
-cd apps/web-app && npm run build && cd ../..
-if [ $? -ne 0 ]; then
-  echo ""
-  echo "✖ Build failed. Fix compilation errors and push again."
-  echo ""
-  echo "✖ [pre-push] Push blocked."
-  exit 1
-fi
-echo "  ✔ Build passed."
-echo ""
-
-echo "╔══════════════════════════════════════════════════════╗"
-echo "║   ✔ All checks passed! Proceeding with push.        ║"
-echo "╚══════════════════════════════════════════════════════╝"
-echo ""
-exit 0
+# Read all of stdin first so that Node.js can receive it via process.stdin / fd 0.
+# We pipe stdin directly into the Node process.
+node scripts/verify-push.js --hook

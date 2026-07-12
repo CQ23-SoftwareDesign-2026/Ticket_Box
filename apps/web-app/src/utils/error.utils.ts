@@ -84,32 +84,32 @@ export const getAuthErrorMessage = (
 
   if (context === "login") {
     if (rawMessage === INVALID_CREDENTIALS_MESSAGE) {
-      return "Incorrect email or password. Please try again.";
+      return "Sai tài khoản hoặc mật khẩu. Vui lòng kiểm tra lại.";
     }
 
     if (status === 401) {
-      return "Your account has not been activated yet. Please verify your email before signing in.";
+      return "Tài khoản chưa được kích hoạt. Vui lòng xác minh email trước khi đăng nhập.";
     }
   }
 
   if (context === "register" && rawMessage === "Email already registered") {
-    return "This email is already registered. Please sign in or reset your password.";
+    return "Email đã được đăng ký. Vui lòng đăng nhập hoặc đặt lại mật khẩu.";
   }
 
   if (context === "forgot-password" && status === 400) {
-    return "We couldn't find an account with that email address.";
+    return "Chúng tôi không tìm thấy tài khoản nào với địa chỉ email này.";
   }
 
   if (context === "reset-password" && status === 400) {
-    return "Your password reset link is invalid or has expired. Please request a new one.";
+    return "Liên kết đặt lại mật khẩu của bạn không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu một liên kết mới.";
   }
 
   if (context === "resend-verification" && status === 400) {
-    return "We couldn't send a new verification email. The account may not exist or it may already be verified.";
+    return "Không thể gửi lại email xác minh. Tài khoản có thể không tồn tại hoặc đã được xác minh.";
   }
 
   if (context === "verify-email" && status === 400) {
-    return "Your verification link is invalid or has expired. Please request a new verification email.";
+    return "Liên kết xác minh của bạn không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu lại email xác minh.";
   }
 
   return rawMessage ?? getErrorMessage(error);

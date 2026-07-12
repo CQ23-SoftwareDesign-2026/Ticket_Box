@@ -11,14 +11,22 @@ import {
 } from "@/services/revenue.service";
 
 export function useAdminRevenue() {
+  const initialFromDate = "2026-03-01";
+  const getTodayDate = () => new Date().toISOString().slice(0, 10);
+
+  const normalizeDateRangeForQuery = (from?: string, to?: string) => ({
+    from: from || undefined,
+    to: to ? `${to}T23:59:59.999Z` : undefined,
+  });
+
   // Applied filter state
-  const [fromDate, setFromDate] = useState<string>("2026-03-01");
-  const [toDate, setToDate] = useState<string>("2026-07-04");
+  const [fromDate, setFromDate] = useState<string>(initialFromDate);
+  const [toDate, setToDate] = useState<string>(getTodayDate);
   const [groupBy, setGroupBy] = useState<"day" | "week" | "month">("day");
 
   // Temp (pending) filter state
-  const [tempFromDate, setTempFromDate] = useState<string>("2026-03-01");
-  const [tempToDate, setTempToDate] = useState<string>("2026-07-04");
+  const [tempFromDate, setTempFromDate] = useState<string>(initialFromDate);
+  const [tempToDate, setTempToDate] = useState<string>(getTodayDate);
   const [tempGroupBy, setTempGroupBy] = useState<"day" | "week" | "month">(
     "day",
   );
@@ -58,9 +66,10 @@ export function useAdminRevenue() {
     ) => {
       try {
         setIsTrendLoading(true);
+        const range = normalizeDateRangeForQuery(fromVal, toVal);
         const res = await getRevenueTrend({
-          from: fromVal,
-          to: toVal,
+          from: range.from,
+          to: range.to,
           group_by: groupVal,
         });
         setTrendItems(res.items || []);
@@ -78,9 +87,10 @@ export function useAdminRevenue() {
     async (fromVal?: string, toVal?: string, statusVal?: string) => {
       try {
         setIsConcertsLoading(true);
+        const range = normalizeDateRangeForQuery(fromVal, toVal);
         const res = await getRevenueByConcert({
-          from: fromVal,
-          to: toVal,
+          from: range.from,
+          to: range.to,
           status: statusVal === "All" ? undefined : statusVal,
         });
         setConcertItems(res.items || []);
@@ -97,8 +107,9 @@ export function useAdminRevenue() {
   // Initial load
   useEffect(() => {
     const timer = setTimeout(() => {
-      void fetchTrendData("2026-03-01", "2026-07-04", "day");
-      void fetchConcertsData("2026-03-01", "2026-07-04", "All");
+      const today = getTodayDate();
+      void fetchTrendData(initialFromDate, today, "day");
+      void fetchConcertsData(initialFromDate, today, "All");
     }, 0);
     return () => clearTimeout(timer);
   }, [fetchTrendData, fetchConcertsData]);
@@ -109,9 +120,10 @@ export function useAdminRevenue() {
     const fetchDetail = async () => {
       try {
         setIsDetailLoading(true);
+        const range = normalizeDateRangeForQuery(fromDate, toDate);
         const res = await getConcertRevenueDetail(selectedConcertId, {
-          from: fromDate || undefined,
-          to: toDate || undefined,
+          from: range.from,
+          to: range.to,
         });
         setDetailData(res);
       } catch (err) {

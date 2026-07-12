@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsUUID, Min, IsArray, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsInt, IsUUID, Max, Min, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class ReserveItemDto {
@@ -10,6 +10,7 @@ export class ReserveItemDto {
     @ApiProperty({ example: 2, minimum: 1, description: 'Number of tickets to reserve' })
     @IsInt()
     @Min(1)
+    @Max(20)
     quantity!: number;
 }
 
@@ -20,6 +21,8 @@ export class ReserveTicketDto {
 
     @ApiProperty({ type: [ReserveItemDto], description: 'List of ticket categories to reserve' })
     @IsArray()
+    @ArrayMinSize(1)
+    @ArrayMaxSize(10)
     @ValidateNested({ each: true })
     @Type(() => ReserveItemDto)
     items!: ReserveItemDto[];

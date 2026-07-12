@@ -1,71 +1,42 @@
-import { PrismaClient } from "@prisma/client";
-import { faker } from "@faker-js/faker";
-import { FAKER_SEED } from "./seed-data";
+import { NotificationType, PrismaClient } from "@prisma/client";
 import { chunkArray } from "./seed-utils";
 
-const notificationTemplates = [
-    {
-        id: "f1a2b3c4-d5e6-4f70-8a9b-0c1d2e3f4a55",
-        code: "TICKET_CONFIRMATION",
-        channel: "EMAIL",
-        subject: "Your e-ticket is ready",
-        content: "Your e-ticket is attached to this email.",
-    },
-    {
-        id: "a1b2c3d4-e5f6-4a70-9b8c-1d2e3f4a5b66",
-        code: "PAYMENT_SUCCESS",
-        channel: "EMAIL",
-        subject: "Payment confirmed",
-        content: "We have received your payment.",
-    },
-];
+const CHUNK_SIZE = 5000;
+const READ_PERCENT = 90;
 
 export async function seedNotifications(prisma: PrismaClient) {
-    faker.seed(FAKER_SEED + 4);
+  const orders = await prisma.order.findMany({
+    include: { concert: { select: { name: true } } },
+    orderBy: { id: "asc" },
+  });
+  const readCount = Math.floor((orders.length * READ_PERCENT) / 100);
 
-    await prisma.notificationTemplate.createMany({
-        data: notificationTemplates,
-        skipDuplicates: true,
-    });
+  const rows = orders.map((order, index) => ({
+    user_id: order.user_id,
+    order_id: order.id,
+    type: NotificationType.TICKET_PURCHASED,
+    concert_id: order.concert_id,
+    deduplication_key: `ticket-purchased:${order.id}`,
+    title: "Mua vé thành công",
+    message:
+        `Vé concert ${order.concert.name} của bạn đã sẵn sàng.`,
+    data: {
+      orderId: order.id,
+      orderStatus: order.status,
+      route: `/orders/${order.id}`,
+    },
+    created_at: order.created_at,
+    read_at:
+      index < readCount
+        ? new Date(order.created_at.getTime() + 5 * 60 * 1000)
+        : null,
+  }));
 
-    const audienceUsers = await prisma.user.findMany({
-        where: {
-            user_roles: {
-                some: {
-                    role: { name: "Audience" },
-                },
-            },
-        },
-        select: { id: true, email: true },
-        take: 50,
-    });
+  for (const chunk of chunkArray(rows, CHUNK_SIZE)) {
+    await prisma.notification.createMany({ data: chunk });
+  }
 
-    if (audienceUsers.length === 0) {
-        return;
-    }
-
-    const rows = Array.from({ length: 20 }, () => {
-        const user = faker.helpers.arrayElement(audienceUsers);
-        const template = faker.helpers.arrayElement(notificationTemplates);
-        const createdAt = faker.date.between({
-            from: new Date("2026-05-01T00:00:00+07:00"),
-            to: new Date("2026-05-20T23:59:59+07:00"),
-        });
-        const sentAt = new Date(createdAt.getTime() + 60 * 1000);
-
-        return {
-            id: faker.string.uuid(),
-            user_id: user.id,
-            template_id: template.id,
-            target: user.email,
-            status: "SENT",
-            retry_count: 0,
-            created_at: createdAt,
-            sent_at: sentAt,
-        };
-    });
-
-    for (const chunk of chunkArray(rows, 5000)) {
-        await prisma.notificationLog.createMany({ data: chunk });
-    }
+  console.log(
+    `[seed] generated ${rows.length} notifications (${readCount} read, ${rows.length - readCount} unread)`,
+  );
 }

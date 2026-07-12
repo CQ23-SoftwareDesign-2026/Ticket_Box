@@ -71,6 +71,8 @@ export default function AdminRevenuePage() {
         trendItems={trendItems}
         isTrendLoading={isTrendLoading}
         groupBy={groupBy}
+        fromDate={fromDate}
+        toDate={toDate}
         hoveredIndex={hoveredIndex}
         onHover={setHoveredIndex}
       />
@@ -80,6 +82,8 @@ export default function AdminRevenuePage() {
         filteredConcerts={filteredConcerts}
         isConcertsLoading={isConcertsLoading}
         tableSearch={tableSearch}
+        fromDate={fromDate}
+        toDate={toDate}
         currentPage={currentPage}
         totalPages={totalPages}
         itemsPerPage={itemsPerPage}

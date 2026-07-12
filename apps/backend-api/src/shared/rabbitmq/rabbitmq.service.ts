@@ -7,7 +7,7 @@ const ORDER_TTL_MS = 600_000; // 10 minutes
 export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(RabbitMqService.name);
     private channelModel: amqp.ChannelModel | null = null;
-    private publishChannel: amqp.Channel | null = null;
+    private publishChannel: amqp.ConfirmChannel | null = null;
 
     async onModuleInit() {
         await this.connect();
@@ -30,7 +30,7 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
                 this.publishChannel = null;
             });
 
-            this.publishChannel = await this.channelModel.createChannel();
+            this.publishChannel = await this.channelModel.createConfirmChannel();
             await this.assertTopology(this.publishChannel);
             this.logger.log(`[RabbitMQ] Connected to ${url}`);
         } catch (err) {
@@ -78,10 +78,29 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
         await channel.assertQueue('ai.bio.queue', { durable: true });
         await channel.bindQueue('ai.bio.queue', 'ai.bio.exchange', 'ai.bio');
 
+        await channel.assertExchange('notification.email.exchange', 'direct', { durable: true });
+        await channel.assertQueue('notification.email.queue', { durable: true });
+        await channel.bindQueue('notification.email.queue', 'notification.email.exchange', 'notification.email');
+
+        await channel.assertExchange('notification.email.retry.exchange', 'direct', { durable: true });
+        await channel.assertQueue('notification.email.retry.queue', {
+            durable: true,
+            arguments: {
+                'x-message-ttl': 60_000,
+                'x-dead-letter-exchange': 'notification.email.exchange',
+                'x-dead-letter-routing-key': 'notification.email',
+            },
+        });
+        await channel.bindQueue('notification.email.retry.queue', 'notification.email.retry.exchange', 'notification.email');
+
+        await channel.assertExchange('notification.email.dead.exchange', 'direct', { durable: true });
+        await channel.assertQueue('notification.email.dead.queue', { durable: true });
+        await channel.bindQueue('notification.email.dead.queue', 'notification.email.dead.exchange', 'notification.email');
+
         this.logger.log('[RabbitMQ] Topology asserted: exchanges, queues, and bindings ready');
     }
 
-    async publish(exchange: string, routingKey: string, content: Record<string, unknown>): Promise<void> {
+    async publish(exchange: string, routingKey: string, content: Record<string, unknown>, headers?: Record<string, unknown>): Promise<void> {
         if (!this.publishChannel) {
             throw new Error('RabbitMQ publish channel is not available');
         }
@@ -90,11 +109,13 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
         const published = this.publishChannel.publish(exchange, routingKey, buffer, {
             persistent: true,
             contentType: 'application/json',
+            headers,
         });
 
         if (!published) {
             throw new Error('RabbitMQ publish returned false (backpressure)');
         }
+        await this.publishChannel.waitForConfirms();
     }
 
     async consume(

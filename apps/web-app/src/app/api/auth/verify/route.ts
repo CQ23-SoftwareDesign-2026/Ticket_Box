@@ -31,7 +31,9 @@ export async function GET(request: NextRequest) {
     });
 
     if (response.status >= 300 && response.status < 400) {
-      return NextResponse.json({ message: "Email verified successfully." });
+      return NextResponse.json({
+        message: "Email đã được xác thực thành công.",
+      });
     }
 
     let data: { message?: string | string[] } = {};
@@ -43,12 +45,12 @@ export async function GET(request: NextRequest) {
 
     const message = Array.isArray(data.message)
       ? data.message.join(" ")
-      : data.message || "Unable to verify this email address.";
+      : data.message || "Không thể xác thực email này.";
 
     return NextResponse.json({ message }, { status: response.status || 400 });
   } catch {
     return NextResponse.json(
-      { message: "Unable to connect to the verification service right now." },
+      { message: "Không thể kết nối đến dịch vụ xác thực ngay bây giờ." },
       { status: 503 },
     );
   }
