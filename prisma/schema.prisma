@@ -150,6 +150,7 @@ model PaymentTransaction {
   id                       String   @id @default(uuid()) @db.Uuid
   order_id                 String   @db.Uuid
   payment_method           String   @db.VarChar(50)
+  provider_order_code      BigInt   @unique @default(autoincrement())
   transaction_id_3rd_party String?  @db.VarChar(255)
   amount                   Decimal  @db.Decimal(11, 2)
   status                   String   @db.VarChar(50)

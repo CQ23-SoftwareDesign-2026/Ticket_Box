@@ -1,20 +1,11 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { faker } from "@faker-js/faker";
 import { FAKER_SEED } from "./seed-data";
 import { chunkArray } from "./seed-utils";
 
 const CHUNK_SIZE = 5000;
 const PAYMENT_METHODS = ["PAYOS"] as const;
-
-function generateOrderCode(uuid: string): number {
-  let hash = 0;
-  for (let i = 0; i < uuid.length; i++) {
-    const char = uuid.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return Math.abs(hash); // Ensure positive
-}
+const PROVIDER_ORDER_CODE_START = 100_000;
 
 export async function seedPaymentTransactions(prisma: PrismaClient) {
   faker.seed(FAKER_SEED + 1);
@@ -29,10 +20,15 @@ export async function seedPaymentTransactions(prisma: PrismaClient) {
     },
   });
 
-  const rows = paidOrders.map((order) => {
+  const rows = paidOrders.map((order, index) => {
     const method = faker.helpers.arrayElement(PAYMENT_METHODS);
+    // `reference` is the bank transfer reference inside webhook data. It is
+    // different from the PayOS paymentLinkId stored on our transaction.
     const reference = `FT${faker.string.numeric(14)}`;
-    const orderCode = generateOrderCode(order.id);
+    // Keep the relational column and the mocked PayOS payload consistent.
+    // Sequential values avoid UUID-hash collisions and mirror the DB sequence
+    // used for real payment transactions.
+    const orderCode = PROVIDER_ORDER_CODE_START + index;
     const expiredAt = Math.floor(new Date(order.expires_at).getTime() / 1000);
     const paymentLinkId = faker.string
       .hexadecimal({ length: 32, prefix: "" })
@@ -52,7 +48,10 @@ export async function seedPaymentTransactions(prisma: PrismaClient) {
       id: faker.string.uuid(),
       order_id: order.id,
       payment_method: method,
-      transaction_id_3rd_party: reference,
+      provider_order_code: BigInt(orderCode),
+      // PayOS returns paymentLinkId as a 32-character hexadecimal identifier,
+      // e.g. 554c0aeaf819472888692f2a5aa8cf88.
+      transaction_id_3rd_party: paymentLinkId,
       amount: order.total_amount,
       status: "SUCCESS",
       idempotency_key: faker.string.uuid(),
@@ -111,4 +110,11 @@ export async function seedPaymentTransactions(prisma: PrismaClient) {
   for (const chunk of chunkArray(rows, CHUNK_SIZE)) {
     await prisma.paymentTransaction.createMany({ data: chunk });
   }
+
+  // Explicit values do not advance a PostgreSQL sequence. Move it past all
+  // seeded codes so the next real payment transaction cannot reuse one.
+  const nextOrderCode = PROVIDER_ORDER_CODE_START + rows.length;
+  await prisma.$queryRaw(
+    Prisma.sql`SELECT setval('payment_provider_order_code_seq', ${nextOrderCode}, false)`,
+  );
 }

@@ -6,6 +6,7 @@ export type PaymentGatewayOutcome = 'SUCCESS' | 'ERROR' | 'TIMEOUT';
 
 export type PaymentGatewaySessionInput = {
     orderId: string;
+    providerOrderCode: number;
     amount: number;
     userId: string;
     idempotencyKey: string;

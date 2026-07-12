@@ -152,15 +152,54 @@ export class PaymentService {
                 await this.persistIdempotencyCompletion(cacheKey, response);
                 return response;
             }
+
+            // A gateway timeout is ambiguous: PayOS may have created the payment
+            // link even though our process did not receive the response. Never
+            // create another payment attempt for the same order until a webhook
+            // or reconciliation process resolves this transaction.
+            if (activeTransaction.status === 'UNKNOWN' || activeTransaction.status === 'INIT') {
+                await this.persistIdempotencyFailure(cacheKey, normalizedKey, {
+                    order_id: order.id,
+                    payment_method: dto.payment_method,
+                    message: 'Previous payment attempt is awaiting gateway confirmation',
+                    circuit_breaker_state: this.paymentGatewayClient.getCircuitState(dto.payment_method),
+                });
+                throw new ConflictException('Payment status is being confirmed. Do not retry yet.');
+            }
         }
 
         const existingTransaction = await this.prisma.paymentTransaction.findUnique({
             where: { idempotency_key: normalizedKey },
         });
         if (existingTransaction) {
-            const mapped = this.mapProcessTransaction(existingTransaction, normalizedKey, 'CLOSED', null, null, null, 'SUCCESS');
+            const mapped = this.mapProcessTransaction(
+                existingTransaction,
+                normalizedKey,
+                this.paymentGatewayClient.getCircuitState(dto.payment_method),
+                null,
+                null,
+                null,
+                existingTransaction.status === 'UNKNOWN' ? 'UNKNOWN' : existingTransaction.status,
+            );
             await this.persistIdempotencyCompletion(cacheKey, mapped);
             return mapped;
+        }
+
+        // Fast-fail before creating an audit row when PayOS is already known to
+        // be unavailable. Opossum changes OPEN to HALF_OPEN after resetTimeout;
+        // HALF_OPEN requests must continue so the breaker can probe recovery.
+        const circuitState = this.paymentGatewayClient.getCircuitState(dto.payment_method);
+        if (circuitState === 'OPEN') {
+            await this.persistIdempotencyFailure(cacheKey, normalizedKey, {
+                order_id: order.id,
+                payment_method: dto.payment_method,
+                message: `${dto.payment_method} payment gateway is temporarily unavailable`,
+                circuit_breaker_state: circuitState,
+            });
+            throw new ServiceUnavailableException({
+                message: `${dto.payment_method} payment gateway is temporarily unavailable`,
+                circuit_breaker_state: circuitState,
+            });
         }
 
         const paymentTransaction = await this.prisma.paymentTransaction.create({
@@ -182,6 +221,7 @@ export class PaymentService {
         try {
             const gatewayResult = await this.paymentGatewayClient.createPaymentSession(dto.payment_method, {
                 orderId: order.id,
+                providerOrderCode: Number(paymentTransaction.provider_order_code),
                 amount: Number(order.total_amount),
                 userId,
                 idempotencyKey: normalizedKey,
@@ -216,13 +256,15 @@ export class PaymentService {
             await this.persistIdempotencyCompletion(cacheKey, payload);
             return payload;
         } catch (error) {
+            const timedOut = this.isGatewayTimeout(error);
             const failed = await this.prisma.paymentTransaction.update({
                 where: { id: paymentTransaction.id },
                 data: {
-                    status: 'FAILED',
+                    status: timedOut ? 'UNKNOWN' : 'FAILED',
                     raw_response: {
-                        phase: 'PROCESS_FAILED',
+                        phase: timedOut ? 'PROCESS_TIMEOUT_UNKNOWN' : 'PROCESS_FAILED',
                         message: error instanceof Error ? error.message : 'Unknown payment gateway error',
+                        requires_reconciliation: timedOut,
                     } as Prisma.JsonObject,
                 },
             });
@@ -236,8 +278,11 @@ export class PaymentService {
                 'ERROR',
             );
             await this.persistIdempotencyFailure(cacheKey, normalizedKey, {
+                order_id: order.id,
+                payment_method: dto.payment_method,
                 message: error instanceof Error ? error.message : 'Unknown payment gateway error',
                 response,
+                circuit_breaker_state: this.paymentGatewayClient.getCircuitState(dto.payment_method),
             });
             throw new ServiceUnavailableException(response);
         }
@@ -270,10 +315,18 @@ export class PaymentService {
 
         await this.paymentGatewayClient.verifyWebhookSignature(PaymentMethod.PAYOS, dto);
 
+        const providerOrderCode = dto.data.orderCode !== undefined
+            ? BigInt(dto.data.orderCode)
+            : undefined;
         const transaction = await this.prisma.paymentTransaction.findFirst({
             where: {
-                transaction_id_3rd_party: String(dto.data.paymentLinkId),
                 payment_method: PaymentMethod.PAYOS,
+                OR: [
+                    { transaction_id_3rd_party: String(dto.data.paymentLinkId) },
+                    ...(providerOrderCode !== undefined
+                        ? [{ provider_order_code: providerOrderCode }]
+                        : []),
+                ],
             },
             include: {
                 order: {
@@ -500,7 +553,15 @@ export class PaymentService {
             return null;
         }
 
-        const result = this.mapProcessTransaction(existingTransaction, idempotencyKey, this.paymentGatewayClient.getCircuitState(existingTransaction.payment_method as PaymentMethod), null, null, null, 'SUCCESS');
+        const result = this.mapProcessTransaction(
+            existingTransaction,
+            idempotencyKey,
+            this.paymentGatewayClient.getCircuitState(existingTransaction.payment_method as PaymentMethod),
+            null,
+            null,
+            null,
+            existingTransaction.status === 'UNKNOWN' ? 'UNKNOWN' : existingTransaction.status,
+        );
         await this.persistIdempotencyCompletion(cacheKey, result);
         return result;
     }
@@ -686,6 +747,14 @@ export class PaymentService {
         return `payments:idempotency:${idempotencyKey}`;
     }
 
+    private isGatewayTimeout(error: unknown): boolean {
+        if (!(error instanceof Error)) return false;
+        const candidate = error as Error & { code?: string };
+        return candidate.code === 'ETIMEDOUT'
+            || candidate.name === 'TimeoutError'
+            || /timed?\s*out|timeout/i.test(candidate.message);
+    }
+
     private getCircuitState(paymentMethod: PaymentMethod): CircuitState {
         const current = this.circuitStates.get(paymentMethod);
         if (current) {
@@ -767,7 +836,7 @@ export class PaymentService {
             gateway_status: 'FAILED',
             checkout_url: null,
             idempotency_key: idempotencyKey,
-            circuit_breaker_state: 'OPEN',
+            circuit_breaker_state: String(payload.circuit_breaker_state ?? 'CLOSED'),
         });
         await this.redisService.setJson(cacheKey, {
             state: 'FAILED',

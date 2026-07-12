@@ -25,11 +25,10 @@ export class PayOsStrategy implements PaymentGatewayStrategy {
 
     async createPaymentSession(input: PaymentGatewaySessionInput): Promise<PaymentGatewaySessionResult> {
         try {
-            // PayOS requires orderCode to be an integer. Since our orderId is a UUID string,
-            // we will need to map it or create a unique integer sequence.
-            // For simplicity, we generate a fast hash of the orderId into a 32-bit positive int,
-            // but in production a database numeric sequence is recommended.
-            const orderCode = this.generateOrderCode(input.orderId);
+            // The database allocates this unique code before the gateway call.
+            // It lets a late webhook identify a transaction even when the create
+            // session response (and therefore paymentLinkId) was lost to timeout.
+            const orderCode = input.providerOrderCode;
             
             const cancelUrl = input.returnUrl || `${process.env.FRONTEND_URL}/checkout/cancel`;
             const returnUrl = input.returnUrl || `${process.env.FRONTEND_URL}/checkout/success`;
@@ -81,13 +80,4 @@ export class PayOsStrategy implements PaymentGatewayStrategy {
         }
     }
 
-    private generateOrderCode(uuid: string): number {
-        let hash = 0;
-        for (let i = 0; i < uuid.length; i++) {
-            const char = uuid.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash; // Convert to 32bit integer
-        }
-        return Math.abs(hash); // Ensure positive
-    }
 }

@@ -98,6 +98,7 @@ function buildSuccessWebhook() {
         success: true,
         data: {
             paymentLinkId: 'payos-link-1',
+            orderCode: 100001,
             amount: 200000,
         },
         signature: 'valid-signature',
@@ -123,4 +124,9 @@ test('payment webhook replay does not create duplicate tickets for an already pa
     assert.equal(tx.ticket.create.mock.calls.length, 2);
     assert.equal(tx.order.update.mock.calls.length, 1);
     assert.equal(prisma.paymentTransaction.update.mock.calls.length, 1);
+    const webhookLookup = prisma.paymentTransaction.findFirst.mock.calls[0][0] as any;
+    assert.deepEqual(webhookLookup.where.OR, [
+        { transaction_id_3rd_party: 'payos-link-1' },
+        { provider_order_code: 100001n },
+    ]);
 });
