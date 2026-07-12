@@ -1,6 +1,14 @@
+const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
+
+if (!apiBaseUrl) {
+  throw new Error(
+    'Missing EXPO_PUBLIC_API_BASE_URL. Set it in apps/mobile-app/ticketbox/.env before starting the app.',
+  );
+}
+
 export const APP_CONFIG = {
   appName: 'TicketBox Staff',
-  apiBaseUrl: 'https://api.ticketbox.retrobit.io.vn',
+  apiBaseUrl,
 };
 
 export const STORAGE_KEYS = {
