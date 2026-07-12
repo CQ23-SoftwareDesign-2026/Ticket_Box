@@ -5,26 +5,29 @@ import { useSearchParams } from "next/navigation";
 import { TicketBoxAuthShell } from "@/components/ticketbox-auth-shell";
 import { ConcertHeroIllustration } from "@/components/ticketbox-illustrations";
 import { authService } from "@/services/auth.service";
-import { AlertCircle, CheckCircle2, Loader2, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import { getAuthErrorMessage } from "@/utils/error.utils";
+import { useToast } from "@/context/ToastContext";
+import { Input, Button } from "@/components/common";
 
 function ResendVerificationForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState(searchParams?.get("email") ?? "");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const { success: showSuccessToast, error: showErrorToast } = useToast();
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
 
     try {
       await authService.resendVerification(email);
       setSuccess(true);
+      showSuccessToast("Email xác thực mới đã được gửi đi.");
     } catch (requestError: unknown) {
-      setError(getAuthErrorMessage(requestError, "resend-verification"));
+      const errorMsg = getAuthErrorMessage(requestError, "resend-verification");
+      showErrorToast(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -33,17 +36,15 @@ function ResendVerificationForm() {
   if (success) {
     return (
       <TicketBoxAuthShell
-        title="Email sent"
-        description="We've sent a new verification link to your email address."
+        title="Đã gửi email thành công"
+        description="Chúng tôi đã gửi một liên kết xác minh mới tới địa chỉ email của bạn."
         sidebar={<ConcertHeroIllustration />}
-        footerLinks={[{ label: "Return to sign in", href: "/login" }]}
+        footerLinks={[{ label: "Quay lại đăng nhập", href: "/login" }]}
       >
         <div className="flex flex-col items-center justify-center space-y-4 py-8 text-center">
-          <div className="rounded-full bg-green-50 p-3 text-green-600 dark:bg-green-950/50 dark:text-green-400">
-            <CheckCircle2 className="h-12 w-12" />
-          </div>
-          <p className="max-w-sm text-muted-foreground">
-            Please check your inbox and click the link to verify your account.
+          <p className="max-w-sm text-on-surface-variant/80 text-sm leading-relaxed">
+            Vui lòng kiểm tra hộp thư đến và nhấn vào liên kết để xác thực tài
+            khoản của bạn.
           </p>
         </div>
       </TicketBoxAuthShell>
@@ -52,33 +53,29 @@ function ResendVerificationForm() {
 
   return (
     <TicketBoxAuthShell
-      title="Resend verification"
-      description="Enter your email address and we'll send you a new link to verify your account."
+      title="Gửi lại email xác thực"
+      description="Nhập địa chỉ email của bạn và chúng tôi sẽ gửi một liên kết mới để kích hoạt tài khoản."
       sidebar={<ConcertHeroIllustration />}
-      footerLinks={[{ label: "Return to sign in", href: "/login" }]}
+      footerLinks={[{ label: "Quay lại đăng nhập", href: "/login" }]}
     >
       <form className="space-y-5" onSubmit={onSubmit}>
-        {error ? (
-          <div className="flex items-center gap-3 rounded-xl bg-red-50 p-4 text-sm text-red-800 dark:bg-red-950/50 dark:text-red-200">
-            <AlertCircle className="h-5 w-5 shrink-0" />
-            <p>{error}</p>
-          </div>
-        ) : null}
-
         <div className="space-y-1">
-          <label className="ticketbox-label" htmlFor="email">
-            Email address
+          <label
+            className="ticketbox-label text-on-surface-variant/90"
+            htmlFor="email"
+          >
+            Địa chỉ Email
           </label>
           <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <Mail className="h-5 w-5 text-muted-foreground" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+              <Mail className="h-4 w-4 text-on-surface-variant/40" />
             </div>
-            <input
+            <Input
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
-              className="ticketbox-input pl-10"
+              className="pl-10"
               placeholder="name@example.com"
               required
               disabled={loading}
@@ -86,19 +83,14 @@ function ResendVerificationForm() {
           </div>
         </div>
 
-        <button
-          className="ticketbox-button-primary mt-4 w-full"
-          disabled={loading || !email}
+        <Button
+          type="submit"
+          className="mt-6 w-full py-3.5"
+          disabled={!email}
+          loading={loading}
         >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sending...
-            </>
-          ) : (
-            "Send verification email"
-          )}
-        </button>
+          Gửi lại email xác thực
+        </Button>
       </form>
     </TicketBoxAuthShell>
   );

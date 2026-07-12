@@ -19,6 +19,9 @@ export class TicketTierDto {
   @ApiProperty({ example: 2 })
   max_per_user!: number;
 
+  @ApiProperty({ example: 198, required: false })
+  remaining_quantity?: number;
+
   @ApiProperty({ example: 1, required: false })
   gate_number?: number | null;
 
@@ -27,6 +30,9 @@ export class TicketTierDto {
 
   @ApiProperty({ example: 'book_now', required: false })
   status?: string | null;
+
+  @ApiProperty({ example: '2026-08-20T10:00:00.000Z', required: false })
+  sales_start_at?: Date | null;
 
   constructor(partial: Partial<TicketTierDto> = {}) {
     Object.assign(this, partial);

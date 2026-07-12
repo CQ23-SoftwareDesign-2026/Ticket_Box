@@ -10,22 +10,25 @@ import {
   DollarSign,
   Users,
   ClipboardCheck,
-  Settings,
   Plus,
-  HelpCircle,
   Menu,
-  Bell,
   LogOut,
   User as UserIcon,
+  Receipt,
+  Cpu,
+  Bell,
 } from "lucide-react";
+import { BrandMark } from "@/components/common";
 
 const navItems = [
-  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/events", label: "Events", icon: Calendar },
-  { href: "/admin/revenue", label: "Revenue", icon: DollarSign },
-  { href: "/admin/staff", label: "Staff", icon: Users },
-  { href: "/admin/assignments", label: "Assignments", icon: ClipboardCheck },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/dashboard", label: "Tổng quan", icon: LayoutDashboard },
+  { href: "/admin/orders", label: "Đơn hàng", icon: Receipt },
+  { href: "/admin/events", label: "Sự kiện", icon: Calendar },
+  { href: "/admin/revenue", label: "Doanh thu", icon: DollarSign },
+  { href: "/admin/users", label: "Người dùng", icon: Users },
+  { href: "/admin/assignments", label: "Phân công", icon: ClipboardCheck },
+  { href: "/admin/notifications", label: "Thông báo", icon: Bell },
+  { href: "/admin/jobs", label: "Tác vụ nền", icon: Cpu },
 ];
 
 export function AdminShell({ children }: { children: ReactNode }) {
@@ -36,35 +39,23 @@ export function AdminShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen bg-background text-foreground font-body">
       {/* Desktop Sidebar */}
-      <nav className="hidden md:flex flex-col h-screen p-4 gap-4 w-64 bg-surface border-r border-border shrink-0 sticky top-0 z-40">
+      <nav className="hidden md:flex flex-col h-screen p-4 gap-4 w-64 bg-surface/90 backdrop-blur-md border-r border-outline-variant/60 shrink-0 sticky top-0 z-40">
         <div className="mb-8 px-2 mt-2">
-          <Link href="/">
-            <h1 className="font-display text-2xl text-primary font-black italic">
-              TicketBox Admin
-            </h1>
-            <p className="font-body text-xs font-semibold text-muted-foreground">
-              Management Suite
-            </p>
+          <Link href="/admin">
+            <BrandMark compact />
           </Link>
         </div>
-        <Link
-          href="/admin/create-event"
-          className="bg-primary hover:bg-primary-hover text-primary-foreground font-body text-xs font-semibold py-3 px-4 rounded-lg w-full flex items-center justify-center gap-2 transition-colors active:scale-[0.98] shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          Create Event
-        </Link>
-        <ul className="flex flex-col gap-1 mt-6 grow">
+        <ul className="flex flex-col gap-1 mt-2 grow">
           {navItems.map((item) => {
             const isActive = pathname?.startsWith(item.href);
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg font-body text-sm font-semibold transition-all ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl font-body text-sm font-semibold transition-all duration-200 ${
                     isActive
-                      ? "bg-primary-container text-primary-foreground scale-[0.98] shadow-sm"
-                      : "text-muted-foreground hover:bg-surface-high hover:text-primary"
+                      ? "bg-gradient-to-r from-primary to-indigo-600 text-white shadow-md shadow-primary/10 active:scale-[0.98]"
+                      : "text-on-surface-variant/85 hover:bg-surface-low hover:text-primary"
                   }`}
                 >
                   <item.icon className="w-5 h-5" />
@@ -74,58 +65,43 @@ export function AdminShell({ children }: { children: ReactNode }) {
             );
           })}
         </ul>
-        <ul className="flex flex-col gap-1 mt-auto border-t border-border pt-4">
-          <li>
-            <Link
-              href="/support"
-              className="flex items-center gap-3 px-4 py-3 text-muted-foreground hover:bg-surface-high rounded-lg font-body text-sm font-semibold transition-all hover:text-primary"
-            >
-              <HelpCircle className="w-5 h-5" />
-              Help Center
-            </Link>
-          </li>
-        </ul>
       </nav>
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
         {/* Top Header */}
-        <header className="h-16 flex items-center justify-between px-4 md:px-10 bg-surface sticky top-0 z-30 border-b border-border shadow-sm">
+        <header className="h-16 flex items-center justify-between px-4 md:px-10 bg-surface/90 backdrop-blur-md sticky top-0 z-30 border-b border-outline-variant/60 shadow-sm">
           {/* Mobile Menu Toggle (Decorative for now, relying on bottom nav for mobile) */}
           <button className="md:hidden text-muted-foreground p-2">
             <Menu className="w-6 h-6" />
           </button>
 
-          <h2 className="font-display text-2xl font-semibold text-foreground hidden md:block">
+          <h2 className="font-display text-2xl font-bold text-foreground hidden md:block">
             {navItems.find((item) => pathname?.startsWith(item.href))?.label ||
-              "Admin Portal"}
+              "Trang quản trị"}
           </h2>
 
           <div className="flex items-center gap-4 ml-auto">
-            <button className="relative text-muted-foreground hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-high">
-              <Bell className="w-6 h-6" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full border border-surface"></span>
-            </button>
             <div className="relative group">
               <div className="h-8 w-8 rounded-full bg-primary-container text-primary-foreground flex items-center justify-center font-bold text-sm overflow-hidden ring-2 ring-transparent group-hover:ring-primary transition-all cursor-pointer">
                 {user?.fullName?.charAt(0).toUpperCase() || "A"}
               </div>
-              <div className="absolute right-0 mt-2 w-48 bg-surface rounded-xl shadow-lg border border-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
+              <div className="absolute right-0 mt-2 w-48 bg-surface-low rounded-xl shadow-xl border border-outline-variant/60 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
                 <div className="p-2 flex flex-col gap-1 text-left">
                   <Link
                     href="/"
                     className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-foreground hover:bg-surface-high rounded-lg transition-colors"
                   >
-                    <UserIcon size={16} /> User Site
+                    <UserIcon size={16} /> Trang người dùng
                   </Link>
-                  <div className="h-px bg-border my-1" />
+                  <div className="h-px bg-outline-variant/60 my-1" />
                   <button
                     onClick={() => {
                       void logout().then(() => router.replace("/login"));
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-error hover:bg-error/10 rounded-lg transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
                   >
-                    <LogOut size={16} /> Log out
+                    <LogOut size={16} /> Đăng xuất
                   </button>
                 </div>
               </div>
@@ -140,8 +116,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
       </main>
 
       {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-16 pb-safe px-4 shadow-[0px_-4px_20px_rgba(15,23,42,0.08)] bg-surface border-t border-border">
-        {navItems.slice(0, 5).map((item) => {
+      <nav className="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-16 pb-safe px-2 shadow-[0px_-4px_20px_rgba(15,23,42,0.08)] bg-surface border-t border-outline-variant/60">
+        {navItems.map((item) => {
           const isActive = pathname?.startsWith(item.href);
           return (
             <Link

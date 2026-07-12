@@ -1,17 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { TicketBoxAuthShell } from "@/components/ticketbox-auth-shell";
 import { ConcertHeroIllustration } from "@/components/ticketbox-illustrations";
 import { authService } from "@/services/auth.service";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
+import { Input, Button } from "@/components/common";
 import {
   getAuthErrorMessage,
   shouldSuggestResendVerification,
 } from "@/utils/error.utils";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
@@ -21,25 +22,48 @@ function LoginForm() {
   const reset = searchParams?.get("reset") === "1";
   const registered = searchParams?.get("registered") === "1";
   const { login } = useAuth();
+  const {
+    success: showSuccessToast,
+    error: showErrorToast,
+    info: showInfoToast,
+  } = useToast();
 
   const [email, setEmail] = useState(searchParams?.get("email") ?? "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showResendVerification, setShowResendVerification] = useState(false);
+
+  useEffect(() => {
+    if (verified) {
+      showSuccessToast(
+        "Email của bạn đã được xác minh thành công. Bạn có thể đăng nhập ngay.",
+      );
+    }
+    if (reset) {
+      showSuccessToast(
+        "Mật khẩu của bạn đã được cập nhật. Vui lòng đăng nhập bằng mật khẩu mới.",
+      );
+    }
+    if (registered) {
+      showInfoToast(
+        "Tài khoản đã được tạo. Vui lòng kiểm tra email để xác thực trước khi đăng nhập.",
+      );
+    }
+  }, [verified, reset, registered, showSuccessToast, showInfoToast]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     setShowResendVerification(false);
 
     try {
       const response = await authService.login(email, password);
       login(response.user);
+      showSuccessToast("Đăng nhập thành công!");
       router.replace(returnUrl);
     } catch (err: unknown) {
-      setError(getAuthErrorMessage(err, "login"));
+      const errorMsg = getAuthErrorMessage(err, "login");
+      showErrorToast(errorMsg);
       setShowResendVerification(shouldSuggestResendVerification(err));
     } finally {
       setLoading(false);
@@ -48,68 +72,38 @@ function LoginForm() {
 
   return (
     <TicketBoxAuthShell
-      title="Welcome back"
-      description="Sign in to your account to manage tickets, events, and your profile."
+      title="Chào mừng quay lại"
+      description="Đăng nhập tài khoản của bạn để quản lý vé, xem sự kiện và thông tin cá nhân."
       sidebar={<ConcertHeroIllustration />}
       footerLinks={[
-        { label: "Don't have an account? Sign up", href: "/register" },
+        { label: "Chưa có tài khoản? Đăng ký ngay", href: "/register" },
       ]}
     >
       <form className="space-y-5" onSubmit={onSubmit}>
-        {verified ? (
-          <div className="flex items-center gap-3 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
-            <CheckCircle2 className="h-5 w-5 shrink-0" />
-            <p>Your email has been verified. You can sign in now.</p>
-          </div>
-        ) : null}
-
-        {reset ? (
-          <div className="flex items-center gap-3 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
-            <CheckCircle2 className="h-5 w-5 shrink-0" />
-            <p>
-              Your password has been updated. Please sign in with your new
-              password.
-            </p>
-          </div>
-        ) : null}
-
-        {registered ? (
-          <div className="flex items-center gap-3 rounded-xl bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-950/50 dark:text-blue-200">
-            <CheckCircle2 className="h-5 w-5 shrink-0" />
-            <p>
-              Your account has been created. Check your email to verify it
-              before signing in.
-            </p>
-          </div>
-        ) : null}
-
-        {error ? (
-          <div className="flex items-center gap-3 rounded-xl bg-red-50 p-4 text-sm text-red-800 dark:bg-red-950/50 dark:text-red-200">
-            <AlertCircle className="h-5 w-5 shrink-0" />
-            <div className="space-y-2">
-              <p>{error}</p>
-              {showResendVerification ? (
-                <Link
-                  href={`/resend-verification?email=${encodeURIComponent(email)}`}
-                  className="inline-flex font-semibold text-red-900 underline underline-offset-4 dark:text-red-100"
-                >
-                  Resend verification email
-                </Link>
-              ) : null}
-            </div>
+        {showResendVerification ? (
+          <div className="rounded-xl bg-red-950/40 border border-red-500/20 p-4 text-sm text-red-300">
+            <p className="mb-2">Tài khoản của bạn chưa được xác thực email.</p>
+            <Link
+              href={`/resend-verification?email=${encodeURIComponent(email)}`}
+              className="inline-flex font-bold text-red-400 hover:text-red-300 underline underline-offset-4"
+            >
+              Gửi lại email xác thực
+            </Link>
           </div>
         ) : null}
 
         <div className="space-y-1">
-          <label className="ticketbox-label" htmlFor="email">
-            Email address
+          <label
+            className="ticketbox-label text-on-surface-variant/90"
+            htmlFor="email"
+          >
+            Địa chỉ Email
           </label>
-          <input
+          <Input
             id="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             type="email"
-            className="ticketbox-input"
             placeholder="name@example.com"
             required
             disabled={loading}
@@ -118,41 +112,33 @@ function LoginForm() {
 
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <label className="ticketbox-label mb-0" htmlFor="password">
-              Password
+            <label
+              className="ticketbox-label text-on-surface-variant/90 mb-0"
+              htmlFor="password"
+            >
+              Mật khẩu
             </label>
             <Link
               href="/forgot-password"
-              className="text-sm font-semibold text-primary hover:underline hover:underline-offset-4"
+              className="text-sm font-semibold text-primary hover:text-primary-container transition-colors"
             >
-              Forgot password?
+              Quên mật khẩu?
             </Link>
           </div>
-          <input
+          <Input
             id="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             type="password"
-            className="ticketbox-input"
             placeholder="********"
             required
             disabled={loading}
           />
         </div>
 
-        <button
-          className="ticketbox-button-primary mt-2 w-full"
-          disabled={loading}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Signing in...
-            </>
-          ) : (
-            "Sign in"
-          )}
-        </button>
+        <Button type="submit" className="mt-4 w-full py-3.5" loading={loading}>
+          Đăng nhập
+        </Button>
       </form>
     </TicketBoxAuthShell>
   );

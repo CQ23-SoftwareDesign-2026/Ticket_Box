@@ -9,31 +9,34 @@ import {
   cancelOrder,
   type OrderDetail,
 } from "@/services/order.service";
+import { formatConcertCurrency } from "@/services/concert.service";
+import { ConfirmModal } from "@/components/screens";
 import {
   Calendar,
   Ticket,
-  ChevronDown,
-  ChevronUp,
   Loader2,
   ShieldCheck,
   AlertTriangle,
   Receipt,
   Ban,
   RefreshCw,
-  Landmark,
+  X,
+  QrCode,
+  Sparkles,
 } from "lucide-react";
 import QRCode from "qrcode";
+import { useToast } from "@/context/ToastContext";
 
 interface PageProps {
   params: Promise<{ orderId: string }>;
 }
 
-function TicketQrCode({ hash }: { hash: string }) {
+function TicketQrCode({ hash, width = 150 }: { hash: string; width?: number }) {
   const [qrUrl, setQrUrl] = useState<string>("");
 
   useEffect(() => {
     let active = true;
-    QRCode.toDataURL(hash, { width: 150, margin: 1 })
+    QRCode.toDataURL(hash, { width, margin: 1 })
       .then((url) => {
         if (active) setQrUrl(url);
       })
@@ -43,7 +46,7 @@ function TicketQrCode({ hash }: { hash: string }) {
     return () => {
       active = false;
     };
-  }, [hash]);
+  }, [hash, width]);
 
   if (!qrUrl) {
     return (
@@ -55,7 +58,7 @@ function TicketQrCode({ hash }: { hash: string }) {
 
   return (
     /* eslint-disable-next-line @next/next/no-img-element */
-    <img src={qrUrl} alt="Entry QR Code" className="w-full h-full" />
+    <img src={qrUrl} alt="Mã QR soát vé" className="w-full h-full" />
   );
 }
 
@@ -70,24 +73,51 @@ export default function OrderDetailsPage({ params }: PageProps) {
   );
 
   const [order, setOrder] = useState<OrderDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
-  const [openTelemetryId, setOpenTelemetryId] = useState<string | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [selectedQrHash, setSelectedQrHash] = useState<string | null>(null);
+  const { success: showSuccessToast, error: showErrorToast } = useToast();
+
+  const getTicketCount = (orderData: OrderDetail | null) => {
+    if (!orderData) return 0;
+    if (orderData.ticket_count > 0) return orderData.ticket_count;
+    if (orderData.ticket_metadata) {
+      const metadata = orderData.ticket_metadata as Record<string, unknown>;
+      if (metadata.quantity) return Number(metadata.quantity);
+      if (
+        metadata.ticket_breakdown &&
+        Array.isArray(metadata.ticket_breakdown)
+      ) {
+        return (
+          metadata.ticket_breakdown as Array<Record<string, unknown>>
+        ).reduce(
+          (sum: number, item: Record<string, unknown>) =>
+            sum + (Number(item.quantity) || 0),
+          0,
+        );
+      }
+    }
+    return 0;
+  };
 
   const handleRefresh = async () => {
-    setLoading(true);
+    setRefreshing(true);
     setError(null);
     try {
       const data = await getOrderById(orderId, isAdmin);
+      if (!data) {
+        throw new Error("Không tìm thấy đơn hàng");
+      }
       setOrder(data);
+      showSuccessToast("Đã cập nhật trạng thái đơn hàng!");
     } catch (err) {
-      console.error("Failed to load order details:", err);
-      setError(
-        "Unable to retrieve order details. Please verify your order ID.",
-      );
+      console.error("Failed to refresh order details:", err);
+      showErrorToast("Không thể tải thông tin đơn hàng lúc này.");
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -95,19 +125,25 @@ export default function OrderDetailsPage({ params }: PageProps) {
     let active = true;
 
     async function load() {
+      setInitialLoading(true);
       try {
         const data = await getOrderById(orderId, isAdmin);
+        if (!data) {
+          throw new Error("Không tìm thấy đơn hàng");
+        }
         if (active) {
           setOrder(data);
-          setLoading(false);
         }
       } catch (err) {
         console.error("Failed to load order details:", err);
         if (active) {
           setError(
-            "Unable to retrieve order details. Please verify your order ID.",
+            "Không thể tải thông tin chi tiết đơn đặt vé. Vui lòng thử lại sau.",
           );
-          setLoading(false);
+        }
+      } finally {
+        if (active) {
+          setInitialLoading(false);
         }
       }
     }
@@ -120,28 +156,23 @@ export default function OrderDetailsPage({ params }: PageProps) {
   }, [orderId, isAdmin]);
 
   const handleCancelOrder = async () => {
-    if (
-      !window.confirm(
-        "Are you sure you want to cancel this pending order? This will release reserved seats.",
-      )
-    ) {
-      return;
-    }
     setCancelLoading(true);
     try {
       const updated = await cancelOrder(orderId);
       setOrder(updated);
+      showSuccessToast("Hủy đơn hàng thành công!");
     } catch (err) {
       console.error("Error cancelling order:", err);
-      alert("Failed to cancel order. Please try again.");
+      showErrorToast("Hủy đơn hàng thất bại. Vui lòng thử lại.");
     } finally {
       setCancelLoading(false);
+      setShowCancelConfirm(false);
     }
   };
 
   const formatDate = (dateStr: string) => {
     try {
-      return new Date(dateStr).toLocaleDateString("en-US", {
+      return new Date(dateStr).toLocaleDateString("vi-VN", {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -153,18 +184,24 @@ export default function OrderDetailsPage({ params }: PageProps) {
     }
   };
 
-  const toggleTelemetry = (txId: string) => {
-    setOpenTelemetryId(openTelemetryId === txId ? null : txId);
-  };
-
-  if (loading) {
+  if (initialLoading) {
     return (
       <SiteShell active="/my-tickets">
-        <div className="flex min-h-[50vh] flex-col items-center justify-center space-y-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-on-surface-variant font-medium">
-            Loading order details...
-          </p>
+        <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8 animate-pulse space-y-8">
+          {/* Header */}
+          <div className="flex justify-between items-center">
+            <div className="h-8 w-48 bg-outline-variant/30 rounded-lg" />
+            <div className="h-10 w-24 bg-outline-variant/30 rounded-xl" />
+          </div>
+
+          {/* Two Column */}
+          <div className="grid gap-8 lg:grid-cols-3">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="h-32 bg-outline-variant/30 rounded-3xl" />
+              <div className="h-64 bg-outline-variant/30 rounded-3xl" />
+            </div>
+            <div className="h-48 bg-outline-variant/30 rounded-3xl" />
+          </div>
         </div>
       </SiteShell>
     );
@@ -174,19 +211,19 @@ export default function OrderDetailsPage({ params }: PageProps) {
     return (
       <SiteShell active="/my-tickets">
         <section className="mx-auto max-w-md px-4 py-16 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/25">
             <AlertTriangle size={28} />
           </div>
           <h2 className="mt-6 font-display text-2xl font-bold text-on-surface">
-            Order Not Found
+            Không tìm thấy đơn hàng
           </h2>
-          <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+          <p className="mt-2 text-sm leading-6 text-on-surface-variant/80">
             {error ||
-              "We couldn't find the requested order in your account history."}
+              "Chúng tôi không tìm thấy thông tin của đơn đặt vé được yêu cầu."}
           </p>
-          <div className="mt-8 flex flex-col gap-3">
+          <div className="mt-8">
             <Button href="/my-tickets" className="w-full">
-              Back to history
+              Quay lại thư viện vé
             </Button>
           </div>
         </section>
@@ -200,35 +237,33 @@ export default function OrderDetailsPage({ params }: PageProps) {
 
   return (
     <SiteShell active="/my-tickets">
+      {/* Background loading overlay line during refreshing state */}
+      {refreshing && (
+        <div className="fixed top-0 left-0 right-0 h-1 bg-primary/20 overflow-hidden z-50">
+          <div className="h-full bg-primary animate-pulse w-full" />
+        </div>
+      )}
+
       <section className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        {/* Header Breadcrumbs */}
+        {/* Header Title */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-on-surface-variant">
-              <span
-                className="hover:text-primary cursor-pointer"
-                onClick={() => window.history.back()}
-              >
-                Orders
-              </span>
-              <span>/</span>
-              <span className="text-on-surface/60">Detail</span>
-            </div>
-            <h1 className="mt-2 font-display text-3xl font-black text-on-surface sm:text-4xl">
-              Order Details
+            <h1 className="font-display text-3xl font-black text-on-surface sm:text-4xl">
+              Chi tiết đơn đặt vé
             </h1>
-            <p className="mt-1 text-xs font-mono text-on-surface-variant">
-              ID: {order.id}
-            </p>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={handleRefresh}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-outline-variant text-on-surface-variant hover:bg-surface-low transition-all"
-              title="Refresh order status"
+              disabled={refreshing}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/40 text-on-surface-variant hover:bg-slate-800 hover:border-slate-700 transition-all disabled:opacity-50 cursor-pointer active:scale-95"
+              title="Cập nhật trạng thái đơn hàng"
             >
-              <RefreshCw size={16} />
+              <RefreshCw
+                size={16}
+                className={refreshing ? "animate-spin" : ""}
+              />
             </button>
             {isPending && (
               <>
@@ -236,19 +271,19 @@ export default function OrderDetailsPage({ params }: PageProps) {
                   href={`/checkout/${order.id}`}
                   className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition-all duration-200 bg-primary hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20 active:scale-[0.98] whitespace-nowrap"
                 >
-                  Pay Now
+                  Thanh toán ngay
                 </Link>
                 <button
-                  onClick={handleCancelOrder}
+                  onClick={() => setShowCancelConfirm(true)}
                   disabled={cancelLoading}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98] cursor-pointer border border-rose-200 bg-rose-50/50 text-rose-700 hover:bg-rose-600 hover:text-white hover:border-rose-600 hover:shadow-md hover:shadow-rose-100 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98] cursor-pointer border border-slate-800 bg-slate-900/40 text-on-surface-variant hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 hover:shadow-lg hover:shadow-red-500/5 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                 >
                   {cancelLoading ? (
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                   ) : (
                     <Ban size={14} />
                   )}
-                  {cancelLoading ? "Cancelling..." : "Cancel Order"}
+                  {cancelLoading ? "Đang hủy..." : "Hủy đơn hàng"}
                 </button>
               </>
             )}
@@ -261,17 +296,15 @@ export default function OrderDetailsPage({ params }: PageProps) {
           <div className="space-y-6 lg:col-span-2">
             {/* Status Alert Banner */}
             {isPending && (
-              <div className="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-amber-900">
+              <div className="rounded-3xl border border-amber-500/25 bg-amber-500/5 p-5 text-amber-300">
                 <div className="flex gap-3">
-                  <AlertTriangle className="shrink-0 text-amber-600" />
+                  <AlertTriangle className="shrink-0 text-amber-500" />
                   <div>
-                    <h4 className="font-bold text-amber-900">
-                      Payment Pending
-                    </h4>
-                    <p className="mt-1 text-sm text-amber-800">
-                      This order is reserved, but payment has not been
-                      confirmed. Please complete the settlement process before
-                      the reservation expires.
+                    <h4 className="font-bold text-amber-300">Chờ thanh toán</h4>
+                    <p className="mt-1 text-sm text-on-surface-variant/90 leading-relaxed">
+                      Lượt giữ vé này đã được đăng ký, nhưng thanh toán chưa
+                      được xác nhận. Vui lòng hoàn tất thanh toán trước khi hết
+                      hạn giữ vé.
                     </p>
                   </div>
                 </div>
@@ -279,16 +312,16 @@ export default function OrderDetailsPage({ params }: PageProps) {
             )}
 
             {isCancelled && (
-              <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-5 text-slate-800">
+              <div className="rounded-3xl border border-slate-700 bg-slate-900/40 p-5 text-slate-300">
                 <div className="flex gap-3">
                   <Ban className="shrink-0 text-slate-500" />
                   <div>
-                    <h4 className="font-bold text-slate-900">
-                      Order Cancelled
+                    <h4 className="font-bold text-slate-300">
+                      Đơn hàng đã hủy
                     </h4>
-                    <p className="mt-1 text-sm text-slate-700">
-                      This order was cancelled and seat allocations have been
-                      released back into the ticket pool inventory.
+                    <p className="mt-1 text-sm text-on-surface-variant/90 leading-relaxed">
+                      Đơn hàng này đã bị hủy và các vé giữ chỗ đã được giải
+                      phóng trở lại hệ thống để người khác đăng ký.
                     </p>
                   </div>
                 </div>
@@ -296,30 +329,30 @@ export default function OrderDetailsPage({ params }: PageProps) {
             )}
 
             {/* Event & Overview Card */}
-            <div className="overflow-hidden rounded-3xl border border-outline-variant bg-surface p-6 shadow-sm">
-              <h2 className="font-display text-2xl font-bold text-on-surface">
+            <div className="overflow-hidden rounded-3xl border border-slate-700 bg-[#16222f] p-6 shadow-sm">
+              <h2 className="font-display text-2xl font-bold text-on-surface leading-snug">
                 {order.concert_name}
               </h2>
               <div className="mt-4 grid gap-4 sm:grid-cols-2 text-sm">
-                <div className="flex items-center gap-2.5 rounded-2xl bg-surface-low p-3.5">
+                <div className="flex items-center gap-2.5 rounded-2xl bg-slate-900/60 border border-slate-800 p-3.5">
                   <Calendar size={18} className="text-primary" />
                   <div>
-                    <p className="text-xs uppercase tracking-wider text-on-surface-variant font-medium">
-                      Created Date
+                    <p className="text-[10px] uppercase tracking-wider text-on-surface-variant/75 font-semibold">
+                      Ngày đặt vé
                     </p>
-                    <p className="font-semibold text-on-surface">
+                    <p className="font-semibold text-on-surface mt-0.5">
                       {formatDate(order.created_at)}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2.5 rounded-2xl bg-surface-low p-3.5">
+                <div className="flex items-center gap-2.5 rounded-2xl bg-slate-900/60 border border-slate-800 p-3.5">
                   <Ticket size={18} className="text-primary" />
                   <div>
-                    <p className="text-xs uppercase tracking-wider text-on-surface-variant font-medium">
-                      Tickets Quantity
+                    <p className="text-[10px] uppercase tracking-wider text-on-surface-variant/75 font-semibold">
+                      Số lượng đặt
                     </p>
-                    <p className="font-semibold text-on-surface">
-                      {order.ticket_count} tickets
+                    <p className="font-semibold text-on-surface mt-0.5">
+                      {getTicketCount(order)} vé
                     </p>
                   </div>
                 </div>
@@ -327,232 +360,253 @@ export default function OrderDetailsPage({ params }: PageProps) {
             </div>
 
             {/* Passes & QR Section */}
-            <div className="space-y-4">
-              <h3 className="font-display text-xl font-bold text-on-surface flex items-center gap-2">
-                <ShieldCheck size={20} className="text-primary" />
-                Digital Entry Passes
-              </h3>
+            {order.tickets && order.tickets.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="font-display text-xl font-bold text-on-surface flex items-center gap-2">
+                  <ShieldCheck size={20} className="text-primary" />
+                  Vé vào cổng điện tử
+                </h3>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                {order.tickets.map((ticket, index) => (
-                  <div
-                    key={ticket.id}
-                    className="overflow-hidden rounded-3xl border border-outline-variant bg-surface shadow-sm flex flex-col justify-between"
-                  >
-                    <div className="p-5 space-y-4">
-                      <div className="flex justify-between items-center gap-2 border-b border-outline-variant/60 pb-3">
-                        <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                          Pass #{index + 1}
-                        </span>
-                        {ticket.is_scanned ? (
-                          <span className="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600">
-                            Scanned
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-                            Active
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <div>
-                          <p className="text-[10px] uppercase text-on-surface-variant font-medium">
-                            Category
-                          </p>
-                          <p className="text-sm font-semibold text-on-surface">
-                            {ticket.category_name || "General Admission"}
-                          </p>
-                        </div>
-                        {ticket.gate_number !== null && (
-                          <div>
-                            <p className="text-[10px] uppercase text-on-surface-variant font-medium">
-                              Gate Number
-                            </p>
-                            <p className="text-sm font-semibold text-on-surface">
-                              Gate {ticket.gate_number}
-                            </p>
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-[10px] uppercase text-on-surface-variant font-medium">
-                            QR Hash Reference
-                          </p>
-                          <p className="text-[11px] font-mono text-on-surface-variant truncate">
-                            {ticket.qr_code_hash}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* QR Display */}
-                    <div className="bg-primary/5 p-5 border-t border-outline-variant/40 flex flex-col items-center justify-center space-y-3">
-                      {isPaid ? (
-                        <div className="relative aspect-square w-32 overflow-hidden rounded-xl border border-outline-variant bg-surface p-1 shadow-sm">
-                          <TicketQrCode hash={ticket.qr_code_hash} />
-                        </div>
-                      ) : (
-                        <div className="flex aspect-square w-32 flex-col items-center justify-center rounded-xl border border-dashed border-outline-variant bg-surface-low p-4 text-center">
-                          <AlertTriangle
-                            size={20}
-                            className="text-on-surface-variant/60 mx-auto"
-                          />
-                          <p className="mt-1 text-[9px] font-semibold text-on-surface-variant/80">
-                            QR Locked
-                          </p>
-                          <p className="mt-0.5 text-[8px] text-on-surface-variant/60 leading-tight">
-                            Requires paid order status
-                          </p>
-                        </div>
-                      )}
-                      <p className="text-[9px] uppercase tracking-wider text-on-surface-variant/70 font-semibold">
-                        Scan at entry gate
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column / Invoice Ledger & Telemetry */}
-          <div className="space-y-6">
-            {/* Invoice Summary Card */}
-            <div className="rounded-3xl border border-outline-variant bg-surface p-5 shadow-sm space-y-4">
-              <h3 className="font-display text-lg font-bold text-on-surface flex items-center gap-2 pb-3 border-b border-outline-variant/60">
-                <Receipt size={18} className="text-primary" />
-                Settlement Invoice
-              </h3>
-
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-on-surface-variant">Order Status</span>
-                  <span className="font-bold uppercase tracking-wider text-xs">
-                    {order.status}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-on-surface-variant">Ticket Count</span>
-                  <span>{order.ticket_count}x</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-on-surface-variant">Subtotal</span>
-                  <span>{order.total_amount}</span>
-                </div>
-                <div className="flex justify-between border-t border-outline-variant/60 pt-3 text-base font-bold">
-                  <span className="text-on-surface">Total Amount</span>
-                  <span className="text-primary">{order.total_amount}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Payment Transactions Ledger & Deep JSONB inspector */}
-            <div className="space-y-4">
-              <h3 className="font-display text-lg font-bold text-on-surface flex items-center gap-2">
-                <Landmark size={18} className="text-primary" />
-                Payment Operations
-              </h3>
-
-              {order.payment_transactions.length === 0 ? (
-                <div className="rounded-3xl border border-dashed border-outline-variant p-6 text-center text-sm text-on-surface-variant">
-                  No payment attempts recorded for this order.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {order.payment_transactions.map((tx) => {
-                    const isOpen = openTelemetryId === tx.id;
+                <div className="grid gap-6 sm:grid-cols-2">
+                  {order.tickets.map((ticket, index) => {
+                    const ticketNotchClass = isPaid
+                      ? "border-emerald-500/30"
+                      : "border-slate-800";
                     return (
                       <div
-                        key={tx.id}
-                        className="rounded-3xl border border-outline-variant bg-surface p-4 shadow-sm space-y-3"
+                        key={ticket.id}
+                        className={`group relative overflow-hidden rounded-3xl border shadow-md flex flex-col justify-between transition-all duration-300 ${
+                          isPaid
+                            ? "border-emerald-500/20 bg-slate-900/90"
+                            : "border-slate-800 bg-[#171b22]"
+                        }`}
                       >
-                        <div className="flex justify-between items-start gap-2">
-                          <div>
-                            <span className="text-[10px] font-mono font-bold text-on-surface-variant">
-                              TX: {tx.id.slice(0, 8).toUpperCase()}
+                        {/* Ticket stub content (top) */}
+                        <div className="p-5 space-y-4 pb-4">
+                          <div className="flex justify-between items-center gap-2 border-b border-slate-700 pb-3">
+                            <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                              VÉ VÀO CỬA #{index + 1}
                             </span>
-                            <h4 className="text-sm font-bold text-on-surface mt-0.5">
-                              {tx.payment_method} Sandbox
-                            </h4>
-                          </div>
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold ${
-                              tx.status === "SUCCESS"
-                                ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
-                                : tx.status === "FAILED"
-                                  ? "bg-rose-50 border border-rose-200 text-rose-700"
-                                  : "bg-amber-50 border border-amber-200 text-amber-700"
-                            }`}
-                          >
-                            {tx.status || "PENDING"}
-                          </span>
-                        </div>
-
-                        <div className="space-y-1.5 text-xs border-t border-outline-variant/40 pt-2 text-on-surface-variant">
-                          <div className="flex justify-between">
-                            <span>Amount:</span>
-                            <span className="font-semibold text-on-surface">
-                              {tx.amount}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Date:</span>
-                            <span>{formatDate(tx.created_at)}</span>
-                          </div>
-                          {tx.transaction_id_3rd_party && (
-                            <div className="flex justify-between">
-                              <span>3rd Party ID:</span>
-                              <span className="font-mono">
-                                {tx.transaction_id_3rd_party}
+                            {ticket.is_scanned ? (
+                              <span className="inline-flex items-center rounded-full bg-slate-850 border border-slate-750 px-2 py-0.5 text-[10px] font-bold text-slate-400">
+                                Đã sử dụng
                               </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+                                Hợp lệ
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <div>
+                              <p className="text-[10px] uppercase text-on-surface-variant/80 font-semibold">
+                                Hạng vé
+                              </p>
+                              <p className="text-sm font-bold text-on-surface mt-0.5">
+                                {ticket.category_name || "General Admission"}
+                              </p>
                             </div>
-                          )}
-                          <div className="flex flex-col pt-1">
-                            <span className="text-[10px] font-medium">
-                              Idempotency Key:
-                            </span>
-                            <span className="font-mono text-[10px] text-on-surface truncate">
-                              {tx.idempotency_key}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Collapsible raw response JSONB database logs */}
-                        {tx.raw_response && (
-                          <div className="pt-2">
-                            <button
-                              onClick={() => toggleTelemetry(tx.id)}
-                              className="w-full flex items-center justify-between gap-1 rounded-xl bg-surface-low border border-outline-variant/60 px-3 py-2 text-xs font-semibold text-on-surface-variant hover:bg-surface-high transition-colors"
-                            >
-                              <span className="inline-flex items-center gap-1">
-                                <Receipt size={12} />
-                                Raw Telemetry Log
-                              </span>
-                              {isOpen ? (
-                                <ChevronUp size={13} />
-                              ) : (
-                                <ChevronDown size={13} />
-                              )}
-                            </button>
-
-                            {isOpen && (
-                              <div className="mt-2 rounded-xl bg-surface-low border border-outline-variant/60 p-3 overflow-x-auto text-[10px] font-mono text-on-surface-variant shadow-inner max-h-48">
-                                <pre>
-                                  {JSON.stringify(tx.raw_response, null, 2)}
-                                </pre>
+                            {ticket.gate_number !== null && (
+                              <div>
+                                <p className="text-[10px] uppercase text-on-surface-variant/80 font-semibold">
+                                  Cổng soát vé
+                                </p>
+                                <p className="text-sm font-bold text-on-surface mt-0.5">
+                                  Cổng {ticket.gate_number}
+                                </p>
                               </div>
                             )}
                           </div>
-                        )}
+                        </div>
+
+                        {/* Perforation Divider Line and Notches */}
+                        <div className="relative w-full py-1">
+                          {/* Skeuomorphic Die-cut Notches */}
+                          <div
+                            className={`absolute top-1/2 -translate-y-1/2 -left-3.5 w-7 h-7 rounded-full bg-background border-r ${ticketNotchClass} z-10`}
+                          />
+                          <div
+                            className={`absolute top-1/2 -translate-y-1/2 -right-3.5 w-7 h-7 rounded-full bg-background border-l ${ticketNotchClass} z-10`}
+                          />
+
+                          {/* Perforation Divider Line */}
+                          <div
+                            className={`border-t-2 border-dashed ${isPaid ? "border-emerald-500/20" : "border-slate-800"}`}
+                          />
+                        </div>
+
+                        {/* QR Code stub section (bottom) */}
+                        <div className="p-5 pt-4 flex flex-col items-center justify-center space-y-3 z-0">
+                          {isPaid ? (
+                            <div
+                              onClick={() =>
+                                setSelectedQrHash(ticket.qr_code_hash)
+                              }
+                              className="relative aspect-square w-32 overflow-hidden rounded-xl border border-slate-650 bg-white p-1 shadow-md cursor-pointer hover:scale-105 active:scale-95 transition-all duration-200"
+                              title="Bấm để phóng to mã QR"
+                            >
+                              <TicketQrCode hash={ticket.qr_code_hash} />
+                            </div>
+                          ) : (
+                            <div className="flex aspect-square w-32 flex-col items-center justify-center rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-4 text-center">
+                              <AlertTriangle
+                                size={20}
+                                className="text-on-surface-variant/50 mx-auto"
+                              />
+                              <p className="mt-1 text-[10px] font-bold text-on-surface-variant">
+                                QR Đã Khóa
+                              </p>
+                              <p className="mt-0.5 text-[8px] text-on-surface-variant/60 leading-tight">
+                                Yêu cầu đơn hàng hoàn tất thanh toán
+                              </p>
+                            </div>
+                          )}
+                          <p className="text-[10px] uppercase tracking-wider text-on-surface-variant/70 font-bold flex items-center gap-1.5 mt-1">
+                            <QrCode size={12} className="text-primary/70" />
+                            Quét tại cổng vào
+                          </p>
+                        </div>
                       </div>
                     );
                   })}
                 </div>
-              )}
+              </div>
+            )}
+          </div>
+
+          {/* Right Column / Invoice Ledger */}
+          <div className="space-y-6">
+            {/* Invoice Summary Card */}
+            <div className="rounded-3xl border border-slate-700 bg-[#16222f] p-6 shadow-sm space-y-5">
+              <h3 className="font-display text-lg font-bold text-on-surface flex items-center gap-2 pb-3.5 border-b border-slate-700">
+                <Receipt size={18} className="text-primary" />
+                Hóa đơn thanh toán
+              </h3>
+
+              <div className="space-y-4 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-on-surface-variant/80">
+                    Trạng thái đơn
+                  </span>
+                  <span
+                    className={`font-bold uppercase tracking-wider text-xs ${
+                      isPaid
+                        ? "text-emerald-400"
+                        : isPending
+                          ? "text-amber-400 animate-pulse"
+                          : "text-slate-400"
+                    }`}
+                  >
+                    {isPaid
+                      ? "Đã thanh toán"
+                      : isPending
+                        ? "Chờ thanh toán"
+                        : "Đã hủy"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-on-surface-variant/80">
+                    Số lượng đặt
+                  </span>
+                  <span className="font-semibold text-on-surface">
+                    {getTicketCount(order)}x
+                  </span>
+                </div>
+
+                {/* Detailed Ticket breakdown list */}
+                {order.ticket_metadata &&
+                  !!(order.ticket_metadata as Record<string, unknown>)
+                    .ticket_breakdown && (
+                    <div className="border-t border-slate-700 pt-3.5 space-y-2.5 text-xs text-on-surface-variant/80">
+                      {(
+                        (order.ticket_metadata as Record<string, unknown>)
+                          .ticket_breakdown as Array<Record<string, unknown>>
+                      ).map((item, idx) => {
+                        const metadata = order.ticket_metadata as Record<
+                          string,
+                          unknown
+                        >;
+                        const name =
+                          (item.category_name as string) ||
+                          (metadata.category_name as string) ||
+                          "General Admission";
+                        const price =
+                          Number(item.unit_price) ||
+                          Number(metadata.unit_price) ||
+                          0;
+                        const qty =
+                          Number(item.quantity) ||
+                          Number(metadata.quantity) ||
+                          1;
+                        return (
+                          <div key={idx} className="flex justify-between">
+                            <span>
+                              {name} (x{qty})
+                            </span>
+                            <span className="font-semibold text-on-surface">
+                              {formatConcertCurrency(price * qty)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                <div className="flex justify-between border-t border-slate-700 pt-4 text-base font-black">
+                  <span className="text-on-surface">Tổng cộng</span>
+                  <span className="text-primary">
+                    {formatConcertCurrency(Number(order.total_amount))}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Enlarged QR Modal */}
+      {selectedQrHash && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in-quick"
+          onClick={() => setSelectedQrHash(null)}
+        >
+          <div
+            className="relative w-full max-w-sm rounded-3xl border border-slate-650 bg-slate-900 p-6 shadow-2xl flex flex-col items-center space-y-4 animate-fade-in-quick"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setSelectedQrHash(null)}
+              className="absolute right-4 top-4 rounded-full p-1.5 text-on-surface-variant hover:bg-slate-800 transition-colors cursor-pointer"
+              aria-label="Đóng"
+            >
+              <X size={18} />
+            </button>
+            <div className="text-center">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/20 border border-primary/30 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+                <Sparkles size={11} />
+                Vé vào cổng điện tử
+              </span>
+              <p className="text-xs text-on-surface-variant/80 mt-2">
+                Đưa mã QR này cho nhân viên tại lối vào cửa
+              </p>
+            </div>
+            <div className="relative aspect-square w-64 overflow-hidden rounded-2xl border border-slate-700 bg-white p-2 shadow-inner">
+              <TicketQrCode hash={selectedQrHash} width={300} />
+            </div>
+          </div>
+        </div>
+      )}
+      <ConfirmModal
+        isOpen={showCancelConfirm}
+        onClose={() => setShowCancelConfirm(false)}
+        onConfirm={handleCancelOrder}
+        title="Xác nhận hủy đơn hàng"
+        message="Bạn có chắc chắn muốn hủy đơn hàng giữ vé này? Các chỗ ngồi đang giữ sẽ được giải phóng hoàn toàn và không thể thanh toán tiếp."
+        confirmText="Xác nhận hủy"
+        cancelText="Quay lại"
+        isLoading={cancelLoading}
+      />
     </SiteShell>
   );
 }

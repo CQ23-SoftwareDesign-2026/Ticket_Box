@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { UserProfile } from "@/types/auth.types";
 import { authService } from "@/services/auth.service";
-import { tokenStorage } from "@/utils/token.utils";
+import { tokenStorage, isTokenExpired } from "@/utils/token.utils";
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -22,7 +22,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        if (tokenStorage.hasToken()) {
+        const token = tokenStorage.getAccessToken();
+        if (token) {
+          // Proactively refresh token if expired before requesting /me profile
+          if (isTokenExpired(token)) {
+            const refreshToken = tokenStorage.getRefreshToken();
+            if (refreshToken) {
+              await authService.refreshToken();
+            } else {
+              throw new Error("No refresh token available");
+            }
+          }
           const profile = await authService.me();
           setUser(profile);
         }

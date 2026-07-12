@@ -7,6 +7,7 @@ import { ConcertListQueryDto } from '../dtos/concert-list-query.dto';
 import { ConcertListResponseDto } from '../dtos/concert-list-response.dto';
 import { PaginationMetaDto } from '../../../shared/dtos/pagination-meta.dto';
 import { RedisService } from '../../../shared/redis';
+import { TicketingService } from '../../ticketing/services/ticketing.service';
 
 @Injectable()
 export class ConcertService {
@@ -16,6 +17,7 @@ export class ConcertService {
   constructor(
     private readonly concertRepo: ConcertRepository,
     private readonly redisService: RedisService,
+    private readonly ticketingService: TicketingService,
   ) { }
 
   async getConcerts(query: ConcertListQueryDto): Promise<ConcertListResponseDto> {
@@ -50,18 +52,34 @@ export class ConcertService {
 
   async getConcertById(id: string): Promise<ConcertResponseDto> {
     const cacheKey = this.getConcertDetailCacheKey(id);
+    let concert: ConcertResponseDto | null;
+
     const cached = await this.redisService.getJson<ConcertResponseDto>(cacheKey);
     if (cached) {
       this.logger.log(`[REDIS] getConcertById cache hit id=${id} key=${cacheKey}`);
-      return new ConcertResponseDto(cached);
+      concert = new ConcertResponseDto(cached);
+    } else {
+      this.logger.log(`[DB] getConcertById cache miss id=${id} key=${cacheKey}`);
+      concert = await this.concertRepo.findById(id, false);
+      if (!concert) throw new NotFoundException('Concert not found');
+      await this.redisService.setJson(cacheKey, concert, this.cacheTtlSeconds);
     }
 
-    this.logger.log(`[DB] getConcertById cache miss id=${id} key=${cacheKey}`);
+    // Overlay real-time remaining ticket quantities and dynamic sold out status
+    if (concert.ticketTiers && concert.ticketTiers.length > 0) {
+      for (const tier of concert.ticketTiers) {
+        try {
+          const remaining = await this.ticketingService.getOrSeedInventory(tier.id);
+          tier.remaining_quantity = remaining;
+          if (remaining <= 0) {
+            tier.status = 'sold_out';
+          }
+        } catch (err) {
+          this.logger.error(`Failed to resolve real-time inventory for category ${tier.id}`, err);
+        }
+      }
+    }
 
-    const concert = await this.concertRepo.findById(id, false);
-    if (!concert) throw new NotFoundException('Concert not found');
-
-    await this.redisService.setJson(cacheKey, concert, this.cacheTtlSeconds);
     return concert;
   }
 
@@ -80,7 +98,7 @@ export class ConcertService {
     const updated = await this.concertRepo.update(id, payload);
     await this.redisService.setJson(this.getConcertDetailCacheKey(id), updated, this.cacheTtlSeconds);
     await this.invalidateConcertListCaches();
-    await this.warmUpConcertRedisCache(updated, false);
+    await this.warmUpConcertRedisCache(updated, false, existing);
     return updated;
   }
 
@@ -96,7 +114,7 @@ export class ConcertService {
     return deleted;
   }
 
-  private async warmUpConcertRedisCache(concert: ConcertResponseDto, isNew = false) {
+  private async warmUpConcertRedisCache(concert: ConcertResponseDto, isNew = false, oldConcert?: ConcertResponseDto) {
     if (concert.status === 'PUBLISHED' && concert.ticketTiers) {
       const client = this.redisService.getClient();
       if (client && client.isOpen) {
@@ -109,9 +127,23 @@ export class ConcertService {
             });
             this.logger.log(`[Redis Warmup] Automatically initialized category ${tier.id} for new concert ${concert.name}`);
           } else {
-            // For updates: delete key so the next reservation triggers a correct Lazy Seeding recalculation
-            await client.del(key);
-            this.logger.log(`[Redis Warmup] Evicted category ${tier.id} for updated concert ${concert.name} to force lazy recalculation`);
+            // For updates: update in place to avoid losing in-flight Redis reservations.
+            const exists = await client.exists(key);
+            if (exists) {
+              const oldTier = oldConcert?.ticketTiers?.find((t) => t.id === tier.id);
+              const oldTotal = oldTier ? oldTier.total_quantity : tier.total_quantity;
+              const difference = tier.total_quantity - oldTotal;
+
+              if (difference !== 0) {
+                await client.hIncrBy(key, 'available', difference);
+                this.logger.log(`[Redis Update] Adjusted category ${tier.id} available count by ${difference} (new total: ${tier.total_quantity})`);
+              }
+              await client.hSet(key, 'max_per_user', tier.max_per_user.toString());
+              this.logger.log(`[Redis Update] Updated category ${tier.id} max_per_user to ${tier.max_per_user}`);
+            } else {
+              // If not in Redis yet, let lazy seeding handle it on-demand
+              this.logger.log(`[Redis Update] Category ${tier.id} not found in Redis, skipping in-place update`);
+            }
           }
         }
       }

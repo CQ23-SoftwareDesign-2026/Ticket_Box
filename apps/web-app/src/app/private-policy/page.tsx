@@ -1,500 +1,294 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { SiteShell } from "@/components/common";
+import {
+  Shield,
+  Lock,
+  Eye,
+  UserCheck,
+  Clock,
+  Mail,
+  Info,
+  Calendar,
+} from "lucide-react";
+
+const sections = [
+  {
+    id: "info-collect",
+    number: 1,
+    title: "Thu thập thông tin",
+    description:
+      "Các loại dữ liệu cá nhân chúng tôi thu thập khi bạn sử dụng dịch vụ.",
+    content:
+      "Khi bạn đăng ký tài khoản, thực hiện giao dịch mua vé hoặc tương tác trên TicketBox, chúng tôi có thể thu thập các thông tin cá nhân bao gồm: Họ tên, địa chỉ email, số điện thoại, và lịch sử giao dịch. Chúng tôi cũng tự động thu thập một số dữ liệu kỹ thuật như địa chỉ IP, loại thiết bị và hành vi sử dụng trang web nhằm cải thiện chất lượng dịch vụ tốt hơn.",
+    icon: Eye,
+    iconColor: "text-blue-400",
+    bgColor: "bg-blue-500/10 border-blue-500/20",
+  },
+  {
+    id: "info-usage",
+    number: 2,
+    title: "Mục đích sử dụng",
+    description:
+      "Cách thức chúng tôi xử lý dữ liệu để phục vụ trải nghiệm đặt vé của bạn.",
+    content:
+      "Thông tin thu thập được sử dụng chủ yếu để xử lý đơn hàng đặt vé của bạn, phát hành vé điện tử (mã QR), gửi email xác nhận thanh toán, và cập nhật thông tin sự kiện liên quan (như thay đổi lịch trình hoặc hủy bỏ). Ngoài ra, chúng tôi sử dụng dữ liệu ẩn danh để thực hiện phân tích hiệu năng và tăng cường các lớp bảo mật chống gian lận.",
+    icon: Shield,
+    iconColor: "text-indigo-400",
+    bgColor: "bg-indigo-500/10 border-indigo-500/20",
+  },
+  {
+    id: "data-sharing",
+    number: 3,
+    title: "Bảo mật & chia sẻ dữ liệu",
+    description:
+      "Chính sách cam kết bảo vệ thông tin cá nhân của bạn an toàn tuyệt đối.",
+    content:
+      "TicketBox cam kết không bán, cho thuê hoặc chia sẻ trái phép dữ liệu cá nhân của bạn với bên thứ ba. Chúng tôi chỉ chia sẻ dữ liệu cần thiết với Ban Tổ Chức sự kiện (để soát vé) và đối tác Cổng thanh toán bảo mật (PayOS) nhằm thực hiện giao dịch. Mọi dữ liệu truyền tải đều được mã hóa bằng giao thức HTTPS chuẩn công nghiệp.",
+    icon: Lock,
+    iconColor: "text-emerald-400",
+    bgColor: "bg-emerald-500/10 border-emerald-500/20",
+  },
+  {
+    id: "user-rights",
+    number: 4,
+    title: "Quyền hạn của bạn",
+    description: "Các quyền lợi kiểm soát dữ liệu cá nhân mà bạn sở hữu.",
+    content:
+      "Bạn có toàn quyền truy cập, chỉnh sửa hoặc yêu cầu hủy bỏ thông tin cá nhân của mình trong trang cài đặt tài khoản bất kỳ lúc nào. Bạn cũng có quyền từ chối nhận các email quảng cáo từ TicketBox bằng cách sử dụng liên kết hủy đăng ký ở cuối mỗi thư. Đối với yêu cầu xóa tài khoản vĩnh viễn, bạn có thể liên hệ trực tiếp với bộ phận hỗ trợ kỹ thuật.",
+    icon: UserCheck,
+    iconColor: "text-amber-400",
+    bgColor: "bg-amber-500/10 border-amber-500/20",
+  },
+  {
+    id: "data-retention",
+    number: 5,
+    title: "Thời gian lưu trữ",
+    description:
+      "Thời gian lưu trữ dữ liệu cá nhân trên hệ thống của chúng tôi.",
+    content:
+      "Chúng tôi sẽ lưu trữ dữ liệu cá nhân của bạn trên máy chủ an toàn chừng nào tài khoản của bạn còn hoạt động, hoặc khi thông tin đó còn cần thiết để thực hiện các nghĩa vụ đối soát tài chính và giải quyết tranh chấp pháp lý. Dữ liệu sao lưu sẽ định kỳ được dọn dẹp và xóa sạch theo đúng chu kỳ vận hành của hệ thống bảo mật.",
+    icon: Clock,
+    iconColor: "text-purple-400",
+    bgColor: "bg-purple-500/10 border-purple-500/20",
+  },
+];
+
+const contactEmails = [
+  "khacvuong2707@gmail.com",
+  "quangtuanxml@gmail.com",
+  "quocvy23072005@gmail.com",
+  "tvquang.working@gmail.com",
+];
 
 export default function PrivacyPolicyPage() {
-  const sections = [
-    {
-      number: 1,
-      title: "Information We Collect",
-      content:
-        "When you use the TicketBox ticket booking system, we may collect personal information such as your name, email address, phone number, and payment details. We also collect data on your browsing behavior and ticket purchasing history to improve our services and offer personalized recommendations.",
-    },
-    {
-      number: 2,
-      title: "How We Use Your Information",
-      content:
-        "Your information is primarily used to process ticket purchases, deliver tickets (e-tickets), and communicate with you regarding event updates or cancellations. We may also use your data for internal analytics to enhance system performance and security.",
-    },
-    {
-      number: 3,
-      title: "Data Sharing and Security",
-      content:
-        "TicketBox does not sell your personal information to third parties. We may share necessary data with event organizers and secure payment gateways solely for the purpose of fulfilling your booking. We implement industry-standard security measures to protect your data against unauthorized access.",
-      icon: "🔐",
-    },
-    {
-      number: 4,
-      title: "Your Rights",
-      content:
-        "You have the right to access, update, or request the deletion of your personal information at any time through your account profile. If you have any questions or concerns about how your data is handled, please contact our support team.",
-      icon: "⚖️",
-    },
-    {
-      number: 5,
-      title: "Data Retention",
-      content:
-        "We retain your personal information for as long as necessary to fulfill the purposes outlined in this privacy policy. You can request deletion of your data at any time, subject to legal and contractual obligations.",
-      icon: "📅",
-    },
-  ];
+  const [activeSection, setActiveSection] = useState<string>("info-collect");
 
-  const contactEmails = [
-    "khacvuong2707@gmail.com",
-    "quangtuanxml@gmail.com",
-    "quocvy23072005@gmail.com",
-    "tvquang.working@gmail.com",
-  ];
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 200;
+      for (const section of sections) {
+        const element = document.getElementById(section.id);
+        if (element) {
+          const offsetTop = element.offsetTop;
+          const offsetHeight = element.offsetHeight;
+          if (
+            scrollPosition >= offsetTop &&
+            scrollPosition < offsetTop + offsetHeight
+          ) {
+            setActiveSection(section.id);
+            break;
+          }
+        }
+      }
+      // Check for contact section
+      const contactElement = document.getElementById("contact-us");
+      if (contactElement && scrollPosition >= contactElement.offsetTop) {
+        setActiveSection("contact-us");
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      window.scrollTo({
+        top: element.offsetTop - 120,
+        behavior: "smooth",
+      });
+      setActiveSection(id);
+    }
+  };
 
   return (
     <SiteShell active="/">
-      <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950">
-        <section className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="mb-16 animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="space-y-2">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-1.5 h-12 rounded-full bg-linear-to-b from-indigo-500 via-purple-500 to-cyan-500" />
+      <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 text-on-surface">
+        {/* Banner Hero */}
+        <div className="relative overflow-hidden py-20 border-b border-slate-800">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(99,102,241,0.1),transparent_50%)] pointer-events-none" />
+          <div className="absolute -right-40 -top-40 w-96 h-96 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
 
-                <div>
-                  <h1
-                    className="
-      text-5xl
-      sm:text-6xl
-      font-extrabold
-      font-display
-
-      bg-linear-to-r
-      from-white
-      via-indigo-200
-      to-purple-300
-
-      bg-clip-text
-      text-transparent
-    "
-                  >
-                    Privacy Policy
-                  </h1>
-
-                  <div
-                    className="
-      h-[2px]
-      mt-2
-      w-32
-      bg-linear-to-r
-      from-indigo-500
-      via-purple-500
-      to-cyan-500
-      rounded-full
-    "
-                  />
-                </div>
-              </div>
-              <p className="text-gray-400 text-lg ml-4">
-                TicketBox Privacy and Data Usage Policy
-              </p>
-            </div>
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 text-center sm:text-left">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/20 px-3.5 py-1 text-xs font-bold text-primary">
+              <Shield size={12} />
+              Quyền riêng tư & Bảo mật
+            </span>
+            <h1 className="mt-4 text-4xl sm:text-5xl font-black font-display text-on-surface leading-tight tracking-tight">
+              Chính Sách Bảo Mật
+            </h1>
+            <p className="mt-4 text-base sm:text-lg text-on-surface-variant/80 max-w-2xl leading-relaxed">
+              TicketBox cam kết bảo mật tuyệt đối mọi thông tin cá nhân và dữ
+              liệu giao dịch của bạn. Dưới đây là chính sách minh bạch của chúng
+              tôi về thu thập, sử dụng và bảo vệ dữ liệu.
+            </p>
           </div>
+        </div>
 
-          <div className="space-y-8">
-            {sections.map((section, index) => (
-              <div
-                key={section.number}
-                className="animate-in fade-in slide-in-from-bottom-2 duration-500"
-                style={{
-                  animationDelay: `${index * 100}ms`,
-                  animationFillMode: "both",
-                }}
-              >
-                <div
-                  className="
-          group
-          relative
-          overflow-hidden
-          rounded-xl
-          border
-          border-gray-700/50
-          bg-linear-to-br
-          from-gray-800/40
-          via-gray-800/30
-          to-gray-700/20
-          p-8
-          sm:p-10
-          backdrop-blur-sm
+        {/* Main Content Layout */}
+        <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="grid gap-12 lg:grid-cols-4">
+            {/* Sticky Table of Contents (Left Column) */}
+            <div className="hidden lg:block lg:col-span-1">
+              <div className="sticky top-28 space-y-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant/60 pl-3">
+                  Mục lục chính sách
+                </p>
+                <nav className="space-y-1">
+                  {sections.map((sec) => (
+                    <button
+                      key={sec.id}
+                      onClick={() => scrollToSection(sec.id)}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center gap-2.5 ${
+                        activeSection === sec.id
+                          ? "bg-primary text-white shadow-md shadow-primary/20"
+                          : "text-on-surface-variant/75 hover:bg-slate-900 hover:text-on-surface"
+                      }`}
+                    >
+                      <span className="text-xs opacity-60">0{sec.number}.</span>
+                      {sec.title}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => scrollToSection("contact-us")}
+                    className={`w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center gap-2.5 ${
+                      activeSection === "contact-us"
+                        ? "bg-primary text-white shadow-md shadow-primary/20"
+                        : "text-on-surface-variant/75 hover:bg-slate-900 hover:text-on-surface"
+                    }`}
+                  >
+                    <span className="text-xs opacity-60">06.</span>
+                    Liên hệ hỗ trợ
+                  </button>
+                </nav>
+              </div>
+            </div>
 
-          hover:border-indigo-500/50
-          hover:bg-gray-800/60
-          hover:-translate-y-1
-
-          hover:shadow-2xl
-          hover:shadow-indigo-500/10
-
-          transition-all
-          duration-300
-        "
-                >
-                  {/* Animated Gradient Glow */}
-                  <div
-                    className="
-            absolute
-            inset-0
-            opacity-0
-            group-hover:opacity-100
-            transition-opacity
-            duration-500
-            bg-linear-to-r
-            from-indigo-500/10
-            via-purple-500/10
-            to-cyan-500/10
-            pointer-events-none
-          "
-                  />
-
-                  {/* Top Accent Line */}
-                  <div
-                    className="
-            absolute
-            top-0
-            left-0
-            h-1
-            w-0
-            bg-linear-to-r
-            from-indigo-500
-            via-purple-500
-            to-cyan-500
-            group-hover:w-full
-            transition-all
-            duration-500
-          "
-                  />
-
-                  <div className="relative z-10 space-y-6">
-                    {/* Header */}
-                    <div>
-                      <div className="flex items-center gap-3 mb-4">
-                        <div
-                          className="
-                  w-1
-                  h-8
-                  rounded-full
-                  bg-gray-500
-                  group-hover:bg-linear-to-b
-                  group-hover:from-indigo-500
-                  group-hover:to-purple-500
-                  transition-all
-                  duration-300
-                "
-                        />
-
-                        <h2
-                          className="
-                  text-3xl
-                  sm:text-4xl
-                  font-bold
-                  font-display
-                  text-white
-                  transition-all
-                  duration-300
-                  group-hover:text-indigo-300
-                "
-                        >
-                          {section.number}. {section.title}
-                        </h2>
-                      </div>
-
-                      <p
-                        className="
-                text-gray-300
-                leading-relaxed
-                ml-4
-                text-base
-                sm:text-lg
-                transition-colors
-                duration-300
-                group-hover:text-gray-100
-              "
+            {/* Content Sections (Right Column) */}
+            <div className="lg:col-span-3 space-y-10">
+              {/* Sections List */}
+              {sections.map((sec) => {
+                const IconComponent = sec.icon;
+                return (
+                  <section
+                    key={sec.id}
+                    id={sec.id}
+                    className="scroll-mt-32 group relative rounded-3xl border border-slate-800 bg-[#16222f]/50 p-6 sm:p-8 hover:border-slate-700/80 hover:bg-[#16222f]/70 transition-all duration-300 shadow-sm"
+                  >
+                    <div className="flex flex-col sm:flex-row gap-5 items-start">
+                      <div
+                        className={`p-3.5 rounded-2xl ${sec.bgColor} shrink-0`}
                       >
-                        {section.content}
+                        <IconComponent className={`h-6 w-6 ${sec.iconColor}`} />
+                      </div>
+                      <div className="space-y-3">
+                        <span className="text-xs font-bold text-primary uppercase tracking-widest">
+                          Điều khoản 0{sec.number}
+                        </span>
+                        <h2 className="font-display text-2xl font-bold text-on-surface group-hover:text-primary transition-colors duration-250">
+                          {sec.title}
+                        </h2>
+                        <p className="text-sm font-medium text-on-surface-variant/70 italic">
+                          {sec.description}
+                        </p>
+                        <p className="text-base text-on-surface-variant/90 leading-relaxed pt-2">
+                          {sec.content}
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+                );
+              })}
+
+              {/* Contact Us Section */}
+              <section
+                id="contact-us"
+                className="scroll-mt-32 rounded-3xl border border-slate-700 bg-linear-to-br from-[#1b2b3a] to-[#121c26] p-6 sm:p-8 shadow-md relative overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_70%,rgba(99,102,241,0.05),transparent_50%)] pointer-events-none" />
+                <div className="relative z-10 space-y-6">
+                  <div className="flex gap-4 items-start">
+                    <div className="p-3.5 rounded-2xl bg-primary/10 border border-primary/20 text-primary shrink-0">
+                      <Mail className="h-6 w-6" />
+                    </div>
+                    <div className="space-y-2">
+                      <span className="text-xs font-bold text-primary uppercase tracking-widest">
+                        Liên hệ
+                      </span>
+                      <h2 className="font-display text-2xl font-bold text-on-surface">
+                        06. Liên hệ chúng tôi
+                      </h2>
+                      <p className="text-base text-on-surface-variant/90 leading-relaxed">
+                        Nếu bạn có bất kỳ câu hỏi nào liên quan đến Chính sách
+                        bảo mật hoặc muốn thực hiện quyền hạn bảo vệ dữ liệu cá
+                        nhân của mình, vui lòng kết nối với đội ngũ phát triển
+                        TicketBox qua các hòm thư điện tử dưới đây:
                       </p>
                     </div>
-
-                    {/* Footer */}
-                    <div className="pt-6 border-t border-gray-700/50">
-                      <p
-                        className="
-                text-sm
-                text-gray-400
-                flex
-                items-center
-                gap-2
-                transition-colors
-                duration-300
-                group-hover:text-gray-300
-              "
-                      ></p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Contact Us Section */}
-          <div
-            className="mt-16 animate-in fade-in slide-in-from-bottom-2 duration-700"
-            style={{ animationDelay: "500ms", animationFillMode: "both" }}
-          >
-            <div
-              className="
-          group
-          relative
-          overflow-hidden
-          rounded-xl
-          border
-          border-gray-700/50
-          bg-linear-to-br
-          from-gray-800/40
-          via-gray-800/30
-          to-gray-700/20
-          p-8
-          sm:p-10
-          backdrop-blur-sm
-
-          hover:border-indigo-500/50
-          hover:bg-gray-800/60
-          hover:-translate-y-1
-
-          hover:shadow-2xl
-          hover:shadow-indigo-500/10
-
-          transition-all
-          duration-300
-        "
-            >
-              {/* Animated Gradient Glow */}
-              <div
-                className="
-            absolute
-            inset-0
-            opacity-0
-            group-hover:opacity-100
-            transition-opacity
-            duration-500
-            bg-linear-to-r
-            from-indigo-500/10
-            via-purple-500/10
-            to-cyan-500/10
-            pointer-events-none
-          "
-              />
-
-              {/* Top Accent Line */}
-              <div
-                className="
-            absolute
-            top-0
-            left-0
-            h-1
-            w-0
-            bg-linear-to-r
-            from-indigo-500
-            via-purple-500
-            to-cyan-500
-            group-hover:w-full
-            transition-all
-            duration-500
-          "
-              />
-
-              <div className="relative z-10 space-y-6">
-                {/* Header */}
-                <div>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div
-                      className="
-                  w-1
-                  h-8
-                  rounded-full
-                  bg-gray-500
-                  group-hover:bg-linear-to-b
-                  group-hover:from-indigo-500
-                  group-hover:to-purple-500
-                  transition-all
-                  duration-300
-                "
-                    />
-
-                    <h2
-                      className="
-                  text-3xl
-                  sm:text-4xl
-                  font-bold
-                  font-display
-                  text-white
-                  transition-all
-                  duration-300
-                  group-hover:text-indigo-300
-                "
-                    >
-                      6. Contact Us
-                    </h2>
                   </div>
 
-                  <p
-                    className="
-                text-gray-300
-                leading-relaxed
-                ml-4
-                text-base
-                sm:text-lg
-                transition-colors
-                duration-300
-                group-hover:text-gray-100
-              "
-                  >
-                    If you have any questions about this privacy policy or wish
-                    to exercise your rights, please contact us:
-                  </p>
-                </div>
-
-                {/* Email Grid */}
-                <div className="grid gap-3 sm:grid-cols-2 pt-4 ml-4">
-                  {contactEmails.map((email, index) => (
-                    <a
-                      key={email}
-                      href={`mailto:${email}`}
-                      className="
-                    group/email
-                    relative
-                    overflow-hidden
-                    rounded-lg
-                    bg-gray-800/40
-                    p-4
-                    border
-                    border-gray-700/50
-
-                    hover:border-indigo-500/50
-                    hover:bg-gray-800/60
-                    hover:-translate-y-0.5
-
-                    hover:shadow-lg
-                    hover:shadow-indigo-500/10
-
-                    transition-all
-                    duration-300
-                  "
-                      style={{
-                        animationDelay: `${550 + index * 50}ms`,
-                      }}
-                    >
-                      {/* Animated Gradient Glow */}
-                      <div
-                        className="
-                      absolute
-                      inset-0
-                      opacity-0
-                      group-hover/email:opacity-100
-                      transition-opacity
-                      duration-500
-                      bg-linear-to-r
-                      from-indigo-500/5
-                      via-purple-500/5
-                      to-cyan-500/5
-                      pointer-events-none
-                    "
-                      />
-
-                      <div className="relative z-10 flex items-center gap-3">
-                        <svg
-                          className="
-                        w-5
-                        h-5
-                        text-gray-500
-                        shrink-0
-                        group-hover/email:text-indigo-400
-                        transition-colors
-                        duration-300
-                      "
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                          <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                        </svg>
-                        <span
-                          className="
-                        text-sm
-                        font-semibold
-                        text-gray-300
-                        group-hover/email:text-indigo-300
-                        transition-colors
-                        duration-300
-                        truncate
-                      "
-                        >
+                  {/* Emails Grid */}
+                  <div className="grid gap-3.5 sm:grid-cols-2 sm:pl-14">
+                    {contactEmails.map((email) => (
+                      <a
+                        key={email}
+                        href={`mailto:${email}`}
+                        className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 hover:border-primary/50 hover:bg-slate-900 transition-all duration-200 group"
+                      >
+                        <div className="h-9 w-9 rounded-xl bg-slate-800 border border-slate-750 flex items-center justify-center text-on-surface-variant/60 group-hover:text-primary group-hover:border-primary/20 transition-colors">
+                          <Mail size={16} />
+                        </div>
+                        <span className="text-sm font-semibold text-on-surface-variant/95 group-hover:text-on-surface transition-colors truncate">
                           {email}
                         </span>
-                      </div>
-                    </a>
-                  ))}
-                </div>
+                      </a>
+                    ))}
+                  </div>
 
-                {/* Footer Note */}
-                <div className="pt-6 border-t border-gray-700/50">
-                  <p
-                    className="
-                text-sm
-                text-gray-400
-                flex
-                items-center
-                gap-2
-                ml-4
-                transition-colors
-                duration-300
-                group-hover:text-gray-300
-              "
-                  >
-                    <svg
-                      className="w-4 h-4 text-gray-500 shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    We typically respond to inquiries within 24-48 hours during
-                    business days.
-                  </p>
+                  {/* Foot Note */}
+                  <div className="flex items-center gap-2 text-xs text-on-surface-variant/60 sm:pl-14 pt-2">
+                    <Info size={14} className="text-primary/70 shrink-0" />
+                    <span>
+                      Chúng tôi thường phản hồi các yêu cầu bảo mật trong vòng
+                      24 - 48 giờ làm việc.
+                    </span>
+                  </div>
+                </div>
+              </section>
+
+              {/* Last Updated Timestamp */}
+              <div className="text-center pt-6">
+                <div className="inline-flex items-center gap-2 text-xs font-bold text-on-surface-variant/70 bg-[#16222f] px-4 py-2.5 rounded-full border border-slate-800 shadow-sm">
+                  <Calendar size={13} className="text-primary/80" />
+                  <span>Cập nhật lần cuối: Tháng 7, 2026</span>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Last Updated */}
-          <div
-            className="mt-16 text-center animate-in fade-in duration-700"
-            style={{ animationDelay: "600ms", animationFillMode: "both" }}
-          >
-            <div className="inline-flex items-center gap-2 text-sm text-gray-500 bg-gray-800/40 px-4 py-2 rounded-lg border border-gray-700/50 backdrop-blur-sm">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span>Last updated: June 2026</span>
-            </div>
-          </div>
-        </section>
+        </div>
       </div>
     </SiteShell>
   );

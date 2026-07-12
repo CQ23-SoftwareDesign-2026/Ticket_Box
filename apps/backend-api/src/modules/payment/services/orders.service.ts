@@ -21,6 +21,7 @@ type OrderListRow = {
     expires_at: Date;
     tickets: Array<{ id: string }>;
     payment_transactions: Array<{ payment_method: string; status: string | null }>;
+    user?: { full_name: string; email: string } | null;
 };
 
 type OrderDetailRow = OrderListRow & {
@@ -137,6 +138,7 @@ export class OrdersService {
                 take: limit,
                 where,
                 include: {
+                    user: { select: { full_name: true, email: true } },
                     concert: { select: { name: true } },
                     tickets: { select: { id: true } },
                     payment_transactions: {
@@ -159,6 +161,8 @@ export class OrdersService {
             ticket_count: order.tickets.length,
             latest_payment_method: order.payment_transactions[0]?.payment_method ?? null,
             latest_payment_status: order.payment_transactions[0]?.status ?? null,
+            user_name: order.user?.full_name ?? null,
+            user_email: order.user?.email ?? null,
         }));
 
         const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
@@ -235,6 +239,7 @@ export class OrdersService {
         const order = await this.prisma.order.findFirst({
             where: { id: orderId },
             include: {
+                user: { select: { full_name: true, email: true } },
                 concert: { select: { name: true } },
                 tickets: {
                     include: { category: { select: { name: true, gate_number: true } } },
@@ -259,6 +264,8 @@ export class OrdersService {
             expires_at: row.expires_at,
             ticket_count: row.tickets.length,
             ticket_metadata: row.ticket_metadata as Record<string, unknown> | null,
+            user_name: (row as any).user?.full_name ?? null,
+            user_email: (row as any).user?.email ?? null,
             tickets: row.tickets.map((ticket) => {
                 const t = ticket as any;
                 return new OrderTicketDto({
@@ -314,21 +321,30 @@ export class OrdersService {
             data: { status: 'CANCELLED' },
         });
 
-        const metadata = order.ticket_metadata as Record<string, unknown> | null;
-        if (metadata) {
-            let breakdown: Array<{ category_id: string; quantity: number }> = [];
-            if (Array.isArray(metadata.ticket_breakdown)) {
-                breakdown = metadata.ticket_breakdown as any;
-            } else if (typeof metadata.category_id === 'string' && typeof metadata.quantity === 'number') {
-                breakdown = [{ category_id: metadata.category_id, quantity: metadata.quantity }];
+        const rawMetadata = order.ticket_metadata;
+        if (rawMetadata) {
+            let metadata: any = null;
+            try {
+                metadata = typeof rawMetadata === 'string' ? JSON.parse(rawMetadata) : rawMetadata;
+            } catch {
+                // Ignore parse error
             }
 
-            for (const item of breakdown) {
-                await this.ticketingService.rollbackCategoryInventory(
-                    order.user_id,
-                    item.category_id,
-                    item.quantity
-                );
+            if (metadata) {
+                let breakdown: Array<{ category_id: string; quantity: number }> = [];
+                if (Array.isArray(metadata.ticket_breakdown)) {
+                    breakdown = metadata.ticket_breakdown as any;
+                } else if (typeof metadata.category_id === 'string' && typeof metadata.quantity === 'number') {
+                    breakdown = [{ category_id: metadata.category_id, quantity: metadata.quantity }];
+                }
+
+                for (const item of breakdown) {
+                    await this.ticketingService.rollbackCategoryInventory(
+                        order.user_id,
+                        item.category_id,
+                        item.quantity
+                    );
+                }
             }
         }
 

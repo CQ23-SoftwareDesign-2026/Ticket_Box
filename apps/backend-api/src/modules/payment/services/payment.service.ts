@@ -18,6 +18,8 @@ import { PaymentWebhookResponseDto } from '../dtos/payment-webhook-response.dto'
 import { PaymentTicketBreakdownDto } from '../dtos/payment-ticket-breakdown.dto';
 import { PaymentGatewayClient } from './gateway/payment-gateway.client';
 import { TicketingService } from '../../ticketing/services/ticketing.service';
+import { NotificationService } from '../../notifications/notification.service';
+import { ResolveRefundDto } from '../dtos/resolve-refund.dto';
 
 type IdempotencyCacheEntry =
     | {
@@ -61,6 +63,7 @@ export class PaymentService {
         private readonly redisService: RedisService,
         private readonly paymentGatewayClient: PaymentGatewayClient,
         private readonly ticketingService: TicketingService,
+        private readonly notificationService: NotificationService,
     ) { }
 
     async processPayment(
@@ -319,6 +322,30 @@ export class PaymentService {
             });
         }
 
+        if (transaction.order.status === 'CANCELLED') {
+            this.logger.warn(`Received successful payment webhook for already CANCELLED/EXPIRED order ${transaction.order_id}`);
+            await this.prisma.paymentTransaction.update({
+                where: { id: transaction.id },
+                data: {
+                    status: 'SUCCESS',
+                    transaction_id_3rd_party: String(dto.data.paymentLinkId),
+                    raw_response: this.mergeTelemetry(transaction.raw_response, {
+                        webhook: this.buildWebhookTelemetry(dto, dto.signature),
+                        warning: 'Paid after order expiration/cancellation',
+                    }) as Prisma.JsonObject,
+                },
+            });
+
+            return new PaymentWebhookResponseDto({
+                order_status: 'CANCELLED',
+                payment_status: 'SUCCESS',
+                ticket_count: 0,
+                message: 'Order was already cancelled or expired. Refund required.',
+                ticket_ids: [],
+            });
+        }
+
+
         if (transaction.order.status === 'PAID' && transaction.order.tickets.length > 0) {
             await this.prisma.paymentTransaction.update({
                 where: { id: transaction.id },
@@ -337,6 +364,49 @@ export class PaymentService {
                 ticket_count: transaction.order.tickets.length,
                 message: 'payment webhook processed',
                 ticket_ids: transaction.order.tickets.map((ticket) => ticket.id),
+            });
+        }
+
+        if (transaction.order.status === 'CANCELLED') {
+            const breakdown = this.resolveTicketBreakdown(dto, transaction.order);
+            const currentMetadata = (transaction.order as any).ticket_metadata || {};
+            const refundMetadata = {
+                ...currentMetadata,
+                refund_required: true,
+                refund_reason: 'PAID_AFTER_EXPIRATION',
+                paid_amount: dto.data?.amount || Number(transaction.amount.toString()),
+                ticket_breakdown: breakdown,
+            };
+
+            await this.prisma.$transaction(async (tx) => {
+                await tx.paymentTransaction.update({
+                    where: { id: transaction.id },
+                    data: {
+                        status: 'SUCCESS',
+                        transaction_id_3rd_party: String(dto.data.paymentLinkId),
+                        raw_response: this.mergeTelemetry(transaction.raw_response, {
+                            webhook: this.buildWebhookTelemetry(dto, dto.signature),
+                        }) as Prisma.JsonObject,
+                    },
+                });
+
+                await tx.order.update({
+                    where: { id: transaction.order_id },
+                    data: ({
+                        status: 'CANCELLED',
+                        ticket_metadata: refundMetadata,
+                    } as any),
+                });
+            });
+
+            this.logger.warn(`[Late Payment] Payment succeeded for already CANCELLED order ${transaction.order_id}. Refund required.`);
+
+            return new PaymentWebhookResponseDto({
+                order_status: 'CANCELLED',
+                payment_status: 'SUCCESS',
+                ticket_count: 0,
+                message: 'Payment received for cancelled order. Ticket not created. Refund pending.',
+                ticket_ids: [],
             });
         }
 
@@ -377,7 +447,30 @@ export class PaymentService {
                     ticketIds.push(ticket.id);
                 }
             }
+
+            // Check if sold out and update TicketCategory status in DB
+            for (const item of breakdown) {
+                const category = await tx.ticketCategory.findUnique({
+                    where: { id: item.category_id },
+                    select: { total_quantity: true, status: true },
+                });
+                if (category) {
+                    const soldCount = await tx.ticket.count({
+                        where: { category_id: item.category_id },
+                    });
+                    if (soldCount >= category.total_quantity && category.status !== 'sold_out') {
+                        await tx.ticketCategory.update({
+                            where: { id: item.category_id },
+                            data: { status: 'sold_out' },
+                        });
+                        this.logger.log(`[Sold Out] Category ${item.category_id} marked as sold_out in DB`);
+                    }
+                }
+            }
         });
+
+        // Send confirmation email and push notification asynchronously
+        void this.notificationService.sendTicketConfirmation(transaction.order_id);
 
         return new PaymentWebhookResponseDto({
             order_status: 'PAID',
@@ -475,11 +568,21 @@ export class PaymentService {
     }
 
     private extractTicketBreakdown(value: Prisma.JsonValue | null): PaymentTicketBreakdownDto[] {
-        if (!value || typeof value !== 'object' || Array.isArray(value)) {
-            return [];
+        if (!value) return [];
+        let record: Record<string, unknown> | null = null;
+        if (typeof value === 'string') {
+            try {
+                record = JSON.parse(value);
+            } catch {
+                return [];
+            }
+        } else if (typeof value === 'object' && !Array.isArray(value)) {
+            record = value as Record<string, unknown>;
         }
 
-        const record = value as Record<string, unknown>;
+        if (!record) {
+            return [];
+        }
 
         if (typeof record.category_id === 'string' && typeof record.quantity === 'number' && record.quantity > 0) {
             return [{ category_id: record.category_id, quantity: record.quantity }];
@@ -689,5 +792,42 @@ export class PaymentService {
                 item.quantity
             );
         }
+    }
+
+    public async resolveRefund(
+        transactionId: string,
+        adminUserId: string,
+        dto: ResolveRefundDto,
+    ) {
+        const transaction = await this.prisma.paymentTransaction.findUnique({
+            where: { id: transactionId },
+        });
+
+        if (!transaction) {
+            throw new NotFoundException('Transaction not found');
+        }
+
+        if (transaction.status === 'REFUNDED') {
+            throw new BadRequestException('Transaction is already refunded');
+        }
+
+        const existingRaw = (transaction.raw_response as Prisma.JsonObject) || {};
+        const updatedRaw = {
+            ...existingRaw,
+            refund_info: {
+                refunded_by: adminUserId,
+                refunded_at: new Date().toISOString(),
+                refund_tx_id: dto.refund_tx_id || null,
+                refund_note: dto.refund_note || null,
+            },
+        };
+
+        return this.prisma.paymentTransaction.update({
+            where: { id: transactionId },
+            data: {
+                status: 'REFUNDED',
+                raw_response: updatedRaw as Prisma.JsonObject,
+            },
+        });
     }
 }

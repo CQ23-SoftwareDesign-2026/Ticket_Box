@@ -33,11 +33,14 @@ export async function getDashboardRevenue(params?: {
   from?: string;
   to?: string;
   group_by?: "day" | "week" | "month";
+  status?: string;
 }): Promise<RevenueItem[]> {
   const query = new URLSearchParams();
   if (params?.from) query.append("from", params.from);
   if (params?.to) query.append("to", params.to);
   if (params?.group_by) query.append("group_by", params.group_by);
+  if (params?.status && params.status !== "All")
+    query.append("status", params.status);
 
   const queryString = query.toString();
   const endpoint = `/admin/dashboard/revenue${queryString ? `?${queryString}` : ""}`;

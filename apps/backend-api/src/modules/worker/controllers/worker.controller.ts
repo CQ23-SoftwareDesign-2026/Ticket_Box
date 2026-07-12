@@ -65,6 +65,23 @@ export class GuestListQueryDto extends PaginationDto {
   is_scanned?: boolean;
 }
 
+export class JobsQueryDto extends PaginationDto {
+  @ApiPropertyOptional({ example: 'PENDING', description: 'Filter by job status (e.g. PENDING, IN_PROGRESS, DONE, FAILED)' })
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @ApiPropertyOptional({ example: 'GUEST_LIST_IMPORT', description: 'Filter by job type' })
+  @IsOptional()
+  @IsString()
+  job_type?: string;
+
+  @ApiPropertyOptional({ example: 'uuid', description: 'Filter by concert ID (UUID)' })
+  @IsOptional()
+  @IsString()
+  concert_id?: string;
+}
+
 const uploadDir = path.join(process.cwd(), 'apps/backend-api/tmp/csv-uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -330,6 +347,59 @@ export class WorkerController {
         orderBy: { email: 'asc' },
       }),
     ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  @Get('jobs')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all background jobs with concert name and trigger user info (Admin only)' })
+  async getJobs(@Query() query: JobsQueryDto) {
+    const { page = 1, limit = 10, status, job_type, concert_id } = query;
+    const skip = (page - 1) * limit;
+
+    const whereClause: any = {};
+    if (status) whereClause.status = status;
+    if (job_type) whereClause.job_type = job_type;
+    if (concert_id) whereClause.target_id = concert_id;
+
+    const [total, jobs] = await Promise.all([
+      this.prisma.backgroundJob.count({ where: whereClause }),
+      this.prisma.backgroundJob.findMany({
+        where: whereClause,
+        skip,
+        take: limit,
+        orderBy: { created_at: 'desc' },
+        include: {
+          concert: {
+            select: { name: true },
+          },
+          trigger_by_user: {
+            select: { full_name: true, email: true },
+          },
+        },
+      }),
+    ]);
+
+    const data = jobs.map((job) => {
+      const { concert, trigger_by_user, ...rest } = job;
+      return {
+        ...rest,
+        concert_name: concert?.name ?? null,
+        triggered_by_name: trigger_by_user?.full_name ?? null,
+        triggered_by_email: trigger_by_user?.email ?? null,
+      };
+    });
 
     return {
       data,

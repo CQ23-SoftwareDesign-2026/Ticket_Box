@@ -1,12 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { TicketBoxAuthShell } from "@/components/ticketbox-auth-shell";
+import { ConcertHeroIllustration } from "@/components/ticketbox-illustrations";
 import { authService } from "@/services/auth.service";
-import { AlertCircle, CheckCircle2, Loader2, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import { getAuthErrorMessage } from "@/utils/error.utils";
+import { useToast } from "@/context/ToastContext";
+import { Input, Button } from "@/components/common";
 
 export default function ResetPasswordClient() {
   const router = useRouter();
@@ -17,8 +19,8 @@ export default function ResetPasswordClient() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const { success: showSuccessToast, error: showErrorToast } = useToast();
 
   useEffect(() => {
     if (token) {
@@ -28,22 +30,21 @@ export default function ResetPasswordClient() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
 
     if (!token) {
-      setError(
-        "Missing recovery token. Please request a new password reset link.",
+      showErrorToast(
+        "Không tìm thấy mã khôi phục. Vui lòng yêu cầu liên kết mới.",
       );
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match.");
+      showErrorToast("Mật khẩu xác nhận không khớp.");
       return;
     }
 
     if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters long.");
+      showErrorToast("Mật khẩu phải dài ít nhất 8 ký tự.");
       return;
     }
 
@@ -52,12 +53,14 @@ export default function ResetPasswordClient() {
     try {
       await authService.resetPassword(token, newPassword);
       setSuccess(true);
+      showSuccessToast("Đặt lại mật khẩu thành công!");
 
       setTimeout(() => {
         router.replace("/login?reset=1");
       }, 3000);
     } catch (requestError: unknown) {
-      setError(getAuthErrorMessage(requestError, "reset-password"));
+      const errorMsg = getAuthErrorMessage(requestError, "reset-password");
+      showErrorToast(errorMsg);
       setLoading(false);
     }
   };
@@ -65,24 +68,19 @@ export default function ResetPasswordClient() {
   if (success) {
     return (
       <TicketBoxAuthShell
-        title="Password updated"
-        description="Your password has been successfully reset."
-        compact
-        footerLinks={[{ label: "Back to sign in", href: "/login" }]}
+        title="Đã cập nhật mật khẩu"
+        description="Mật khẩu của bạn đã được đặt lại thành công."
+        sidebar={<ConcertHeroIllustration />}
+        footerLinks={[{ label: "Quay lại đăng nhập", href: "/login" }]}
       >
         <div className="flex flex-col items-center justify-center space-y-4 py-8 text-center">
-          <div className="rounded-full bg-green-50 p-3 text-green-600 dark:bg-green-950/50 dark:text-green-400">
-            <CheckCircle2 className="h-12 w-12" />
-          </div>
-          <p className="text-muted-foreground">
-            You will be redirected to the sign in page momentarily.
+          <p className="text-on-surface-variant/80 text-sm leading-relaxed">
+            Mật khẩu mới của bạn đã được lưu lại thành công. Bạn sẽ tự động được
+            chuyển hướng về trang đăng nhập sau vài giây.
           </p>
-          <Link
-            href="/login?reset=1"
-            className="ticketbox-button-primary mt-4 w-full sm:w-auto"
-          >
-            Go to sign in now
-          </Link>
+          <Button href="/login?reset=1" className="mt-4 w-full sm:w-auto">
+            Đăng nhập ngay
+          </Button>
         </div>
       </TicketBoxAuthShell>
     );
@@ -91,24 +89,18 @@ export default function ResetPasswordClient() {
   if (!token) {
     return (
       <TicketBoxAuthShell
-        title="Reset link unavailable"
-        description="This password reset link is missing or no longer available."
-        compact
-        footerLinks={[{ label: "Back to sign in", href: "/login" }]}
+        title="Liên kết không khả dụng"
+        description="Đường dẫn đặt lại mật khẩu đã hết hạn hoặc không tồn tại."
+        sidebar={<ConcertHeroIllustration />}
+        footerLinks={[{ label: "Quay lại đăng nhập", href: "/login" }]}
       >
         <div className="space-y-5 text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-300">
-            <AlertCircle className="h-10 w-10" />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Please request a new password reset email and try again.
+          <p className="text-sm text-on-surface-variant/70">
+            Vui lòng yêu cầu một liên kết đặt lại mật khẩu mới và thử lại.
           </p>
-          <Link
-            href="/forgot-password"
-            className="ticketbox-button-primary w-full"
-          >
-            Request a new reset link
-          </Link>
+          <Button href="/forgot-password" className="w-full">
+            Yêu cầu liên kết mới
+          </Button>
         </div>
       </TicketBoxAuthShell>
     );
@@ -116,57 +108,56 @@ export default function ResetPasswordClient() {
 
   return (
     <TicketBoxAuthShell
-      title="Create new password"
-      description="Set a new password for your account to continue."
-      compact
-      footerLinks={[{ label: "Back to sign in", href: "/login" }]}
+      title="Tạo mật khẩu mới"
+      description="Thiết lập mật khẩu mới cho tài khoản của bạn để tiếp tục."
+      sidebar={<ConcertHeroIllustration />}
+      footerLinks={[{ label: "Quay lại đăng nhập", href: "/login" }]}
     >
       <form className="space-y-5" onSubmit={onSubmit}>
-        {error ? (
-          <div className="flex items-center gap-3 rounded-xl bg-red-50 p-4 text-sm text-red-800 dark:bg-red-950/50 dark:text-red-200">
-            <AlertCircle className="h-5 w-5 shrink-0" />
-            <p>{error}</p>
-          </div>
-        ) : null}
-
         <div className="space-y-1">
-          <label className="ticketbox-label" htmlFor="password">
-            New password
+          <label
+            className="ticketbox-label text-on-surface-variant/90"
+            htmlFor="password"
+          >
+            Mật khẩu mới
           </label>
           <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <Lock className="h-5 w-5 text-muted-foreground" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+              <Lock className="h-4 w-4 text-on-surface-variant/40" />
             </div>
-            <input
+            <Input
               id="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               type="password"
-              className="ticketbox-input pl-10"
+              className="pl-10"
               placeholder="********"
               required
               disabled={loading}
             />
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Must be at least 8 characters.
+          <p className="mt-1 text-xs text-on-surface-variant/50">
+            Mật khẩu phải dài ít nhất 8 ký tự.
           </p>
         </div>
 
         <div className="space-y-1">
-          <label className="ticketbox-label" htmlFor="confirmPassword">
-            Confirm password
+          <label
+            className="ticketbox-label text-on-surface-variant/90"
+            htmlFor="confirmPassword"
+          >
+            Xác nhận mật khẩu
           </label>
           <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <Lock className="h-5 w-5 text-muted-foreground" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+              <Lock className="h-4 w-4 text-on-surface-variant/40" />
             </div>
-            <input
+            <Input
               id="confirmPassword"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               type="password"
-              className="ticketbox-input pl-10"
+              className="pl-10"
               placeholder="********"
               required
               disabled={loading}
@@ -174,19 +165,9 @@ export default function ResetPasswordClient() {
           </div>
         </div>
 
-        <button
-          className="ticketbox-button-primary mt-4 w-full"
-          disabled={loading}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Resetting password...
-            </>
-          ) : (
-            "Reset password"
-          )}
-        </button>
+        <Button type="submit" className="mt-6 w-full py-3.5" loading={loading}>
+          Đặt lại mật khẩu
+        </Button>
       </form>
     </TicketBoxAuthShell>
   );

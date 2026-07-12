@@ -22,6 +22,12 @@ export class UpdateConcertDto {
   @IsString()
   location?: string;
 
+  @ApiPropertyOptional({ type: [String], example: ['Phung Khanh Linh', 'Chi Dep'] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  performers?: string[];
+
   @ApiPropertyOptional({ example: 'Updated AI bio' })
   @IsOptional()
   @IsString()

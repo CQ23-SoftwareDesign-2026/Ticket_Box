@@ -62,3 +62,21 @@ export async function processPayment(
     body: JSON.stringify(input),
   });
 }
+
+export interface ResolveRefundInput {
+  refund_tx_id?: string;
+  refund_note?: string;
+}
+
+export async function resolveRefund(
+  transactionId: string,
+  input: ResolveRefundInput,
+): Promise<{ status: string }> {
+  return fetchClient<{ status: string }>(
+    `/payments/transactions/${transactionId}/refund`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    },
+  );
+}

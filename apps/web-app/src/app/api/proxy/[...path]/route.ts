@@ -30,8 +30,21 @@ async function forward(request: NextRequest, pathSegments: string[]) {
   };
 
   if (request.method !== "GET" && request.method !== "HEAD") {
-    init.body = request.body;
-    (init as RequestInit & { duplex?: string }).duplex = "half";
+    const contentType = request.headers.get("content-type") || "";
+    if (
+      contentType.includes("application/json") ||
+      contentType.includes("text/")
+    ) {
+      const text = await request.text();
+      if (text) {
+        init.body = text;
+      }
+    } else {
+      const buffer = await request.arrayBuffer();
+      if (buffer.byteLength > 0) {
+        init.body = buffer;
+      }
+    }
   }
 
   const response = await fetch(targetUrl, init);

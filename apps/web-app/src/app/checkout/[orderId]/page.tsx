@@ -20,11 +20,11 @@ export default async function CheckoutPage({
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1">
             <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
             <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
-              Secure Checkout
+              Thanh toán Bảo mật
             </span>
           </div>
           <h1 className="font-display text-4xl font-black tracking-tight text-on-surface sm:text-5xl">
-            Complete your order
+            Hoàn tất đơn hàng của bạn
           </h1>
         </div>
         <CountdownTimer orderId={orderId} />

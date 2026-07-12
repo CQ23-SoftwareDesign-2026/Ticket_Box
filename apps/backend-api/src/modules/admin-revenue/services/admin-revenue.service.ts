@@ -20,6 +20,8 @@ type RevenueConcertRow = {
     name: string;
     status: string;
     start_time: Date;
+    poster_url: string | null;
+    location: string | null;
     orders: Array<{
         total_amount: MoneyLike;
         tickets: Array<{ id: string }>;
@@ -109,6 +111,8 @@ export class AdminRevenueService {
                 name: true,
                 status: true,
                 start_time: true,
+                poster_url: true,
+                location: true,
                 orders: {
                     where: {
                         status: 'PAID',
@@ -132,6 +136,8 @@ export class AdminRevenueService {
                 concert_name: concert.name,
                 status: concert.status,
                 start_time: concert.start_time,
+                poster_url: concert.poster_url,
+                location: concert.location,
                 revenue: this.sumRevenue(concert.orders),
                 paid_orders: concert.orders.length,
                 tickets_sold: this.sumTickets(concert.orders),
@@ -149,6 +155,8 @@ export class AdminRevenueService {
                 name: true,
                 status: true,
                 start_time: true,
+                poster_url: true,
+                location: true,
                 ticket_categories: {
                     select: {
                         id: true,
@@ -197,6 +205,8 @@ export class AdminRevenueService {
                 name: detail.name,
                 status: detail.status,
                 start_time: detail.start_time,
+                poster_url: (concert as any).poster_url ?? null,
+                location: (concert as any).location ?? null,
             },
             total_revenue: this.sumRevenue(orders),
             paid_orders: orders.length,

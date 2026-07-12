@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   activityTimeline,
@@ -30,11 +31,13 @@ import {
   MapPin,
   Ticket,
   TimerOff,
+  Ban,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 import {
   formatConcertCurrency,
   formatConcertDateTime,
-  getConcertById,
   getConcerts,
   type ConcertDetailItem,
   type ConcertCardItem,
@@ -53,7 +56,7 @@ import {
 import { Search } from "lucide-react";
 
 export function HeroCarousel() {
-  const [concerts, setConcerts] = useState<ConcertDetailItem[]>([]);
+  const [concerts, setConcerts] = useState<ConcertCardItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [prevIndex, setPrevIndex] = useState<number | null>(null);
@@ -64,17 +67,15 @@ export function HeroCarousel() {
 
     const loadFeaturedConcerts = async () => {
       try {
-        const response = await getConcerts({ page: 1, limit: 4 });
+        const response = await getConcerts({
+          page: 1,
+          limit: 4,
+          status: "PUBLISHED",
+        });
 
         if (!isActive) return;
 
-        const details = await Promise.all(
-          response.items.map((item) => getConcertById(item.id)),
-        );
-
-        if (!isActive) return;
-
-        setConcerts(details.filter(Boolean) as ConcertDetailItem[]);
+        setConcerts(response.items);
       } catch {
         if (!isActive) return;
         setConcerts([]);
@@ -125,7 +126,7 @@ export function HeroCarousel() {
   const previousConcert =
     prevIndex !== null ? (concerts[prevIndex] ?? null) : null;
 
-  const getImageSrc = (concert: ConcertDetailItem | null) =>
+  const getImageSrc = (concert: ConcertCardItem | null) =>
     concert?.posterUrl &&
     concert.posterUrl !==
       "https://lh3.googleusercontent.com/aida-public/AB6AXuA96Q00R_bgOVwdSaXoQUFh4qVfI9j-ywdZH0M0n3UEcHkvg27Hc-IVfeqDv0zY5rITz7LfLg-PsHR9fs9vCYLfdTAr48gFSFvlNJyw4aYMTmFgn4tN5xZElV5qJh_mOyC71TmCRwrv-jb1WAzhPD1I6c0R12LHOwt6JrVxYEjLIbk9nj2yHFMRzZzrZ2Vw_pevGqUI5SmxPE1-MUNxiSPVF38B0OBBXFGSoYc6d9xUgDg0Ex-TwrOwqrqg3paEsKJJvwFVtnwg9sih"
@@ -133,29 +134,24 @@ export function HeroCarousel() {
       : "/Mockimg.webp";
 
   const title = loading
-    ? "Loading featured concert..."
-    : (featuredConcert?.title ?? "No featured concert available");
-  const badge = featuredConcert?.status ?? "Featured event";
+    ? "Đang tải sự kiện nổi bật..."
+    : (featuredConcert?.title ?? "Không có sự kiện nổi bật khả dụng");
+  const badge = featuredConcert?.status ?? "SỰ KIỆN NỔI BẬT";
   const description = loading
-    ? "We are loading the latest concert from the database."
-    : featuredConcert?.aiBio ||
-      featuredConcert?.description ||
-      "No featured concert is available right now.";
-  const ticketTier = featuredConcert?.ticketTiers?.[0];
-  const priceLabel = ticketTier
-    ? `${ticketTier.name} • ${formatConcertCurrency(ticketTier.price)}`
-    : featuredConcert
-      ? "Ticket tiers unavailable"
-      : "Loading...";
+    ? "Vui lòng đợi giây lát, hệ thống đang kết nối và tải thông tin sự kiện mới nhất."
+    : featuredConcert?.description ||
+      "Hiện tại chưa có sự kiện nổi bật nào khả dụng.";
+  const priceLabel = featuredConcert?.price ?? "Xem chi tiết";
 
   return (
-    <section className="group relative overflow-hidden bg-[#111318] text-white min-h-[600px] flex items-end pb-16">
+    <section className="group relative overflow-hidden bg-slate-950 text-white min-h-[500px] sm:min-h-[550px] lg:min-h-[600px] flex items-center py-16">
+      {/* Background ambient glow blur */}
       {previousConcert && (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
-          key={`prev-${previousConcert.id}`}
+          key={`prev-glow-${previousConcert.id}`}
           src={getImageSrc(previousConcert)}
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover filter blur-[60px] opacity-10 pointer-events-none transition-all duration-700"
           alt=""
         />
       )}
@@ -163,25 +159,27 @@ export function HeroCarousel() {
       {featuredConcert && (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
-          key={`current-${featuredConcert.id}`}
+          key={`current-glow-${featuredConcert.id}`}
           src={getImageSrc(featuredConcert)}
-          className="absolute inset-0 w-full h-full object-cover opacity-0 animate-fade-in-quick"
-          alt={featuredConcert.title}
+          className="absolute inset-0 w-full h-full object-cover filter blur-[60px] opacity-15 pointer-events-none animate-fade-in-quick transition-all duration-700"
+          alt=""
         />
       )}
 
-      <div className="absolute inset-0 bg-linear-to-t from-[#111318]/90 via-[#111318]/20 to-transparent transition-opacity duration-700 opacity-90 group-hover:opacity-100" />
-      <div className="absolute inset-0 bg-linear-to-r from-[#111318]/80 via-[#111318]/30 to-transparent transition-opacity duration-700 opacity-0 group-hover:opacity-100" />
-      <div className="hero-shimmer absolute inset-0 opacity-20 mix-blend-overlay transition-opacity duration-700 group-hover:opacity-40" />
+      {/* Sleek cinematic overlays */}
+      <div className="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-950/70 to-slate-950/20" />
+      <div className="absolute inset-0 bg-linear-to-r from-slate-950 via-slate-950/20 to-transparent" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(99,102,241,0.05),transparent_60%)] pointer-events-none" />
 
+      {/* Navigation arrows */}
       {concerts.length > 1 && (
         <button
           type="button"
           onClick={goPrev}
           aria-label="Concert trước"
-          className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-all duration-200 hover:bg-black/60 hover:scale-105 active:scale-95 sm:left-5 sm:h-12 sm:w-12 cursor-pointer"
+          className="absolute left-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-slate-900/60 text-white border border-slate-800 backdrop-blur-md transition-all duration-200 hover:bg-slate-800 hover:scale-105 active:scale-95 sm:left-5 cursor-pointer shadow-lg"
         >
-          <ChevronLeft size={22} />
+          <ChevronLeft size={20} />
         </button>
       )}
 
@@ -190,64 +188,110 @@ export function HeroCarousel() {
           type="button"
           onClick={goNext}
           aria-label="Concert tiếp theo"
-          className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-all duration-200 hover:bg-black/60 hover:scale-105 active:scale-95 sm:right-5 sm:h-12 sm:w-12 cursor-pointer"
+          className="absolute right-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-slate-900/60 text-white border border-slate-800 backdrop-blur-md transition-all duration-200 hover:bg-slate-800 hover:scale-105 active:scale-95 sm:right-5 cursor-pointer shadow-lg"
         >
-          <ChevronRight size={22} />
+          <ChevronRight size={20} />
         </button>
       )}
 
+      {/* Main Grid Content */}
       <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 z-10">
-        <div
-          key={featuredConcert?.id ?? "empty"}
-          className="max-w-2xl animate-[fadeSlideUp_0.5s_ease-out_forwards]"
-        >
-          <div className="space-y-3 transform transition-transform duration-700 ease-out group-hover:-translate-y-2">
-            <Badge className="border border-white/20 bg-surface/20 backdrop-blur-md text-white shadow-xl px-3.5 py-1 rounded-full uppercase tracking-wider text-[11px] font-bold inline-flex items-center gap-2">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-secondary"></span>
-              </span>
-              {badge}
-            </Badge>
-            <h1 className="font-display text-2xl font-black tracking-tight sm:text-3xl lg:text-4xl drop-shadow-xl text-white line-clamp-2">
-              {title}
-            </h1>
+        <div className="grid gap-10 lg:grid-cols-12 items-center">
+          {/* Left Column: Info Block */}
+          <div
+            key={featuredConcert?.id ?? "empty"}
+            className="lg:col-span-7 space-y-5 animate-[fadeSlideUp_0.6s_ease-out_forwards]"
+          >
+            <div className="space-y-3">
+              <Badge className="border border-primary/30 bg-primary/10 text-primary px-3.5 py-1 rounded-full uppercase tracking-wider text-[10px] font-bold inline-flex items-center gap-1.5">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-secondary"></span>
+                </span>
+                {badge === "PUBLISHED"
+                  ? "ĐANG BÁN VÉ"
+                  : badge === "COMPLETED"
+                    ? "ĐÃ KẾT THÚC"
+                    : badge}
+              </Badge>
+
+              <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight drop-shadow-md">
+                {title}
+              </h1>
+            </div>
+
+            <p className="text-sm sm:text-base leading-relaxed text-on-surface-variant/90 max-w-xl line-clamp-3">
+              {description}
+            </p>
+
+            {/* Event Time & Venue Details */}
+            {featuredConcert && (
+              <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs sm:text-sm text-on-surface-variant/80 font-medium">
+                <div className="flex items-center gap-1.5">
+                  <Calendar size={14} className="text-primary shrink-0" />
+                  <span>
+                    {featuredConcert.time} • {featuredConcert.date}
+                  </span>
+                </div>
+                {featuredConcert.venue && (
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <MapPin size={14} className="text-primary shrink-0" />
+                    <span className="truncate">{featuredConcert.venue}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-5 pt-2">
+              <Button
+                href={
+                  featuredConcert
+                    ? `/concerts/${featuredConcert.id}`
+                    : "/concerts"
+                }
+                variant="primary"
+                className="group/btn bg-primary hover:bg-primary-hover text-white px-8 py-3.5 text-sm font-bold rounded-xl transition-all duration-300 shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 cursor-pointer"
+              >
+                {loading ? "Đang tải..." : "Mua vé ngay"}
+                <ArrowRight
+                  size={16}
+                  className="ml-2 transform transition-transform duration-300 group-hover/btn:translate-x-1"
+                />
+              </Button>
+              {featuredConcert && (
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider">
+                    Giá vé
+                  </span>
+                  <span className="text-sm font-black text-secondary">
+                    {priceLabel}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="grid grid-rows-[0fr] opacity-0 transition-all duration-700 ease-in-out group-hover:grid-rows-[1fr] group-hover:opacity-100">
-            <div className="overflow-hidden">
-              <div className="pt-4">
-                <p className="max-w-xl text-sm leading-relaxed text-white/90 sm:text-base drop-shadow-lg mb-6 line-clamp-2">
-                  {description}
-                </p>
-                <div className="flex flex-wrap items-center gap-4">
-                  <Button
-                    href={
-                      featuredConcert
-                        ? `/concerts/${featuredConcert.id}`
-                        : "/catalog"
-                    }
-                    variant="secondary"
-                    className="group/btn bg-primary hover:bg-primary-container text-white border-0 shadow-[0_0_30px_rgba(var(--color-primary),0.3)] hover:shadow-[0_0_50px_rgba(var(--color-primary),0.5)] px-6 py-3 text-sm transition-all duration-300"
-                  >
-                    {loading ? "Loading..." : "Xem chi tiết"}
-                    <ArrowRight
-                      size={16}
-                      className="ml-2 transform transition-transform duration-300 group-hover/btn:translate-x-1"
-                    />
-                  </Button>
-                  {ticketTier && (
-                    <span className="text-xs font-semibold text-white/70">
-                      {priceLabel}
-                    </span>
-                  )}
-                </div>
+          {/* Right Column: Poster Card Frame */}
+          <div className="hidden lg:block lg:col-span-5">
+            {featuredConcert && (
+              <div
+                key={`poster-${featuredConcert.id}`}
+                className="relative aspect-video w-full overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 shadow-2xl shadow-black/80 group-hover:border-primary/35 transition-all duration-500 animate-[fadeSlideUp_0.8s_ease-out_forwards]"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={getImageSrc(featuredConcert)}
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+                  alt={featuredConcert.title}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-transparent" />
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
 
+      {/* Pagination indicators */}
       {concerts.length > 1 && (
         <div className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
           {concerts.map((concert, index) => (
@@ -256,10 +300,10 @@ export function HeroCarousel() {
               type="button"
               onClick={() => changeSlide(index)}
               aria-label={`Xem concert ${index + 1}`}
-              className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+              className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
                 index === activeIndex
                   ? "w-6 bg-white"
-                  : "w-2 bg-white/40 hover:bg-white/60"
+                  : "w-1.5 bg-white/30 hover:bg-white/50"
               }`}
             />
           ))}
@@ -511,23 +555,49 @@ export function SeatMapSvg({ className = "" }: { className?: string }) {
   );
 }
 
+const getNowIso = (): string => {
+  return new Date().toISOString();
+};
+
+const getReservationExpiry = (expiresAtStr?: string | null): string => {
+  if (expiresAtStr) return expiresAtStr;
+  return new Date(Date.now() + 10 * 60 * 1000).toISOString();
+};
+
 export function InteractiveTicketSelector({
   concert,
 }: {
   concert: ConcertDetailItem;
 }) {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [isReserving, setIsReserving] = useState(false);
 
-  const tiers = concert.ticketTiers ?? [];
+  const now = new Date();
+  const tiers = (concert.ticketTiers ?? []).filter((tier) => {
+    if (!tier.sales_start_at) return true;
+    return now >= new Date(tier.sales_start_at);
+  });
   const selectedTier = tiers[selectedIdx];
-  const maxQty = selectedTier ? selectedTier.max_per_user : 0;
+  const maxQty = selectedTier
+    ? Math.min(
+        selectedTier.max_per_user,
+        selectedTier.remaining_quantity ?? selectedTier.total_quantity ?? 0,
+      )
+    : 0;
 
   const handleConfirm = async () => {
     if (!selectedTier || isReserving || maxQty < 1) return;
+
+    if (!isAuthenticated) {
+      toast("Vui lòng đăng nhập để tiến hành mua vé.", "error");
+      router.push(`/login?returnUrl=/concerts/${concert.id}`);
+      return;
+    }
 
     setIsReserving(true);
     setError(null);
@@ -554,19 +624,30 @@ export function InteractiveTicketSelector({
         price: selectedTier.price,
         quantity,
         remaining: response.items[0]?.remaining ?? 0,
-        reservedAt: new Date().toISOString(),
-        expiresAt:
-          response.expires_at ??
-          new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+        reservedAt: getNowIso(),
+        expiresAt: getReservationExpiry(response.expires_at),
       });
 
       router.push(`/checkout/${response.order_id}`);
     } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to reserve tickets right now.",
-      );
+      const msg = error instanceof Error ? error.message : "";
+      if (
+        msg.includes("No refresh token available") ||
+        msg.includes("refresh token") ||
+        msg.includes("unauthorized") ||
+        msg.includes("401")
+      ) {
+        toast("Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.", "error");
+        router.push(`/login?returnUrl=/concerts/${concert.id}`);
+      } else if (msg.includes("ERR_NO_TICKET")) {
+        setError("Hết vé hoặc không đủ số lượng yêu cầu.");
+      } else if (msg.includes("ERR_LIMIT_EXCEEDED")) {
+        setError("Vượt quá giới hạn mua vé cho phép.");
+      } else if (msg.includes("ERR_NOT_INITIALIZED")) {
+        setError("Hạng vé chưa được kích hoạt hoặc không tồn tại.");
+      } else {
+        setError(msg || "Có lỗi xảy ra khi đặt vé. Vui lòng thử lại.");
+      }
     } finally {
       setIsReserving(false);
     }
@@ -577,9 +658,9 @@ export function InteractiveTicketSelector({
       <div className="p-8">
         <div className="flex items-center justify-between">
           <SectionHeading
-            eyebrow="TICKETS"
-            title="Real-Time Availability"
-            description="Select from standing, priority, or lounge access."
+            eyebrow="HẠNG VÉ"
+            title="Danh sách Hạng vé"
+            description="Chọn hạng vé phù hợp để tiến hành mua vé."
           />
         </div>
 
@@ -587,38 +668,65 @@ export function InteractiveTicketSelector({
           {tiers.length > 0 ? (
             tiers.map((tier, index) => {
               const isSelected = selectedIdx === index;
+              const isSoldOut =
+                tier.status === "sold_out" || tier.remaining_quantity === 0;
+              const remaining = tier.remaining_quantity ?? 0;
+
               return (
                 <div
                   key={tier.id || tier.name}
                   onClick={() => {
                     setSelectedIdx(index);
-                    setQuantity(1);
+                    setQuantity(isSoldOut ? 0 : 1);
                     setError(null);
                   }}
                   className={`p-5 cursor-pointer rounded-[20px] border-2 transition-all duration-200 ${
                     isSelected
                       ? "border-primary bg-primary/5 shadow-sm scale-[1.01]"
-                      : "border-outline-variant/60 bg-surface hover:border-primary/30"
+                      : isSoldOut
+                        ? "border-slate-800/40 bg-slate-950/10 opacity-80 hover:border-slate-850"
+                        : "border-outline-variant/60 bg-surface hover:border-primary/30"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-2">
-                      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-on-surface-variant font-bold">
-                        {tier.name}
-                      </p>
-                      <p className="text-xs leading-6 text-on-surface-variant">
-                        Max: {tier.max_per_user} tickets per user • Total
-                        capacity: {tier.total_quantity} seats
+                      <div className="flex items-center gap-2.5">
+                        <p
+                          className={`text-sm font-semibold uppercase tracking-[0.2em] font-bold ${isSoldOut ? "text-on-surface/50" : "text-on-surface"}`}
+                        >
+                          {tier.name}
+                        </p>
+                        {isSoldOut ? (
+                          <span className="inline-flex items-center rounded bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-rose-500 border border-rose-500/20">
+                            Hết vé
+                          </span>
+                        ) : remaining <= 10 ? (
+                          <span className="inline-flex items-center rounded bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-500 border border-amber-500/20 animate-pulse">
+                            Chỉ còn {remaining} vé
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-400 border border-emerald-500/20">
+                            Còn vé
+                          </span>
+                        )}
+                      </div>
+                      <p
+                        className={`text-xs leading-6 ${isSoldOut ? "text-on-surface-variant/40" : "text-on-surface-variant/80"}`}
+                      >
+                        Mua tối đa: {tier.max_per_user} vé • Tổng số chỗ:{" "}
+                        {tier.total_quantity}
                       </p>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-black text-on-surface">
+                      <div
+                        className={`text-2xl font-black ${isSoldOut ? "text-on-surface/40 line-through" : "text-on-surface"}`}
+                      >
                         {formatConcertCurrency(tier.price)}
                       </div>
-                      {index === 0 && (
-                        <Badge className="mt-2 bg-primary text-on-primary">
-                          Recommended
-                        </Badge>
+                      {!isSoldOut && tier.remaining_quantity !== undefined && (
+                        <p className="text-[10px] font-medium text-white/40 mt-1">
+                          Còn lại: {tier.remaining_quantity} vé
+                        </p>
                       )}
                     </div>
                   </div>
@@ -627,7 +735,7 @@ export function InteractiveTicketSelector({
             })
           ) : (
             <p className="text-sm text-on-surface-variant/70">
-              No ticket tiers available.
+              Hiện tại chưa mở bán hạng vé nào.
             </p>
           )}
         </div>
@@ -637,12 +745,12 @@ export function InteractiveTicketSelector({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-on-surface">
-                  Select Quantity
+                  Chọn số lượng
                 </p>
                 <p className="text-xs text-on-surface-variant/70 mt-1">
                   {maxQty > 0
-                    ? `Limit: ${maxQty} tickets per user`
-                    : "Sold out right now"}
+                    ? `Giới hạn: ${maxQty} vé/người`
+                    : "Hạng vé đã hết"}
                 </p>
               </div>
               <div className="flex items-center gap-4 bg-surface-low border border-outline rounded-xl p-1">
@@ -671,7 +779,7 @@ export function InteractiveTicketSelector({
             <div className="rounded-2xl bg-surface-low p-4 border border-outline-variant">
               <div className="flex items-center justify-between text-sm text-on-surface-variant mb-2">
                 <span>
-                  Subtotal ({quantity} x{" "}
+                  Tạm tính ({quantity} x{" "}
                   {formatConcertCurrency(selectedTier.price)})
                 </span>
                 <span className="font-semibold">
@@ -679,7 +787,7 @@ export function InteractiveTicketSelector({
                 </span>
               </div>
               <div className="flex items-center justify-between border-t border-outline pt-2 text-base font-bold text-on-surface">
-                <span>Estimated Total</span>
+                <span>Tổng cộng (tạm tính)</span>
                 <span>
                   {formatConcertCurrency(selectedTier.price * quantity)}
                 </span>
@@ -691,9 +799,17 @@ export function InteractiveTicketSelector({
               disabled={isReserving || maxQty < 1}
               className="ticketbox-button-primary w-full justify-center py-4 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isReserving ? "Reserving seats..." : "Confirm and Checkout"}
+              {isReserving
+                ? "Đang đặt giữ vé..."
+                : maxQty < 1
+                  ? "Hạng vé đã hết"
+                  : "Xác nhận và Thanh toán"}
             </button>
-            {error ? <p className="text-xs text-rose-600">{error}</p> : null}
+            {error ? (
+              <div className="mt-4 text-xs text-red-500 font-medium text-center bg-red-500/10 border border-red-500/20 py-2.5 px-4 rounded-xl">
+                {error}
+              </div>
+            ) : null}
           </div>
         )}
       </div>
@@ -838,11 +954,7 @@ export function ConcertDetailHero({ concert }: { concert: ConcertDetailItem }) {
                 </span>
                 <span className="text-sm font-semibold text-[#f6f2ec]">
                   {concert.venue}
-                  {concert.city ? (
-                    <span className="font-normal text-[#f6f2ec]/55">
-                      , {concert.city}
-                    </span>
-                  ) : null}
+                  {concert.city ? `, ${concert.city}` : ""}
                 </span>
               </div>
             </div>
@@ -1095,6 +1207,7 @@ export function useReservationTimer(orderId?: string) {
     }
     return null;
   });
+  const clockOffsetRef = useRef(0);
 
   useEffect(() => {
     if (!orderId) return;
@@ -1102,10 +1215,24 @@ export function useReservationTimer(orderId?: string) {
     let active = true;
 
     const syncWithServer = async () => {
+      // Calculate clock skew (drift) by checking Date header from server
+      try {
+        const start = Date.now();
+        const res = await fetch(window.location.origin, { method: "HEAD" });
+        const serverDateHeader = res.headers.get("Date");
+        if (serverDateHeader) {
+          const serverTime = new Date(serverDateHeader).getTime();
+          const clientTime = (start + Date.now()) / 2;
+          clockOffsetRef.current = serverTime - clientTime;
+        }
+      } catch (e) {
+        console.error("Failed to calculate clock offset:", e);
+      }
+
       const fetchOrderWithRetry = async (
         retries = 5,
         delay = 1000,
-      ): Promise<OrderDetail> => {
+      ): Promise<OrderDetail | null> => {
         try {
           return await getOrderById(orderId);
         } catch (err) {
@@ -1119,7 +1246,7 @@ export function useReservationTimer(orderId?: string) {
 
       try {
         const order = await fetchOrderWithRetry();
-        if (!active) return;
+        if (!active || !order) return;
 
         if (order.status === "PAID") {
           setTimeLeft(null);
@@ -1193,7 +1320,7 @@ export function useReservationTimer(orderId?: string) {
     if (isNaN(expiresAtTime)) return;
 
     const updateTimer = () => {
-      const remaining = expiresAtTime - Date.now();
+      const remaining = expiresAtTime - (Date.now() + clockOffsetRef.current);
       if (remaining <= 0) {
         setTimeLeft(0);
         setIsExpired(true);
@@ -1303,7 +1430,7 @@ export function PaymentMethodPicker({
 
       <p className="flex items-center gap-1.5 text-xs text-on-surface-variant">
         <Lock size={12} className="shrink-0" />
-        Your payment is encrypted and processed securely.
+        Giao dịch của bạn được mã hóa và xử lý bảo mật.
       </p>
     </Card>
   );
@@ -1351,45 +1478,107 @@ export function OrderSummaryCard({
     return null;
   });
 
-  const title =
-    checkoutState?.concertTitle ||
-    searchParams.get("title") ||
-    orderSummary.event;
-  const tierName = checkoutState?.tierName || searchParams.get("tierName");
-  const price = checkoutState
-    ? String(checkoutState.price)
-    : searchParams.get("price");
-  const qty = checkoutState
-    ? String(checkoutState.quantity)
-    : searchParams.get("qty");
-  const date =
-    checkoutState?.date || searchParams.get("date") || orderSummary.date;
-  const venue =
-    checkoutState?.venue || searchParams.get("venue") || orderSummary.venue;
+  const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
 
-  let subtotal: string = orderSummary.subtotal;
-  let total: string = orderSummary.total;
-  let seatsText: string = orderSummary.seats;
-  const payHref = checkoutState
-    ? `/checkout/${checkoutState.orderId}/processing`
-    : "/checkout/order-2048/processing";
+  useEffect(() => {
+    if (orderId) {
+      getOrderById(orderId)
+        .then((data) => {
+          setOrderDetail(data);
+        })
+        .catch((err) => {
+          console.error("Failed to load order details in summary:", err);
+        });
+    }
+  }, [orderId]);
 
-  if (tierName && price && qty) {
-    const qtyVal = parseInt(qty, 10) || 1;
-    const priceVal = parseFloat(price) || 0;
-    const subtotalVal = priceVal * qtyVal;
+  const isStateMatching =
+    checkoutState !== null && checkoutState.orderId === orderId;
 
-    subtotal = formatConcertCurrency(subtotalVal);
-    total = formatConcertCurrency(subtotalVal);
-    seatsText = `${qtyVal}x ${tierName} Ticket${qtyVal > 1 ? "s" : ""}`;
+  const title = isStateMatching
+    ? checkoutState?.concertTitle || orderSummary.event
+    : orderDetail?.concert_name ||
+      searchParams.get("title") ||
+      orderSummary.event;
+
+  const date = isStateMatching
+    ? checkoutState?.date || orderSummary.date
+    : searchParams.get("date") || "Chi tiết trong vé";
+
+  const venue = isStateMatching
+    ? checkoutState?.venue || orderSummary.venue
+    : searchParams.get("venue") || "Chi tiết trong vé";
+
+  let subtotal: string = "Đang tải...";
+  let total: string = "Đang tải...";
+  let seatsText: string = "Đang tải...";
+
+  if (isStateMatching) {
+    const tierName = checkoutState?.tierName || searchParams.get("tierName");
+    const price = checkoutState
+      ? String(checkoutState.price)
+      : searchParams.get("price");
+    const qty = checkoutState
+      ? String(checkoutState.quantity)
+      : searchParams.get("qty");
+
+    if (tierName && price && qty) {
+      const qtyVal = parseInt(qty, 10) || 1;
+      const priceVal = parseFloat(price) || 0;
+      const subtotalVal = priceVal * qtyVal;
+
+      subtotal = formatConcertCurrency(subtotalVal);
+      total = formatConcertCurrency(subtotalVal);
+      seatsText = `${qtyVal}x Vé ${tierName}`;
+    }
+  } else if (orderDetail) {
+    const amountVal = parseFloat(orderDetail.total_amount) || 0;
+    subtotal = formatConcertCurrency(amountVal);
+    total = formatConcertCurrency(amountVal);
+
+    const metadata = orderDetail.ticket_metadata as {
+      ticket_breakdown?: Array<{
+        quantity?: number;
+        category_name?: string | null;
+      }>;
+      quantity?: number;
+      category_name?: string | null;
+    } | null;
+    if (metadata) {
+      if (
+        Array.isArray(metadata.ticket_breakdown) &&
+        metadata.ticket_breakdown.length > 0
+      ) {
+        seatsText = metadata.ticket_breakdown
+          .map(
+            (item) => `${item.quantity ?? 0}x Vé ${item.category_name || ""}`,
+          )
+          .join(", ");
+      } else if (metadata.quantity) {
+        seatsText = `${metadata.quantity}x Vé ${metadata.category_name || ""}`;
+      } else if (orderDetail.ticket_count > 0) {
+        seatsText = `${orderDetail.ticket_count}x Vé`;
+      } else {
+        seatsText = "Vé chưa thanh toán";
+      }
+    } else if (orderDetail.ticket_count > 0) {
+      seatsText = `${orderDetail.ticket_count}x Vé`;
+    } else {
+      seatsText = "Vé chưa thanh toán";
+    }
   }
+
+  const payHref =
+    isStateMatching && checkoutState
+      ? `/checkout/${checkoutState.orderId}/processing`
+      : `/checkout/${orderId}/processing`;
 
   return (
     <Card className="space-y-5 p-6 lg:sticky lg:top-24">
       {/* Title */}
       <div className="space-y-0.5">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
-          Order summary
+          Tóm tắt đơn hàng
         </p>
         <h3 className="font-display text-xl font-bold text-on-surface leading-snug">
           {title}
@@ -1410,12 +1599,16 @@ export function OrderSummaryCard({
           <Ticket size={14} className="mt-0.5 shrink-0 text-primary/60" />
           <span>{seatsText}</span>
         </div>
-        {checkoutState && (
+        {((isStateMatching && checkoutState) || orderDetail) && (
           <div className="flex items-start gap-2.5 px-4 py-3 text-xs text-on-surface-variant/70">
             <Lock size={12} className="mt-0.5 shrink-0" />
             <span>
-              Reserved until{" "}
-              {new Date(checkoutState.expiresAt).toLocaleTimeString([], {
+              Giữ vé đến{" "}
+              {new Date(
+                isStateMatching
+                  ? checkoutState!.expiresAt
+                  : orderDetail!.expires_at,
+              ).toLocaleTimeString([], {
                 hour: "numeric",
                 minute: "2-digit",
               })}
@@ -1427,11 +1620,11 @@ export function OrderSummaryCard({
       {/* Pricing */}
       <div className="space-y-2 text-sm">
         <div className="flex items-center justify-between text-on-surface-variant">
-          <span>Subtotal</span>
+          <span>Tạm tính</span>
           <span>{subtotal}</span>
         </div>
         <div className="flex items-center justify-between border-t border-outline-variant pt-2.5 text-base font-semibold text-on-surface">
-          <span>Total</span>
+          <span>Tổng cộng</span>
           <span>{total}</span>
         </div>
       </div>
@@ -1443,7 +1636,7 @@ export function OrderSummaryCard({
           onClick={onPay}
           disabled={isAnyLoading}
           className={[
-            "inline-flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3",
+            "inline-flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 cursor-pointer",
             "text-sm font-semibold text-white transition-all duration-200",
             rightLoading
               ? "cursor-not-allowed bg-primary/60"
@@ -1476,21 +1669,17 @@ export function OrderSummaryCard({
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                 />
               </svg>
-              Redirecting…
+              Đang kết nối...
             </>
           ) : (
-            <>Pay {total}</>
+            <>Thanh toán {total}</>
           )}
         </button>
       ) : (
         <Button href={payHref} className="w-full justify-center">
-          Pay {total}
+          Thanh toán {total}
         </Button>
       )}
-      <TimerFootnote
-        key={orderId || checkoutState?.orderId || "loading"}
-        orderId={orderId || checkoutState?.orderId}
-      />
     </Card>
   );
 }
@@ -1515,17 +1704,6 @@ export function FloatingCheckoutBar() {
   );
 }
 
-/** Small inline timer badge used inside OrderSummaryCard. */
-function TimerFootnote({ orderId }: { orderId?: string }) {
-  const { formattedTime } = useReservationTimer(orderId);
-  return (
-    <div className="rounded-2xl bg-primary/5 p-4 text-sm text-on-surface-variant">
-      Reservation expires in{" "}
-      <span className="font-semibold text-primary">{formattedTime}</span>.
-    </div>
-  );
-}
-
 export function CountdownTimer({ orderId }: { orderId?: string }) {
   const { formattedTime, isExpired } = useReservationTimer(orderId);
 
@@ -1537,11 +1715,7 @@ export function CountdownTimer({ orderId }: { orderId?: string }) {
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 via-rose-500 to-red-500" />
             <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-red-500/10 text-red-500 border border-red-500/15 relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-b from-red-500/10 to-transparent opacity-50" />
-              <TimerOff
-                size={36}
-                className="relative z-10 animate-bounce"
-                style={{ animationDuration: "3s" }}
-              />
+              <TimerOff size={36} className="relative z-10 animate-pulse" />
             </div>
             <h2 className="font-display text-2xl font-black tracking-tight text-on-surface mb-3">
               Đã Hết Thời Gian Giữ Chỗ
@@ -1561,11 +1735,11 @@ export function CountdownTimer({ orderId }: { orderId?: string }) {
       )}
       <Card className="hero-shimmer p-5 text-white">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">
-          Hold timer
+          THỜI GIAN GIỮ VÉ
         </p>
         <div className="mt-3 text-4xl font-black">{formattedTime}</div>
         <p className="mt-2 text-sm text-white/80">
-          Your reserved seats will release automatically when the timer ends.
+          Vé của bạn sẽ tự động giải phóng khi hết thời gian giữ chỗ.
         </p>
       </Card>
     </>
@@ -1925,6 +2099,13 @@ export function SeatMapViewer({ mapUrl }: { mapUrl?: string }) {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   const effectiveUrl =
     mapUrl && mapUrl !== "https://cdn.ticketbox.local/maps/default.svg"
@@ -1934,12 +2115,19 @@ export function SeatMapViewer({ mapUrl }: { mapUrl?: string }) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          setIsOpen(false);
+        }
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.body.style.overflow = "";
+        window.removeEventListener("keydown", handleKeyDown);
+      };
     } else {
       document.body.style.overflow = "";
     }
-    return () => {
-      document.body.style.overflow = "";
-    };
   }, [isOpen]);
 
   const handleZoomIn = (e: React.MouseEvent) => {
@@ -1955,6 +2143,7 @@ export function SeatMapViewer({ mapUrl }: { mapUrl?: string }) {
   const onMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
   };
 
   const onMouseMove = (e: React.MouseEvent) => {
@@ -1963,7 +2152,14 @@ export function SeatMapViewer({ mapUrl }: { mapUrl?: string }) {
     }
   };
 
-  const onMouseUp = () => setIsDragging(false);
+  const onMouseUp = (e: React.MouseEvent) => {
+    setIsDragging(false);
+    const dx = Math.abs(e.clientX - dragStartPos.current.x);
+    const dy = Math.abs(e.clientY - dragStartPos.current.y);
+    if (dx < 5 && dy < 5 && e.target === e.currentTarget) {
+      setIsOpen(false);
+    }
+  };
 
   return (
     <>
@@ -1973,71 +2169,94 @@ export function SeatMapViewer({ mapUrl }: { mapUrl?: string }) {
           setPosition({ x: 0, y: 0 });
           setIsOpen(true);
         }}
-        className="group bg-surface-low rounded-2xl border border-outline-variant p-8 flex flex-col items-center justify-center min-h-[300px] hover:bg-outline-variant/30 transition-colors cursor-pointer relative overflow-hidden"
+        className="group bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex flex-col items-center justify-center hover:bg-slate-900/60 transition-colors cursor-pointer relative overflow-hidden w-full"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={effectiveUrl}
-          alt="Seat Map"
-          className="w-full h-auto max-h-[350px] object-contain transition-transform duration-500 group-hover:scale-105"
+          alt="Sơ đồ khu vực vé"
+          className="w-full max-w-[640px] h-auto object-contain transition-transform duration-500 group-hover:scale-[1.01] rounded-lg shadow-md"
         />
-        <div className="absolute inset-0 bg-surface/0 group-hover:bg-surface/40 transition-colors duration-300 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100">
+        <div className="absolute inset-0 bg-slate-950/0 group-hover:bg-slate-950/60 transition-colors duration-300 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100">
           <div className="inline-flex items-center justify-center p-4 bg-primary rounded-full shadow-xl mb-3 text-white transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
             <ZoomIn size={28} />
           </div>
-          <p className="text-sm font-bold text-on-surface transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 delay-75 bg-surface/90 px-4 py-1.5 rounded-full shadow-sm">
-            Click to View Map Details
-          </p>
         </div>
       </div>
 
-      {isOpen && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center bg-[#111318]/95 backdrop-blur-md">
-          <button
-            onClick={() => setIsOpen(false)}
-            className="absolute top-6 right-6 text-white/70 hover:text-white p-3 bg-surface/10 hover:bg-surface/20 rounded-full transition-colors z-50"
-          >
-            <X size={24} />
-          </button>
-
-          <div className="absolute bottom-10 flex items-center gap-2 bg-surface/10 backdrop-blur-xl p-2 rounded-2xl z-50 border border-white/20 shadow-2xl">
-            <button
-              onClick={handleZoomOut}
-              className="p-3 text-white hover:bg-surface/20 rounded-xl transition-colors active:scale-95"
-            >
-              <ZoomOut size={24} />
-            </button>
-            <div className="w-px h-8 bg-surface/20 mx-2" />
-            <button
-              onClick={handleZoomIn}
-              className="p-3 text-white hover:bg-surface/20 rounded-xl transition-colors active:scale-95"
-            >
-              <ZoomIn size={24} />
-            </button>
-          </div>
-
+      {isOpen &&
+        mounted &&
+        typeof document !== "undefined" &&
+        createPortal(
           <div
-            className={`w-full h-full overflow-hidden flex items-center justify-center ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
-            onMouseDown={onMouseDown}
-            onMouseMove={onMouseMove}
-            onMouseUp={onMouseUp}
-            onMouseLeave={onMouseUp}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#090d16]/98 backdrop-blur-md select-none"
+            onClick={onMouseUp}
+            style={{
+              backgroundImage: `
+              linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px)
+            `,
+              backgroundSize: "24px 24px",
+            }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={effectiveUrl}
-              alt="Seat Map Fullscreen"
-              style={{
-                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                transition: isDragging
-                  ? "none"
-                  : "transform 0.2s cubic-bezier(0.2, 0, 0, 1)",
+            <button
+              onClick={() => setIsOpen(false)}
+              className="absolute top-6 right-6 text-white/70 hover:text-white p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors z-50 border border-white/10"
+            >
+              <X size={24} />
+            </button>
+
+            <div className="absolute bottom-10 flex items-center gap-2 bg-slate-900/60 backdrop-blur-xl p-2 rounded-2xl z-50 border border-white/10 shadow-2xl">
+              <button
+                onClick={handleZoomOut}
+                className="p-3 text-white hover:bg-white/10 rounded-xl transition-colors active:scale-95"
+              >
+                <ZoomOut size={24} />
+              </button>
+              <div className="w-px h-8 bg-white/10 mx-2" />
+              <button
+                onClick={handleZoomIn}
+                className="p-3 text-white hover:bg-white/10 rounded-xl transition-colors active:scale-95"
+              >
+                <ZoomIn size={24} />
+              </button>
+            </div>
+
+            <div
+              className={`w-full h-full overflow-hidden flex items-center justify-center ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+              onMouseDown={onMouseDown}
+              onMouseMove={onMouseMove}
+              onMouseUp={onMouseUp}
+              onMouseLeave={() => setIsDragging(false)}
+              onDoubleClick={() => {
+                setScale(1);
+                setPosition({ x: 0, y: 0 });
               }}
-              className="max-w-[90vw] max-h-[90vh] object-contain pointer-events-none drop-shadow-2xl"
-            />
-          </div>
-        </div>
-      )}
+              onWheel={(e) => {
+                const zoomIntensity = 0.08;
+                if (e.deltaY < 0) {
+                  setScale((s) => Math.min(s + zoomIntensity, 4));
+                } else {
+                  setScale((s) => Math.max(s - zoomIntensity, 0.5));
+                }
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={effectiveUrl}
+                alt="Seat Map Fullscreen"
+                style={{
+                  transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                  transition: isDragging
+                    ? "none"
+                    : "transform 0.2s cubic-bezier(0.2, 0, 0, 1)",
+                }}
+                className="w-full h-full object-contain pointer-events-none select-none drop-shadow-2xl"
+              />
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
@@ -2085,5 +2304,86 @@ export function RevealItem({
     >
       {children}
     </div>
+  );
+}
+
+interface ConfirmModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  isLoading?: boolean;
+}
+
+export function ConfirmModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  confirmText = "Xác nhận",
+  cancelText = "Quay lại",
+  isLoading = false,
+}: ConfirmModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
+  if (!isOpen || !mounted || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/80 backdrop-blur-md select-none animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-slate-800 bg-[#0c101b] p-8 text-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] animate-in zoom-in-95 duration-200">
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 via-rose-500 to-red-500" />
+
+        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 text-red-500 border border-red-500/15">
+          <Ban size={24} />
+        </div>
+
+        <h2 className="font-display text-xl font-bold tracking-tight text-on-surface mb-3 text-white">
+          {title}
+        </h2>
+        <p className="text-sm text-on-surface-variant/80 leading-relaxed mb-6 max-w-sm mx-auto text-slate-400">
+          {message}
+        </p>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            disabled={isLoading}
+            onClick={onClose}
+            className="flex-1 inline-flex h-11 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/40 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-slate-850 hover:text-on-surface cursor-pointer disabled:opacity-50"
+          >
+            {cancelText}
+          </button>
+          <button
+            type="button"
+            disabled={isLoading}
+            onClick={onConfirm}
+            className="flex-1 inline-flex h-11 items-center justify-center rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+          >
+            {isLoading ? "Đang xử lý..." : confirmText}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }

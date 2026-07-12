@@ -28,6 +28,12 @@ export class OrderListItemDto {
     @ApiPropertyOptional({ example: 'INIT' })
     latest_payment_status?: string | null;
 
+    @ApiPropertyOptional({ example: 'John Doe' })
+    user_name?: string | null;
+
+    @ApiPropertyOptional({ example: 'john@example.com' })
+    user_email?: string | null;
+
     constructor(partial: Partial<OrderListItemDto> = {}) {
         Object.assign(this, partial);
     }

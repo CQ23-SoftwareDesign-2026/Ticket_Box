@@ -5,28 +5,37 @@ import { useState } from "react";
 import { TicketBoxAuthShell } from "@/components/ticketbox-auth-shell";
 import { ConcertHeroIllustration } from "@/components/ticketbox-illustrations";
 import { authService } from "@/services/auth.service";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { getAuthErrorMessage } from "@/utils/error.utils";
+import { useToast } from "@/context/ToastContext";
+import { Input, Button } from "@/components/common";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const { success: showSuccessToast, error: showErrorToast } = useToast();
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
 
+    if (password !== confirmPassword) {
+      showErrorToast("Mật khẩu xác nhận không khớp.");
+      return;
+    }
+
+    setLoading(true);
     try {
       await authService.register(email, password, fullName);
       setSuccess(true);
+      showSuccessToast(
+        "Đăng ký tài khoản thành công! Vui lòng xác thực email.",
+      );
     } catch (requestError: unknown) {
-      setError(getAuthErrorMessage(requestError, "register"));
-    } finally {
+      const errorMsg = getAuthErrorMessage(requestError, "register");
+      showErrorToast(errorMsg);
       setLoading(false);
     }
   };
@@ -34,28 +43,27 @@ export default function RegisterPage() {
   if (success) {
     return (
       <TicketBoxAuthShell
-        title="Check your email"
-        description="We've sent a verification link to your email address. Please verify your account to continue."
+        title="Kiểm tra email của bạn"
+        description="Chúng tôi đã gửi một liên kết xác nhận đến địa chỉ email của bạn. Vui lòng xác thực tài khoản để tiếp tục."
         sidebar={<ConcertHeroIllustration />}
       >
         <div className="flex flex-col items-center justify-center space-y-4 py-8 text-center">
-          <div className="rounded-full bg-green-50 p-3 text-green-600 dark:bg-green-950/50 dark:text-green-400">
-            <CheckCircle2 className="h-12 w-12" />
-          </div>
-          <p className="text-muted-foreground">
-            Once verified, you can sign in to your account.
+          <p className="text-on-surface-variant/85 text-sm leading-relaxed">
+            Hệ thống đã gửi liên kết xác thực tới hòm thư của bạn. Vui lòng kiểm
+            tra hộp thư và nhấn vào liên kết để kích hoạt tài khoản của bạn
+            trước khi đăng nhập.
           </p>
-          <Link
+          <Button
             href={`/login?registered=1&email=${encodeURIComponent(email)}`}
-            className="ticketbox-button-primary mt-4 w-full sm:w-auto"
+            className="mt-4 w-full sm:w-auto"
           >
-            Return to sign in
-          </Link>
+            Quay lại đăng nhập
+          </Button>
           <Link
             href={`/resend-verification?email=${encodeURIComponent(email)}`}
-            className="text-sm font-semibold text-primary hover:underline hover:underline-offset-4"
+            className="text-sm font-semibold text-primary hover:text-primary-container transition-colors"
           >
-            Resend verification email
+            Gửi lại email xác thực
           </Link>
         </div>
       </TicketBoxAuthShell>
@@ -64,47 +72,44 @@ export default function RegisterPage() {
 
   return (
     <TicketBoxAuthShell
-      title="Create an account"
-      description="Join TicketBox to discover and book tickets for the best events."
+      title="Đăng ký tài khoản"
+      description="Tham gia TicketBox để khám phá và sở hữu vé tham gia những sự kiện âm nhạc đỉnh cao."
       sidebar={<ConcertHeroIllustration />}
       footerLinks={[
-        { label: "Already have an account? Sign in", href: "/login" },
+        { label: "Đã có tài khoản? Đăng nhập ngay", href: "/login" },
       ]}
     >
       <form className="space-y-5" onSubmit={onSubmit}>
-        {error ? (
-          <div className="flex items-center gap-3 rounded-xl bg-red-50 p-4 text-sm text-red-800 dark:bg-red-950/50 dark:text-red-200">
-            <AlertCircle className="h-5 w-5 shrink-0" />
-            <p>{error}</p>
-          </div>
-        ) : null}
-
         <div className="space-y-1">
-          <label className="ticketbox-label" htmlFor="fullName">
-            Full name
+          <label
+            className="ticketbox-label text-on-surface-variant/90"
+            htmlFor="fullName"
+          >
+            Họ và tên
           </label>
-          <input
+          <Input
             id="fullName"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             type="text"
-            className="ticketbox-input"
-            placeholder="John Doe"
+            placeholder="Nguyễn Văn A"
             required
             disabled={loading}
           />
         </div>
 
         <div className="space-y-1">
-          <label className="ticketbox-label" htmlFor="email">
-            Email address
+          <label
+            className="ticketbox-label text-on-surface-variant/90"
+            htmlFor="email"
+          >
+            Địa chỉ Email
           </label>
-          <input
+          <Input
             id="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             type="email"
-            className="ticketbox-input"
             placeholder="name@example.com"
             required
             disabled={loading}
@@ -112,38 +117,49 @@ export default function RegisterPage() {
         </div>
 
         <div className="space-y-1">
-          <label className="ticketbox-label" htmlFor="password">
-            Password
+          <label
+            className="ticketbox-label text-on-surface-variant/90"
+            htmlFor="password"
+          >
+            Mật khẩu
           </label>
-          <input
+          <Input
             id="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             type="password"
-            className="ticketbox-input"
             placeholder="********"
             required
             minLength={8}
             disabled={loading}
           />
-          <p className="mt-1 text-xs text-muted-foreground">
-            Must be at least 8 characters.
+          <p className="mt-1 text-xs text-on-surface-variant/50">
+            Mật khẩu phải dài ít nhất 8 ký tự.
           </p>
         </div>
 
-        <button
-          className="ticketbox-button-primary mt-4 w-full"
-          disabled={loading}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Creating account...
-            </>
-          ) : (
-            "Create account"
-          )}
-        </button>
+        <div className="space-y-1">
+          <label
+            className="ticketbox-label text-on-surface-variant/90"
+            htmlFor="confirmPassword"
+          >
+            Nhập lại mật khẩu
+          </label>
+          <Input
+            id="confirmPassword"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            type="password"
+            placeholder="********"
+            required
+            minLength={8}
+            disabled={loading}
+          />
+        </div>
+
+        <Button type="submit" className="mt-6 w-full py-3.5" loading={loading}>
+          Đăng ký tài khoản
+        </Button>
       </form>
     </TicketBoxAuthShell>
   );

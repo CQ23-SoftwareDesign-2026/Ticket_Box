@@ -1,13 +1,66 @@
 #!/usr/bin/env sh
 
-echo "[pre-push] Running local quality gate: lint + unit tests"
-npm run verify:push
-status=$?
+echo ""
+echo "╔══════════════════════════════════════════════════════╗"
+echo "║     [pre-push] Frontend Quality Gate (4 steps)      ║"
+echo "╚══════════════════════════════════════════════════════╝"
+echo ""
 
-if [ $status -ne 0 ]; then
-  echo "[pre-push] Push blocked. Fix errors and push again."
-  exit $status
+# Step 1: Code style verification (Prettier)
+echo "→ Step 1/4: Code style verification (Prettier)..."
+cd apps/web-app && npx prettier --check . && cd ../..
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "✖ Prettier check failed. Auto-fix with:"
+  echo "    npm run prettier:fix:web"
+  echo ""
+  echo "✖ [pre-push] Push blocked."
+  exit 1
 fi
+echo "  ✔ Prettier passed."
+echo ""
 
-echo "[pre-push] Quality gate passed. Proceeding with push."
-exit 0
+# Step 2: Static linter audits (ESLint)
+echo "→ Step 2/4: Static linter audits (ESLint)..."
+cd apps/web-app && npm run lint && cd ../..
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "✖ ESLint found errors. Fix them and push again."
+  echo ""
+  echo "✖ [pre-push] Push blocked."
+  exit 1
+fi
+echo "  ✔ ESLint passed."
+echo ""
+
+# Step 3: Static compiler type-checking (TypeScript)
+echo "→ Step 3/4: Static compiler type-checking (TypeScript)..."
+cd apps/web-app && npm run type-check && cd ../..
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "✖ TypeScript type errors found. Fix them and push again."
+  echo ""
+  echo "✖ [pre-push] Push blocked."
+  exit 1
+fi
+echo "  ✔ TypeScript passed."
+echo ""
+
+# Step 4: Production compilation build test
+echo "→ Step 4/4: Production compilation build test..."
+cd apps/web-app && npm run build && cd ../..
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "✖ Build failed. Fix compilation errors and push again."
+  echo ""
+  echo "✖ [pre-push] Push blocked."
+  exit 1
+fi
+echo "  ✔ Build passed."
+echo ""
+
+echo "╔══════════════════════════════════════════════════════╗"
+echo "║   ✔ All checks passed! Proceeding with push.        ║"
+echo "╚══════════════════════════════════════════════════════╝"
+echo ""
+exit 0
