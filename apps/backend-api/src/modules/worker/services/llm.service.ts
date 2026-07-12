@@ -28,9 +28,15 @@ export class LlmService {
       1_000,
     );
     const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
-    const prompt = `System Instruction: You are a professional music biographer. Summarize the following artist profile/press kit into a concise, engaging biography of 2-3 paragraphs. Focus on their musical style, achievements, and background. Output only the summarized biography text without any markdown formatting, commentary or introduction.
+    const prompt = `System Instruction: Bạn là một biên tập viên tiểu sử âm nhạc chuyên nghiệp. Hãy viết lại hồ sơ nghệ sĩ/press kit dưới đây thành một bài giới thiệu hấp dẫn, súc tích gồm 2-3 đoạn văn bằng tiếng Việt tự nhiên. Tập trung vào phong cách âm nhạc, hành trình, thành tựu và dấu ấn nổi bật của nghệ sĩ.
 
-Here is the artist press kit:
+Yêu cầu bắt buộc:
+- Chỉ trả về nội dung tiểu sử bằng tiếng Việt, không dùng Markdown, tiêu đề, lời dẫn hay bình luận.
+- Giữ nguyên tên riêng, nghệ danh, tên tác phẩm, giải thưởng và số liệu quan trọng.
+- Không bịa đặt hoặc bổ sung thông tin không xuất hiện trong press kit.
+- Nếu press kit viết bằng ngôn ngữ khác, hãy dịch và biên tập mượt mà sang tiếng Việt.
+
+Nội dung press kit:
 
 ${textProfile}`;
 
