@@ -26,7 +26,8 @@
         "start:api": "ts-node --project apps/backend-api/tsconfig.json apps/backend-api/src/main.ts",
         "start:api:prod": "node apps/backend-api/dist/main.js",
         "start:web": "cd apps/web-app && npm run dev",
-        "start:web:prod": "cd apps/web-app && npm run start"
+        "start:web:prod": "cd apps/web-app && npm run start",
+        "start:mobile": "cd apps/mobile-app/ticketbox && npm run start"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
