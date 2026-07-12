@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PayOS } from '@payos/node';
 import { PaymentMethod } from '../../dtos/payment-method.enum';
-import { PaymentGatewaySessionInput, PaymentGatewaySessionResult, PaymentGatewayStrategy } from './payment-gateway.types';
+import { PaymentGatewayLookupResult, PaymentGatewaySessionInput, PaymentGatewaySessionResult, PaymentGatewayStrategy } from './payment-gateway.types';
 
 @Injectable()
 export class PayOsStrategy implements PaymentGatewayStrategy {
@@ -78,6 +78,38 @@ export class PayOsStrategy implements PaymentGatewayStrategy {
             this.logger.error('PayOS webhook signature verification failed', error);
             throw new BadRequestException('Invalid signature');
         }
+    }
+
+    async getPaymentSession(providerOrderCode: number): Promise<PaymentGatewayLookupResult> {
+        const paymentLink = await this.payOS.paymentRequests.get(providerOrderCode, {
+            timeout: Number(process.env.PAYMENT_GATEWAY_TIMEOUT_MS ?? 3_000),
+            maxRetries: 0,
+        });
+
+        return {
+            paymentMethod: this.paymentMethod,
+            providerTransactionId: paymentLink.id,
+            providerOrderCode: paymentLink.orderCode,
+            status: paymentLink.status,
+            amountPaid: paymentLink.amountPaid,
+            raw: paymentLink as unknown as Record<string, unknown>,
+        };
+    }
+
+    async cancelPaymentSession(providerOrderCode: number, reason: string): Promise<PaymentGatewayLookupResult> {
+        const paymentLink = await this.payOS.paymentRequests.cancel(providerOrderCode, reason, {
+            timeout: Number(process.env.PAYMENT_GATEWAY_TIMEOUT_MS ?? 3_000),
+            maxRetries: 0,
+        });
+
+        return {
+            paymentMethod: this.paymentMethod,
+            providerTransactionId: paymentLink.id,
+            providerOrderCode: paymentLink.orderCode,
+            status: paymentLink.status,
+            amountPaid: paymentLink.amountPaid,
+            raw: paymentLink as unknown as Record<string, unknown>,
+        };
     }
 
 }
