@@ -21,7 +21,7 @@ import {
 } from '@/features/checkin/services/scanner-result.service';
 import { getErrorMessage } from '@/lib/errors';
 
-const SCAN_COOLDOWN_MS = 1800;
+const SCAN_COOLDOWN_MS = 5000;
 
 type UseScannerControllerArgs = {
   isOnline: boolean;

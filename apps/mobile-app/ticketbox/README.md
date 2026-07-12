@@ -1,127 +1,151 @@
 # TicketBox Staff Mobile App
 
-Mobile app for staff ticket check-in.
+Đây là ứng dụng mobile dành cho nhân sự soát vé của hệ thống TicketBox.
 
-Main features:
+Các chức năng chính:
 
-- staff login
-- concert and gate selection
-- QR ticket scanning
-- offline scan queue
-- auto sync when network is back
+- đăng nhập bằng tài khoản staff
+- chọn concert và gate trước khi quét
+- quét mã QR vé
+- hỗ trợ quét offline
+- tự đồng bộ lại khi có mạng
 
-## Requirements
+## Yêu cầu
+
+Trước khi chạy app, cần có:
 
 - Node.js `20+`
 - `npm`
-- `Expo Go` on a phone, or Android/iOS emulator
-- camera permission
+- điện thoại cài `Expo Go`
+- điện thoại và máy tính cùng mạng Wi-Fi
+- cấp quyền camera cho app khi được hỏi
 
-## Environment Setup
+## Cách chạy mobile app
 
-Create `.env` from `.env.example` inside `apps/mobile-app/ticketbox`.
+Người chấm chỉ cần chạy trực tiếp trong thư mục mobile app:
 
 ```bash
-cd apps/mobile-app/ticketbox
+git clone <repo-url>
+cd Ticket_Box/apps/mobile-app/ticketbox
+npm install
+```
+
+Tạo file `.env` từ `.env.example`:
+
+Trên Windows:
+
+```bash
 copy .env.example .env
 ```
 
-On macOS/Linux:
+Trên macOS/Linux:
 
 ```bash
-cd apps/mobile-app/ticketbox
 cp .env.example .env
 ```
 
-## Run With Deployed Backend
+Sau đó chạy:
 
-This is the recommended way for demo or grading.
+```bash
+npm run start
+```
 
-Set this in `apps/mobile-app/ticketbox/.env`:
+Khi Expo mở lên:
+
+- mở `Expo Go` trên điện thoại
+- quét mã QR hiển thị trên terminal hoặc trình duyệt
+
+## Chạy với backend deploy
+
+Đây là cách nên dùng khi demo hoặc chấm bài.
+
+Trong file `apps/mobile-app/ticketbox/.env`, đặt:
 
 ```env
 EXPO_PUBLIC_API_BASE_URL=https://api.ticketbox.retrobit.io.vn
 ```
 
-Run:
+Với cách này, người chấm không cần sửa code và không cần tự nối API thủ công trong source code.
 
-```bash
-git clone <repo-url>
-cd Ticket_Box
-npm install
-cd apps/mobile-app/ticketbox
-npm run start
-```
+## Chạy với backend local
 
-Then:
+Nếu backend local đã chạy sẵn, chỉ cần đổi giá trị trong `.env`.
 
-- scan the QR code with `Expo Go`, or
-- press `a` for Android emulator, or
-- press `i` for iOS simulator on macOS
-
-## Run With Local Backend
-
-If the backend is already running locally, you only need to change the mobile app API URL in `.env`.
-
-Set `EXPO_PUBLIC_API_BASE_URL` to one of these:
+Đặt `EXPO_PUBLIC_API_BASE_URL` theo thiết bị đang dùng:
 
 - Android emulator: `http://10.0.2.2:3000`
 - iOS simulator: `http://localhost:3000`
-- Physical phone: `http://<your-lan-ip>:3000`
+- iPhone hoặc Android thật: `http://<dia-chi-ip-lan-cua-may-tinh>:3000`
 
-Example:
+Ví dụ:
 
 ```env
 EXPO_PUBLIC_API_BASE_URL=http://192.168.1.10:3000
 ```
 
-Then run:
+Lưu ý:
 
-```bash
-git clone <repo-url>
-cd Ticket_Box
-npm install
-cd apps/mobile-app/ticketbox
-npm run start
-```
+- nếu dùng điện thoại thật thì không dùng `localhost`
+- điện thoại và máy tính phải cùng Wi-Fi
 
-## Local Test Account
+## Tài khoản test local
 
-If the local backend has seeded data, use:
+Nếu backend local đã seed dữ liệu, có thể dùng:
 
 - Email: `quang.checker@ticketbox.local`
 - Password: `123456`
 
-Optional admin account:
+Tài khoản admin nếu cần:
 
 - Email: `vy.admin@ticketbox.local`
 - Password: `123456`
 
-## Quick Demo Flow
+## Luồng demo nhanh
 
-1. Login with a staff account.
-2. Open the scanner flow.
-3. Select a concert.
-4. Select a gate.
-5. Wait for prefetch to complete.
-6. Scan tickets.
-7. Turn off the network to test offline queueing.
-8. Turn the network back on to test auto sync.
+1. Đăng nhập bằng tài khoản staff.
+2. Vào màn hình scanner.
+3. Chọn concert.
+4. Chọn gate.
+5. Chờ prefetch hoàn tất.
+6. Quét vé online.
+7. Tắt mạng để thử offline queue.
+8. Bật mạng lại để kiểm tra auto sync.
 
-## Common Issues
+## Lỗi thường gặp
 
-### QR scanner does not work
+### Không mở được app trên điện thoại bằng Expo Go
 
-Check:
+Kiểm tra:
 
-- camera permission
-- concert and gate selected
-- prefetch finished
+- đã chạy `npm install` trong `apps/mobile-app/ticketbox`
+- đã chạy `npm run start`
+- điện thoại có cài `Expo Go`
+- điện thoại và máy tính cùng Wi-Fi
 
-### Phone cannot reach local backend
+### App báo thiếu biến môi trường
 
-Check:
+Kiểm tra:
 
-- do not use `localhost` on a physical phone
-- phone and computer must be on the same Wi-Fi
-- firewall must allow port `3000`
+- đã tạo file `.env`
+- đã có `EXPO_PUBLIC_API_BASE_URL`
+
+### Điện thoại không gọi được backend local
+
+Kiểm tra:
+
+- không dùng `localhost` trên điện thoại thật
+- dùng đúng IP LAN của máy tính
+- firewall không chặn cổng `3000`
+
+### Quét QR không hoạt động
+
+Kiểm tra:
+
+- đã cấp quyền camera
+- đã chọn concert và gate
+- prefetch đã hoàn tất
+
+## Tài liệu liên quan
+
+- Hướng dẫn test: [TEST_GUIDE.md](/D:/document/study/projects/Ticket_Box/apps/mobile-app/ticketbox/TEST_GUIDE.md:1)
+- Hướng dẫn demo: [DEMO_GUIDE.md](/D:/document/study/projects/Ticket_Box/apps/mobile-app/ticketbox/DEMO_GUIDE.md:1)
