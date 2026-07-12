@@ -12,8 +12,11 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
+  FileText,
 } from "lucide-react";
 import {
+  generateBio,
   importCsv,
   getJobStatus,
   getGuestList,
@@ -43,6 +46,9 @@ export function ConcertWorkerDrawer({
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [importJob, setImportJob] = useState<BackgroundJob | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [bioJob, setBioJob] = useState<BackgroundJob | null>(null);
+  const [isGeneratingBio, setIsGeneratingBio] = useState(false);
 
   // Guest List Table State
   const [guests, setGuests] = useState<GuestListItem[]>([]);
@@ -56,11 +62,13 @@ export function ConcertWorkerDrawer({
 
   // Polling intervals refs
   const importIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const bioIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Clean intervals on unmount
   useEffect(() => {
     return () => {
       if (importIntervalRef.current) clearInterval(importIntervalRef.current);
+      if (bioIntervalRef.current) clearInterval(bioIntervalRef.current);
     };
   }, []);
 
@@ -157,6 +165,61 @@ export function ConcertWorkerDrawer({
     importIntervalRef.current = setInterval(checkStatus, 2000);
   };
 
+  const pollBioJob = (jobId: string) => {
+    if (bioIntervalRef.current) clearInterval(bioIntervalRef.current);
+    const checkStatus = async () => {
+      try {
+        const job = await getJobStatus(jobId);
+        setBioJob(job);
+        if (job.status === "COMPLETED" || job.status === "FAILED") {
+          if (bioIntervalRef.current) clearInterval(bioIntervalRef.current);
+          setIsGeneratingBio(false);
+          if (job.status === "COMPLETED") {
+            setPdfFile(null);
+            success("AI Bio đã được tạo và lưu vào sự kiện.");
+          } else {
+            toastError(job.error_message || "Tạo AI Bio thất bại.");
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check AI Bio job status:", err);
+      }
+    };
+    void checkStatus();
+    bioIntervalRef.current = setInterval(checkStatus, 2000);
+  };
+
+  const handleBioSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!concert?.id || !pdfFile) return;
+    setIsGeneratingBio(true);
+    setBioJob(null);
+    try {
+      const response = await generateBio(concert.id, pdfFile);
+      const initialJob: BackgroundJob = {
+        id: response.job_id,
+        trigger_by_user_id: "",
+        job_type: "GENERATE_BIO",
+        target_id: concert.id,
+        status: response.status,
+        progress_percentage: 0,
+        payload: null,
+        error_message: null,
+        result_data: null,
+        created_at: new Date().toISOString(),
+        completed_at: null,
+      };
+      setBioJob(initialJob);
+      pollBioJob(response.job_id);
+      success("Đã xếp tác vụ AI Bio vào hàng đợi. Bạn có thể đóng cửa sổ này.");
+    } catch (err) {
+      setIsGeneratingBio(false);
+      toastError(
+        err instanceof Error ? err.message : "Không thể tạo tác vụ AI Bio.",
+      );
+    }
+  };
+
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     if (guestTotalPages <= 5) {
@@ -197,7 +260,7 @@ export function ConcertWorkerDrawer({
             <div>
               <h3 className="text-xl font-bold font-display text-foreground flex items-center gap-2">
                 <Users className="w-5 h-5 text-primary" />
-                Tác vụ danh sách khách mời
+                Tác vụ sự kiện
               </h3>
               <p className="text-xs text-muted-foreground mt-1">
                 Sự kiện: <span className="font-semibold">{concert.title}</span>{" "}
@@ -215,6 +278,97 @@ export function ConcertWorkerDrawer({
           {/* Drawer Content */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             <div className="space-y-6">
+              <section className="space-y-4 rounded-xl border border-border bg-background p-5">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
+                    <Sparkles className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground">
+                      Tạo AI Bio từ Press Kit
+                    </h4>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      PDF sẽ được đưa vào hàng đợi. Worker tự cập nhật nội dung
+                      sự kiện, kể cả khi bạn đóng trang.
+                    </p>
+                  </div>
+                </div>
+                <form onSubmit={handleBioSubmit} className="space-y-3">
+                  <label className="flex min-h-24 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border bg-surface px-4 transition hover:border-primary/50 hover:bg-surface-high/30">
+                    <FileText className="h-6 w-6 shrink-0 text-muted-foreground" />
+                    <span className="min-w-0 text-xs text-muted-foreground">
+                      {pdfFile ? (
+                        <strong className="block truncate text-foreground">
+                          {pdfFile.name}
+                        </strong>
+                      ) : (
+                        "Chọn Press Kit định dạng PDF"
+                      )}
+                    </span>
+                    <input
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      className="hidden"
+                      disabled={isGeneratingBio}
+                      onChange={(event) =>
+                        setPdfFile(event.target.files?.[0] ?? null)
+                      }
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={!pdfFile || isGeneratingBio}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-secondary px-4 py-2.5 text-sm font-bold text-white transition hover:bg-secondary-container disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isGeneratingBio ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Đang xử lý tác vụ...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        Tạo AI Bio
+                      </>
+                    )}
+                  </button>
+                </form>
+                {bioJob && (
+                  <div className="space-y-2 rounded-lg border border-border bg-surface p-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">
+                        Tác vụ {bioJob.id.slice(0, 8)}…
+                      </span>
+                      <strong
+                        className={
+                          bioJob.status === "COMPLETED"
+                            ? "text-emerald-400"
+                            : bioJob.status === "FAILED"
+                              ? "text-rose-400"
+                              : "text-amber-400"
+                        }
+                      >
+                        {bioJob.status}
+                      </strong>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-border">
+                      <div
+                        className="h-full bg-secondary transition-[width] duration-500"
+                        style={{ width: `${bioJob.progress_percentage}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {bioJob.status === "PENDING" ||
+                      bioJob.status === "PROCESSING"
+                        ? "Bạn có thể đóng drawer; tác vụ vẫn tiếp tục trong nền."
+                        : bioJob.status === "COMPLETED"
+                          ? "Bio mới đã được lưu trực tiếp vào sự kiện."
+                          : bioJob.error_message}
+                    </p>
+                  </div>
+                )}
+              </section>
+
               {/* Guest List CSV Import */}
               <div className="bg-background rounded-xl p-5 border border-border space-y-4">
                 <h4 className="font-bold text-sm text-foreground flex items-center gap-2 select-none">

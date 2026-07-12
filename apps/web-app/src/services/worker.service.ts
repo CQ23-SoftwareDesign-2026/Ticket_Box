@@ -64,7 +64,7 @@ export interface BackgroundJobsQuery {
 export async function generateBio(
   concertId: string,
   file: File,
-): Promise<{ job_id: string; status: string }> {
+): Promise<{ job_id: string; status: BackgroundJob["status"] }> {
   const token = tokenStorage.getAccessToken();
   const formData = new FormData();
   formData.append("concert_id", concertId);

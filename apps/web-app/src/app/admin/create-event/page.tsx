@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, Suspense, type ChangeEvent } from "react";
+import { useEffect, useState, Suspense, type ChangeEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/context/ToastContext";
 import {
@@ -11,14 +11,10 @@ import {
 } from "@/services/concert.service";
 import { uploadImage, uploadSvg } from "@/services/upload.service";
 import { getErrorMessage } from "@/utils/error.utils";
-import { generateBio, getJobStatus } from "@/services/worker.service";
 import {
   ChevronRight,
   Info,
   ImagePlus,
-  Bot,
-  Upload,
-  Sparkles,
   Ticket,
   PlusCircle,
   Trash2,
@@ -105,12 +101,10 @@ function EventForm() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const isEditing = !!editId;
-  const pressKitInputRef = useRef<HTMLInputElement | null>(null);
   const { success, error: toastError, warning } = useToast();
 
   const [isLoading, setIsLoading] = useState(isEditing);
   const [isSaving, setIsSaving] = useState(false);
-  const [pressKitFile, setPressKitFile] = useState<File | null>(null);
 
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isUploadingSvg, setIsUploadingSvg] = useState(false);
@@ -129,7 +123,6 @@ function EventForm() {
     name: "",
     description: "",
     location: "",
-    ai_bio: "",
     start_time: "",
     svg_map_url: "https://cdn.ticketbox.local/maps/default.svg",
     poster_url: "",
@@ -153,9 +146,6 @@ function EventForm() {
       },
     ],
   );
-
-  const [isGeneratingBio, setIsGeneratingBio] = useState(false);
-  const [bioProgress, setBioProgress] = useState<number | null>(null);
 
   const handleCoverImageChange = async (
     event: ChangeEvent<HTMLInputElement>,
@@ -201,15 +191,6 @@ function EventForm() {
     }
   };
 
-  const handlePressKitButtonClick = () => {
-    pressKitInputRef.current?.click();
-  };
-
-  const handlePressKitChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null;
-    setPressKitFile(file);
-  };
-
   useEffect(() => {
     if (editId) {
       getConcertById(editId)
@@ -233,7 +214,6 @@ function EventForm() {
               data.venue && data.city
                 ? `${data.venue}, ${data.city}`
                 : data.venue || "",
-            ai_bio: data.aiBio || "",
             start_time: formattedDate,
             svg_map_url:
               data.mapUrl || "https://cdn.ticketbox.local/maps/default.svg",
@@ -289,7 +269,6 @@ function EventForm() {
         name: formData.name,
         description: formData.description,
         location: formData.location,
-        ai_bio: formData.ai_bio,
         start_time: startDate.toISOString(),
         svg_map_url: formData.svg_map_url,
         poster_url: formData.poster_url,
@@ -314,7 +293,7 @@ function EventForm() {
         await updateConcert(editId, payload);
         success("Cập nhật sự kiện thành công!");
       } else {
-        await createConcert(payload);
+        await createConcert({ ...payload, ai_bio: "" });
         success("Tạo sự kiện mới thành công!");
       }
       router.push("/admin/events");
@@ -397,59 +376,6 @@ function EventForm() {
       setConfirmCancel(true);
     } else {
       router.push("/admin/events");
-    }
-  };
-
-  const generateAIBio = async () => {
-    if (!isEditing || !editId) {
-      warning("Vui lòng tạo và lưu sự kiện trước khi sinh tiểu sử bằng AI.");
-      return;
-    }
-    if (!pressKitFile) {
-      warning("Vui lòng chọn file Press Kit PDF trước.");
-      return;
-    }
-
-    setIsGeneratingBio(true);
-    setBioProgress(0);
-
-    try {
-      const res = await generateBio(editId, pressKitFile);
-      const jobId = res.job_id;
-
-      const pollInterval = setInterval(async () => {
-        try {
-          const job = await getJobStatus(jobId);
-          setBioProgress(job.progress_percentage);
-
-          if (job.status === "COMPLETED") {
-            clearInterval(pollInterval);
-            setIsGeneratingBio(false);
-            setBioProgress(null);
-            const updated = await getConcertById(editId);
-            setFormData((prev) => ({ ...prev, ai_bio: updated.aiBio || "" }));
-            success("Tạo thông tin tiểu sử sự kiện bằng AI thành công!");
-          } else if (job.status === "FAILED") {
-            clearInterval(pollInterval);
-            setIsGeneratingBio(false);
-            setBioProgress(null);
-            toastError(
-              `Sinh tiểu sử AI thất bại: ${job.error_message || "Lỗi không xác định"}`,
-            );
-          }
-        } catch (err) {
-          console.error("Error checking bio job status:", err);
-        }
-      }, 2000);
-    } catch (err: unknown) {
-      console.error(err);
-      toastError(
-        err instanceof Error
-          ? err.message
-          : "Không thể bắt đầu tiến trình sinh tiểu sử AI",
-      );
-      setIsGeneratingBio(false);
-      setBioProgress(null);
     }
   };
 
@@ -730,95 +656,7 @@ function EventForm() {
             </div>
           </section>
 
-          {/* Section 2: Artist & AI Bio */}
-          <section className="bg-surface rounded-xl p-6 shadow-sm border border-border">
-            <h3 className="font-display text-xl font-bold border-b border-border pb-4 mb-6 flex items-center gap-2">
-              <Bot className="w-6 h-6 text-secondary" />
-              Thông tin nghệ sĩ & Tạo tiểu sử AI
-            </h3>
-
-            {!isEditing ? (
-              <div className="p-6 rounded-xl bg-surface-low border border-dashed border-border text-center flex flex-col items-center justify-center gap-3 select-none">
-                <Bot className="w-12 h-12 text-muted-foreground animate-pulse" />
-                <p className="font-body text-sm text-muted-foreground font-semibold">
-                  Tính năng sinh thông tin tiểu sử bằng AI khả dụng sau khi sự
-                  kiện được khởi tạo.
-                </p>
-                <p className="font-body text-xs text-muted-foreground/70 max-w-md leading-relaxed">
-                  Sau khi tạo sự kiện dưới dạng **DRAFT**, bạn có thể cập nhật
-                  sự kiện để tải lên Press Kit (PDF) và sử dụng AI sinh tự động
-                  mô tả sự kiện chi tiết.
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="p-4 rounded-lg bg-surface-low border border-border mb-5">
-                  <h4 className="font-body text-xs font-semibold text-foreground mb-2">
-                    Tải lên Press Kit (PDF){" "}
-                    <span className="text-muted-foreground font-normal">
-                      (Tùy chọn)
-                    </span>
-                  </h4>
-                  <div className="flex flex-wrap items-center gap-4">
-                    <input
-                      ref={pressKitInputRef}
-                      accept=".pdf,application/pdf"
-                      className="hidden"
-                      type="file"
-                      onChange={handlePressKitChange}
-                    />
-                    <button
-                      type="button"
-                      onClick={handlePressKitButtonClick}
-                      className="px-4 py-2 rounded-lg border border-border text-foreground hover:bg-surface-high transition-colors text-sm font-medium flex items-center gap-2 cursor-pointer"
-                    >
-                      <Upload className="w-4 h-4" />
-                      {pressKitFile ? "Thay thế file" : "Chọn file PDF"}
-                    </button>
-                    <span className="text-sm text-muted-foreground italic">
-                      {pressKitFile
-                        ? pressKitFile.name
-                        : "Chưa chọn file nào. Hãy tải lên file PDF để AI sinh tiểu sử sự kiện."}
-                    </span>
-                  </div>
-                </div>
-                <div className="relative">
-                  <label className="block font-body text-xs font-semibold text-foreground mb-1 flex justify-between">
-                    <div>
-                      Mô tả sự kiện chi tiết (AI sinh hoặc soạn thảo){" "}
-                      <span className="text-muted-foreground font-normal">
-                        (Tùy chọn)
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={generateAIBio}
-                      disabled={isGeneratingBio}
-                      className="text-primary hover:text-primary/80 text-xs flex items-center gap-1 disabled:opacity-50 font-bold cursor-pointer"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      {isGeneratingBio
-                        ? `Đang sinh mô tả (${bioProgress ?? 0}%)`
-                        : "Tạo bằng AI"}
-                    </button>
-                  </label>
-
-                  <textarea
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:ring-1 focus:ring-primary text-sm"
-                    placeholder="Nhập nội dung mô tả chi tiết cho sự kiện của bạn..."
-                    rows={6}
-                    value={formData.ai_bio}
-                    onChange={(e) =>
-                      setFormData({ ...formData, ai_bio: e.target.value })
-                    }
-                    disabled={isGeneratingBio}
-                  ></textarea>
-                </div>
-              </>
-            )}
-          </section>
-
-          {/* Section 3: Ticketing */}
+          {/* Section 2: Ticketing */}
           <section className="bg-surface rounded-xl p-6 shadow-sm border border-border">
             <div className="flex justify-between items-center border-b border-border pb-4 mb-6">
               <h3 className="font-display text-xl font-bold flex items-center gap-2">
