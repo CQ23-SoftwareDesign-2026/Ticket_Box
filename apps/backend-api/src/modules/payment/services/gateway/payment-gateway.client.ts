@@ -55,11 +55,11 @@ export class PaymentGatewayClient {
         const breaker = new CircuitBreaker(
             async (input: PaymentGatewaySessionInput) => strategy.createPaymentSession(input),
             {
-                errorThresholdPercentage: 50,
-                resetTimeout: 60_000,
-                rollingCountTimeout: 10_000,
-                rollingCountBuckets: 10,
-                volumeThreshold: 4,
+                errorThresholdPercentage: 50,   // 50% fail thì circuit breaker sẽ mở
+                resetTimeout: 60_000,           // 60s sau khi mở thì circuit breaker sẽ thử lại
+                rollingCountTimeout: 10_000,    // 10s window để tính toán tỷ lệ lỗi
+                rollingCountBuckets: 10,        // 10 buckets trong 10s window, mỗi bucket là 1s
+                volumeThreshold: 4,             // ít nhất 4 request trong 10s window thì mới tính toán tỷ lệ lỗi
                 timeout: Number(process.env.PAYMENT_GATEWAY_TIMEOUT_MS ?? 3_000),
             },
         );
